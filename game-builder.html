@@ -1,0 +1,1955 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Survival Game Builder · EcoBuild</title>
+<script src="https://cdn.jsdelivr.net/npm/aframe@1.7.1/dist/aframe-v1.7.1.min.js"></script>
+<script id="eco-shared">(function () {
+  var THREE = AFRAME.THREE;
+  var ECO = window.ECO = { images: {}, _tex: {}, _anim: [] };
+
+  ECO.PRESETS = {
+    forest:     { name: 'Temperate forest',        sky: ['#5b97d8', '#d4e8f3', '#9fb59a'], ground: '#4f6d33', fog: ['#cddfce', 0.011], hills: { type: 'hills',  color: '#3f5d2d' } },
+    rainforest: { name: 'Tropical rainforest',     sky: ['#79a8b9', '#dbe9df', '#88a58c'], ground: '#3a5626', fog: ['#bcd3c1', 0.028], hills: { type: 'hills',  color: '#2e4c21', tall: true } },
+    grassland:  { name: 'Grassland / prairie',     sky: ['#3e8fe2', '#eef2d4', '#c2c78f'], ground: '#a2ab55', fog: ['#e6eacf', 0.006], hills: { type: 'rolling', color: '#8e9a4b' } },
+    desert:     { name: 'Desert',                  sky: ['#3c8be6', '#f5dfb9', '#d8b583'], ground: '#d4ad73', fog: ['#efdab6', 0.006], hills: { type: 'mesas',  color: '#b5764a' } },
+    tundra:     { name: 'Arctic tundra',           sky: ['#8db4dc', '#eef3f8', '#d8e1e8'], ground: '#dde5ea', fog: ['#e7edf2', 0.012], hills: { type: 'mounds', color: '#c6d3de' } },
+    wetland:    { name: 'Wetland / pond',          sky: ['#5d98cc', '#e2ede7', '#a7bba4'], ground: '#5a7436', fog: ['#d2e1d8', 0.012], hills: { type: 'hills',  color: '#4a6a33' }, water: { x: 0, z: -10, r: 7, color: '#3f8094' } },
+    reef:       { name: 'Coral reef (underwater)', sky: ['#4fb0d8', '#11557e', '#062a44'], ground: '#cdb98a', fog: ['#1a6890', 0.022], hills: { type: 'reef',   color: '#8f8270' }, underwater: true },
+    plain:      { name: 'Blank meadow',            sky: ['#5a9be0', '#e8f0f6', '#b7c4a8'], ground: '#8c9e72', fog: null,               hills: { type: 'none' } }
+  };
+
+  ECO.ROLES = [
+    ['', 'Not set yet', null],
+    ['producer', 'Producer', '#3c9d4c'],
+    ['primary', 'Primary consumer (herbivore)', '#b88a00'],
+    ['secondary', 'Secondary consumer', '#d9681a'],
+    ['tertiary', 'Tertiary / apex consumer', '#c63a2f'],
+    ['omnivore', 'Omnivore', '#8f50b5'],
+    ['decomposer', 'Decomposer', '#86613f'],
+    ['abiotic', 'Nonliving (abiotic) factor', '#6f7a83']
+  ];
+  ECO.role = function (k) {
+    for (var i = 0; i < ECO.ROLES.length; i++) if (ECO.ROLES[i][0] === k) return ECO.ROLES[i];
+    return ECO.ROLES[0];
+  };
+
+  ECO.rng = function (seed) {
+    var a = seed >>> 0;
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  };
+  function hash(s) { var h = 0; s = String(s); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h; }
+
+  ECO.texture = function (key) {
+    if (ECO._tex[key]) return ECO._tex[key];
+    var url = ECO.images[key];
+    if (!url) return null;
+    var t = new THREE.TextureLoader().load(url);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    t.userData.cached = true;
+    ECO._tex[key] = t;
+    return t;
+  };
+  function canvasTex(c) { var t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
+  ECO.canvasTex = canvasTex;
+
+  ECO.rr = function (x, X, Y, W, H, R) {
+    x.beginPath(); x.moveTo(X + R, Y); x.arcTo(X + W, Y, X + W, Y + H, R); x.arcTo(X + W, Y + H, X, Y + H, R);
+    x.arcTo(X, Y + H, X, Y, R); x.arcTo(X, Y, X + W, Y, R); x.closePath();
+  };
+  ECO.FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+  ECO.wrap = function (ctx, text, maxW) {
+    var out = [];
+    String(text).split(/\n/).forEach(function (par) {
+      if (!par.trim()) { out.push(''); return; }
+      var line = '';
+      par.split(/\s+/).forEach(function (w) {
+        var test = line ? line + ' ' + w : w;
+        if (ctx.measureText(test).width > maxW && line) { out.push(line); line = w; } else line = test;
+      });
+      if (line) out.push(line);
+    });
+    return out;
+  };
+
+  function skyCanvas(s) {
+    var c = document.createElement('canvas'); c.width = 4; c.height = 512;
+    var x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 512);
+    g.addColorStop(0, s[0]); g.addColorStop(0.47, s[1]); g.addColorStop(0.5, s[1]); g.addColorStop(0.56, s[2]); g.addColorStop(1, s[2]);
+    x.fillStyle = g; x.fillRect(0, 0, 4, 512); return c;
+  }
+  function noiseCanvas(col, rand) {
+    var S = 256, c = document.createElement('canvas'); c.width = c.height = S;
+    var x = c.getContext('2d'); x.fillStyle = col; x.fillRect(0, 0, S, S);
+    var base = new THREE.Color(col);
+    for (var i = 0; i < 900; i++) {
+      var cc = base.clone().offsetHSL((rand() - 0.5) * 0.03, (rand() - 0.5) * 0.08, (rand() - 0.5) * 0.1);
+      x.fillStyle = '#' + cc.getHexString(); x.globalAlpha = 0.35;
+      var px = rand() * S, py = rand() * S, r = 2 + rand() * 9;
+      for (var ox = -S; ox <= S; ox += S) for (var oy = -S; oy <= S; oy += S) { x.beginPath(); x.arc(px + ox, py + oy, r, 0, 7); x.fill(); }
+    }
+    x.globalAlpha = 1;
+    return c;
+  }
+  function addHills(g, h, rand) {
+    if (!h || h.type === 'none') return;
+    var base = new THREE.Color(h.color), n = h.type === 'mesas' ? 14 : 22;
+    for (var i = 0; i < n; i++) {
+      var a = i / n * Math.PI * 2 + rand() * 0.25, d = 58 + rand() * 22, r = 8 + rand() * 12, geo, y = 0;
+      if (h.type === 'mesas') { var hh = 6 + rand() * 10; geo = new THREE.CylinderGeometry(r * 0.75, r, hh, 7); y = hh / 2 - 0.5; }
+      else if (h.type === 'reef') { geo = new THREE.DodecahedronGeometry(r * 0.5, 0); y = r * 0.15; }
+      else {
+        var sy = h.type === 'rolling' ? 0.25 : (h.type === 'mounds' ? 0.35 : 0.5);
+        if (h.tall) sy *= 1.6;
+        geo = new THREE.SphereGeometry(r, 10, 7); geo.scale(1.4, sy, 1);
+      }
+      var c = base.clone().offsetHSL((rand() - 0.5) * 0.03, (rand() - 0.5) * 0.08, (rand() - 0.5) * 0.08);
+      var m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
+      m.position.set(Math.sin(a) * d, y, -Math.cos(a) * d); m.rotation.y = rand() * 6.28; m.raycast = function () {};
+      g.add(m);
+    }
+  }
+
+  ECO.buildEnvironment = function (sceneEl, env) {
+    var root = sceneEl.object3D, old = root.getObjectByName('eco-env');
+    if (old) {
+      root.remove(old);
+      old.traverse(function (o) {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) { if (o.material.map && !o.material.map.userData.cached) o.material.map.dispose(); o.material.dispose(); }
+      });
+    }
+    ECO._anim.length = 0;
+    var g = new THREE.Group(); g.name = 'eco-env'; root.add(g);
+    var photo = env.mode === 'photo' && env.photoKey && ECO.images[env.photoKey];
+    var P = ECO.PRESETS[env.preset] || ECO.PRESETS.forest;
+
+    var skyGeo = new THREE.SphereGeometry(450, 64, 32); skyGeo.scale(-1, 1, 1);
+    var skyMat = photo
+      ? new THREE.MeshBasicMaterial({ map: ECO.texture(env.photoKey), fog: false })
+      : new THREE.MeshBasicMaterial({ map: canvasTex(skyCanvas(P.sky)), fog: false });
+    var sky = new THREE.Mesh(skyGeo, skyMat);
+    sky.rotation.y = photo ? THREE.MathUtils.degToRad(env.photoYaw || 0) : 0;
+    sky.raycast = function () {};
+    g.add(sky);
+
+    root.fog = (!photo && P.fog) ? new THREE.FogExp2(P.fog[0], P.fog[1]) : null;
+
+    var groundCol = photo ? (env.groundColor || '#6f7f5a') : P.ground;
+    g.add(new THREE.HemisphereLight(0xffffff, new THREE.Color(groundCol), 1.4));
+    var sun = new THREE.DirectionalLight(0xfff6e5, 1.6); sun.position.set(30, 60, 20); g.add(sun);
+
+    if (!photo || env.showGround) {
+      var gt = canvasTex(noiseCanvas(groundCol, ECO.rng(7)));
+      gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.repeat.set(25, 25);
+      var ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200, 160, 160), new THREE.MeshLambertMaterial({ map: gt }));
+      ground.rotation.x = -Math.PI / 2; ground.raycast = function () {};
+      g.add(ground);
+    }
+    if (!photo) {
+      addHills(g, P.hills, ECO.rng(1234 + hash(env.preset)));
+      if (P.water) {
+        var w = new THREE.Mesh(new THREE.CircleGeometry(P.water.r, 48),
+          new THREE.MeshLambertMaterial({ color: P.water.color, transparent: true, opacity: 0.88 }));
+        w.rotation.x = -Math.PI / 2; w.position.set(P.water.x, 0.04, P.water.z); w.raycast = function () {};
+        g.add(w);
+      }
+      if (P.underwater) {
+        var surf = new THREE.Mesh(new THREE.PlaneGeometry(400, 400),
+          new THREE.MeshBasicMaterial({ color: '#8fdcf5', transparent: true, opacity: 0.25, side: THREE.DoubleSide, fog: false }));
+        surf.rotation.x = Math.PI / 2; surf.position.y = 16; surf.raycast = function () {};
+        g.add(surf);
+        var N = 700, pos = new Float32Array(N * 3), rand = ECO.rng(99);
+        for (var i = 0; i < N; i++) {
+          var a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * 35;
+          pos[i * 3] = Math.cos(a) * d; pos[i * 3 + 1] = rand() * 14; pos[i * 3 + 2] = Math.sin(a) * d;
+        }
+        var pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        var pts = new THREE.Points(pg, new THREE.PointsMaterial({ color: '#ffffff', size: 0.06, transparent: true, opacity: 0.55 }));
+        pts.raycast = function () {};
+        g.add(pts);
+        ECO._anim.push(function (t) { pts.rotation.y = t * 0.00002; pts.position.y = Math.sin(t * 0.0004) * 0.3; });
+      }
+    }
+    root.traverse(function (o) { if (o.material) [].concat(o.material).forEach(function (m) { m.needsUpdate = true; }); });
+  };
+
+  function labelCanvas(text) {
+    var c = document.createElement('canvas'), x = c.getContext('2d'), fs = 56;
+    text = text.length > 40 ? text.slice(0, 39) + '…' : text;
+    x.font = '600 ' + fs + 'px ' + ECO.FONT;
+    var tw = Math.ceil(x.measureText(text).width);
+    c.width = tw + 64; c.height = 96;
+    x.font = '600 ' + fs + 'px ' + ECO.FONT;
+    x.fillStyle = 'rgba(14,26,20,0.74)'; ECO.rr(x, 2, 2, c.width - 4, c.height - 4, 44); x.fill();
+    x.fillStyle = '#ffffff'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(text, c.width / 2, c.height / 2 + 2);
+    return c;
+  }
+  function noRay() {}
+
+  AFRAME.registerComponent('eco-sprite', {
+    schema: {
+      key: { type: 'string', default: '' }, h: { default: 1 }, aspect: { default: 1 }, flip: { default: false },
+      elev: { default: 0 }, role: { type: 'string', default: '' }, showRole: { default: true },
+      label: { type: 'string', default: '' }, showLabel: { default: true }, selected: { default: false }, bob: { default: false }, ring: { type: 'string', default: '' }
+    },
+    init: function () {
+      this.holder = new THREE.Group(); this.base = new THREE.Group();
+      this.el.setObject3D('eco-holder', this.holder); this.el.setObject3D('eco-base', this.base);
+      this.phase = Math.random() * 6.28; this._c = new THREE.Vector3(); this._m = new THREE.Vector3();
+      var g = new THREE.PlaneGeometry(1, 1); g.translate(0, 0.5, 0);
+      this.mat = new THREE.MeshBasicMaterial({ alphaTest: 0.5, side: THREE.DoubleSide });
+      this.mesh = new THREE.Mesh(g, this.mat); this.mesh.userData.el = this.el; this.mesh.el = this.el;
+      this.holder.add(this.mesh);
+    },
+    update: function (old) {
+      var d = this.data;
+      if (d.key !== old.key) { var t = ECO.texture(d.key); if (t) { this.mat.map = t; this.mat.needsUpdate = true; } }
+      var w = d.h * d.aspect;
+      this.mesh.scale.set(d.flip ? -w : w, d.h, 1);
+      this.holder.position.y = d.elev;
+
+      if (d.label !== old.label || d.h !== old.h || d.showLabel !== old.showLabel) {
+        if (this.labelMesh) { this.holder.remove(this.labelMesh); this.labelMesh.geometry.dispose(); this.labelMesh.material.map.dispose(); this.labelMesh.material.dispose(); this.labelMesh = null; }
+        if (d.showLabel && d.label) {
+          var c = labelCanvas(d.label), lh = Math.min(0.7, Math.max(0.22, 0.22 + d.h * 0.04));
+          var lm = new THREE.Mesh(new THREE.PlaneGeometry(1, 1),
+            new THREE.MeshBasicMaterial({ map: canvasTex(c), transparent: true, depthWrite: false, fog: false }));
+          lm.scale.set(lh * c.width / c.height, lh, 1); lm.position.y = d.h + lh * 0.5 + 0.1;
+          lm.renderOrder = 10; lm.userData.el = this.el; lm.el = this.el;
+          this.labelMesh = lm; this.holder.add(lm);
+        }
+      }
+
+      while (this.base.children.length) {
+        var ch = this.base.children.pop(); ch.geometry.dispose(); ch.material.dispose();
+      }
+      this.selRing = null;
+      var r = Math.min(3, Math.max(0.18, w * 0.38));
+      var shadow = new THREE.Mesh(new THREE.CircleGeometry(r * 0.9, 32),
+        new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22 * Math.max(0.3, 1 - d.elev / 10), depthWrite: false }));
+      shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.015; shadow.raycast = noRay; this.base.add(shadow);
+      var role = ECO.role(d.role);
+      var ringColor = d.ring || (d.showRole && role[2]);
+      if (ringColor) {
+        var ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.82, r, 48),
+          new THREE.MeshBasicMaterial({ color: ringColor, transparent: true, opacity: 0.9, depthWrite: false }));
+        ring.rotation.x = -Math.PI / 2; ring.position.y = 0.025; ring.raycast = noRay; this.base.add(ring);
+      }
+      if (d.selected) {
+        var sr = new THREE.Mesh(new THREE.RingGeometry(r * 1.08, r * 1.3, 48),
+          new THREE.MeshBasicMaterial({ color: '#2fc4f2', transparent: true, opacity: 1, depthWrite: false, fog: false }));
+        sr.rotation.x = -Math.PI / 2; sr.position.y = 0.035; sr.raycast = noRay; this.base.add(sr); this.selRing = sr;
+      }
+    },
+    tick: function (t) {
+      var cam = this.el.sceneEl.camera; if (!cam) return;
+      cam.getWorldPosition(this._c); this.el.object3D.getWorldPosition(this._m);
+      this.holder.rotation.y = Math.atan2(this._c.x - this._m.x, this._c.z - this._m.z);
+      if (this.data.bob && this.data.elev > 0.3)
+        this.holder.position.y = this.data.elev + Math.sin(t / 900 + this.phase) * Math.min(0.12, this.data.h * 0.08);
+      if (this.selRing) this.selRing.material.opacity = 0.55 + 0.45 * Math.sin(t / 220);
+    },
+    remove: function () {
+      this.el.removeObject3D('eco-holder'); this.el.removeObject3D('eco-base');
+      this.mesh.geometry.dispose(); this.mat.dispose();
+    }
+  });
+
+  AFRAME.registerComponent('eco-ambient', {
+    tick: function (t, dt) { for (var i = 0; i < ECO._anim.length; i++) ECO._anim[i](t, dt); }
+  });
+})();</script>
+<script id="eco-library">(function () {
+  var THREE = AFRAME.THREE;
+  var LIB = [
+    ['🌳','Deciduous tree','plant',6], ['🌲','Evergreen tree','plant',8], ['🌴','Palm tree','plant',7], ['🌵','Cactus','plant',2.5],
+    ['🎋','Bamboo','plant',4], ['🌾','Grass','plant',0.7], ['🌿','Fern','plant',0.8], ['☘️','Clover','plant',0.25],
+    ['🌱','Seedling','plant',0.3], ['🌻','Sunflower','plant',1.6], ['🌼','Wildflower','plant',0.4], ['🌸','Blossom','plant',0.5],
+    ['🌺','Hibiscus','plant',1.2], ['🌷','Tulip','plant',0.4], ['🪻','Hyacinth','plant',0.45], ['🪷','Lotus','plant',0.5],
+    ['🌽','Corn','plant',2.2],
+    ['🦌','Deer','animal',1.6], ['🐻','Bear','animal',1.5], ['🐺','Wolf','animal',1.0], ['🦊','Fox','animal',0.6],
+    ['🐇','Rabbit','animal',0.35], ['🐿️','Squirrel','animal',0.3], ['🦔','Hedgehog','animal',0.25], ['🦝','Raccoon','animal',0.5],
+    ['🦨','Skunk','animal',0.4], ['🦫','Beaver','animal',0.5], ['🦡','Badger','animal',0.4], ['🐁','Mouse','animal',0.12],
+    ['🦬','Bison','animal',1.8], ['🐪','Camel','animal',2.1], ['🦁','Lion','animal',1.2], ['🐅','Tiger','animal',1.1],
+    ['🐆','Leopard','animal',0.9], ['🦓','Zebra','animal',1.5], ['🦒','Giraffe','animal',5], ['🐘','Elephant','animal',3.2],
+    ['🦏','Rhinoceros','animal',1.7], ['🦛','Hippopotamus','animal',1.5], ['🦘','Kangaroo','animal',1.5], ['🐒','Monkey','animal',0.6,3],
+    ['🦍','Gorilla','animal',1.6], ['🦥','Sloth','animal',0.6,4], ['🐻‍❄️','Polar bear','animal',1.6], ['🐧','Penguin','animal',0.8],
+    ['🦭','Seal','animal',0.6], ['🦉','Owl','animal',0.5,4], ['🦅','Eagle','animal',0.9,9], ['🐦','Songbird','animal',0.25,3],
+    ['🦜','Parrot','animal',0.5,5], ['🦆','Duck','animal',0.5], ['🦢','Swan','animal',0.9], ['🦩','Flamingo','animal',1.3],
+    ['🦇','Bat','animal',0.35,4], ['🐸','Frog','animal',0.15], ['🐍','Snake','animal',0.4], ['🦎','Lizard','animal',0.25],
+    ['🐢','Turtle','animal',0.3], ['🐊','Alligator','animal',0.8], ['🐝','Bee','animal',0.12,1], ['🦋','Butterfly','animal',0.15,1.2],
+    ['🐛','Caterpillar','animal',0.08], ['🐞','Ladybug','animal',0.06], ['🐜','Ant','animal',0.05], ['🪲','Beetle','animal',0.08],
+    ['🦗','Cricket','animal',0.08], ['🕷️','Spider','animal',0.08], ['🦂','Scorpion','animal',0.12], ['🐌','Snail','animal',0.08],
+    ['🪱','Earthworm','animal',0.06],
+    ['🐟','Fish','water',0.4,2], ['🐠','Tropical fish','water',0.3,2], ['🐡','Pufferfish','water',0.3,2], ['🦈','Shark','water',2.5,4],
+    ['🐋','Whale','water',6,6], ['🐬','Dolphin','water',2,3], ['🐙','Octopus','water',0.6], ['🦑','Squid','water',0.6,3],
+    ['🪼','Jellyfish','water',0.5,4], ['🦀','Crab','water',0.2], ['🦞','Lobster','water',0.3], ['🦐','Shrimp','water',0.1,0.5],
+    ['🪸','Coral','water',0.8], ['🦦','Otter','water',0.6],
+    ['🍄','Mushroom','other',0.3], ['🦠','Bacteria','other',0.3], ['🪨','Rock','other',0.8,0,'abiotic'],
+    ['🪵','Log','other',0.6,0,'abiotic'], ['💧','Water source','other',0.5,0,'abiotic'], ['☀️','Sunlight','other',2,12,'abiotic'],
+    ['🪺','Nest','other',0.3],
+    ['🥚','Egg','stage',0.6], ['','Frog eggs','stage',0.6], ['','Butterfly egg','stage',0.6], ['','Tadpole','stage',0.6],
+    ['','Tadpole with legs','stage',0.6], ['','Froglet','stage',0.7], ['','Chrysalis','stage',1], ['','Larva (grub)','stage',0.7],
+    ['','Pupa','stage',0.9], ['🐣','Hatching chick','stage',0.8], ['🐥','Chick','stage',0.8], ['🐔','Hen','stage',1.2],
+    ['🐓','Rooster','stage',1.3], ['','Seed','stage',0.5], ['','Sprouting seed','stage',0.9], ['🌰','Acorn','stage',0.5],
+    ['🍎','Fruit','stage',0.6], ['🪺','Nest with eggs','stage',0.7]
+  ].map(function (a) { return { e: a[0], n: a[1], c: a[2], h: a[3], elev: a[4] || 0, role: a[5] || '' }; });
+  // Full-body artwork for animals whose emoji show only a head
+  var ART = (function () {
+    function svg(vb, body) { return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '">' + body + '</svg>'; }
+  
+    function bear(c, polar) {
+      var head = polar
+        ? '<path d="M82 64 C70 52 52 52 38 60 C28 64 18 70 12 76 C8 80 10 86 16 88 L40 92 C54 96 70 94 82 86 Z" fill="' + c.main + '"/>' +
+          '<circle cx="66" cy="58" r="8" fill="' + c.main + '"/><circle cx="66" cy="58" r="4" fill="' + c.dark + '"/>' +
+          '<ellipse cx="13" cy="79" rx="6" ry="5" fill="#1d1d1f"/><circle cx="44" cy="70" r="3.4" fill="#1d1d1f"/>' +
+          '<path d="M14 88 Q26 92 36 89" stroke="#1d1d1f" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+        : '<circle cx="56" cy="70" r="28" fill="' + c.main + '"/>' +
+          '<circle cx="62" cy="44" r="10" fill="' + c.main + '"/><circle cx="62" cy="44" r="5" fill="' + c.paw + '"/>' +
+          '<ellipse cx="32" cy="80" rx="18" ry="13" fill="' + c.muzzle + '"/>' +
+          '<ellipse cx="18" cy="75" rx="7" ry="5.5" fill="#24170e"/><circle cx="48" cy="63" r="3.6" fill="#24170e"/>' +
+          '<path d="M22 88 Q30 92 38 88" stroke="#24170e" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+      return svg('0 0 240 160',
+        '<rect x="80" y="92" width="22" height="52" rx="10" fill="' + c.dark + '"/>' +
+        '<rect x="170" y="92" width="22" height="52" rx="10" fill="' + c.dark + '"/>' +
+        '<circle cx="212" cy="72" r="9" fill="' + c.dark + '"/>' +
+        '<path d="M62 80 C62 46 100 28 140 32 C176 28 212 46 212 84 C212 110 190 120 150 120 L100 120 C74 120 62 106 62 80Z" fill="' + c.main + '"/>' +
+        '<path d="M100 42 C126 28 160 30 180 42 C152 38 126 40 100 48Z" fill="' + c.hi + '"/>' +
+        '<rect x="64" y="96" width="24" height="54" rx="11" fill="' + c.main + '"/>' +
+        '<rect x="150" y="96" width="24" height="54" rx="11" fill="' + c.main + '"/>' +
+        '<rect x="60" y="141" width="32" height="12" rx="6" fill="' + c.paw + '"/>' +
+        '<rect x="146" y="141" width="32" height="12" rx="6" fill="' + c.paw + '"/>' +
+        '<rect x="77" y="136" width="28" height="10" rx="5" fill="' + c.paw + '"/>' +
+        '<rect x="167" y="136" width="28" height="10" rx="5" fill="' + c.paw + '"/>' +
+        head);
+    }
+  
+    function canine(c) {
+      var legs = function (x, y, h, fill) {
+        return '<rect x="' + x + '" y="' + y + '" width="13" height="' + h + '" rx="6" fill="' + fill + '"/>' +
+          (c.sock ? '<rect x="' + x + '" y="' + (y + h - 20) + '" width="13" height="20" rx="6" fill="' + c.sock + '"/>' : '') +
+          '<ellipse cx="' + (x + 5) + '" cy="' + (y + h - 2) + '" rx="10" ry="5" fill="' + (c.sock || c.dark) + '"/>';
+      };
+      return svg('0 0 250 160',
+        legs(86, 90, 54, c.dark) + legs(178, 88, 56, c.dark) +
+        '<path d="M196 66 C222 62 244 80 244 108 C236 100 224 98 212 94 C204 86 198 78 190 76Z" fill="' + c.main + '"/>' +
+        '<path d="M244 108 C238 98 230 96 222 96 C230 100 238 104 244 108Z" fill="' + c.tip + '"/>' +
+        '<path d="M226 90 C234 92 242 98 244 108 C236 104 228 100 220 98Z" fill="' + c.tip + '"/>' +
+        '<path d="M72 70 C80 52 112 48 142 50 C172 48 198 54 202 74 C204 92 188 102 162 104 L106 104 C86 104 70 92 72 70Z" fill="' + c.main + '"/>' +
+        '<path d="M98 98 C122 108 152 108 180 98 C162 104 122 106 98 98Z" fill="' + c.light + '"/>' +
+        legs(96, 94, 58, c.main) + legs(186, 92, 60, c.main) +
+        '<path d="M62 58 C66 74 76 86 92 92 L104 64 C94 54 80 48 68 46Z" fill="' + c.main + '"/>' +
+        '<path d="M64 62 C68 76 76 84 88 90 C80 80 74 70 70 60Z" fill="' + c.light + '"/>' +
+        '<path d="M90 48 C86 34 74 28 62 30 C48 32 36 38 28 44 L12 50 C8 53 10 58 16 59 L40 62 C52 68 68 70 80 66 Z" fill="' + c.main + '"/>' +
+        '<path d="M14 58 L40 62 C50 66 62 68 72 66 C58 70 42 70 30 66 Z" fill="' + c.light + '"/>' +
+        '<path d="M58 34 L62 12 L76 32Z" fill="' + c.main + '"/><path d="M62 30 L64 18 L71 31Z" fill="' + c.ear + '"/>' +
+        '<path d="M70 34 L78 14 L88 36Z" fill="' + c.dark + '"/>' +
+        '<ellipse cx="11" cy="52" rx="5" ry="4" fill="#1e1a18"/>' +
+        '<path d="M40 41 Q46 37 52 41" stroke="#1e1a18" stroke-width="3.2" fill="none" stroke-linecap="round"/>');
+    }
+  
+    function lion() {
+      var c = { main: '#d9a45b', dark: '#b98440', light: '#efcf94', mane: '#9c5a22', maneHi: '#b86f2c' };
+      return svg('0 0 250 160',
+        '<rect x="84" y="92" width="16" height="52" rx="7" fill="' + c.dark + '"/>' +
+        '<rect x="180" y="90" width="16" height="54" rx="7" fill="' + c.dark + '"/>' +
+        '<path d="M200 72 C226 76 232 100 238 118" stroke="' + c.main + '" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+        '<ellipse cx="238" cy="122" rx="7" ry="10" fill="' + c.mane + '"/>' +
+        '<path d="M70 72 C76 52 110 48 142 50 C174 48 202 54 204 76 C206 94 190 104 164 106 L104 106 C84 106 68 94 70 72Z" fill="' + c.main + '"/>' +
+        '<path d="M98 100 C124 110 154 110 182 100 C162 106 122 108 98 100Z" fill="' + c.light + '"/>' +
+        '<rect x="96" y="96" width="17" height="56" rx="8" fill="' + c.main + '"/>' +
+        '<rect x="186" y="94" width="17" height="58" rx="8" fill="' + c.main + '"/>' +
+        '<ellipse cx="102" cy="150" rx="12" ry="5" fill="' + c.dark + '"/><ellipse cx="192" cy="150" rx="12" ry="5" fill="' + c.dark + '"/>' +
+        '<ellipse cx="92" cy="142" rx="11" ry="5" fill="' + c.dark + '"/><ellipse cx="186" cy="142" rx="11" ry="5" fill="' + c.dark + '"/>' +
+        '<path d="M58 30 C80 14 108 24 112 50 C116 72 108 92 90 100 C72 106 50 100 40 84 C30 66 38 42 58 30Z" fill="' + c.mane + '"/>' +
+        '<path d="M66 34 C84 26 102 34 104 52 C92 42 78 38 66 34Z" fill="' + c.maneHi + '"/>' +
+        '<path d="M76 50 C70 40 56 38 44 44 C34 50 26 56 18 62 C14 66 16 72 22 74 L44 78 C58 82 72 78 80 68 Z" fill="' + c.main + '"/>' +
+        '<path d="M20 72 L44 78 C54 80 64 78 70 74 C58 84 40 84 26 80Z" fill="' + c.light + '"/>' +
+        '<ellipse cx="19" cy="64" rx="5.5" ry="4.5" fill="#4a2c1a"/>' +
+        '<path d="M40 56 Q46 52 52 56" stroke="#2a1a10" stroke-width="3.2" fill="none" stroke-linecap="round"/>' +
+        '<circle cx="64" cy="42" r="7" fill="' + c.main + '"/><circle cx="64" cy="42" r="3.5" fill="' + c.dark + '"/>');
+    }
+  
+    function penguin() {
+      return svg('0 0 130 170',
+        '<ellipse cx="44" cy="160" rx="16" ry="7" fill="#f2a12e"/><ellipse cx="86" cy="160" rx="16" ry="7" fill="#f2a12e"/>' +
+        '<path d="M22 70 C8 92 6 118 14 132 C22 120 28 100 30 82Z" fill="#20262f"/>' +
+        '<path d="M108 70 C122 92 124 118 116 132 C108 120 102 100 100 82Z" fill="#20262f"/>' +
+        '<path d="M65 6 C96 6 108 36 108 70 C110 112 102 156 65 156 C28 156 20 112 22 70 C22 36 34 6 65 6Z" fill="#20262f"/>' +
+        '<path d="M65 52 C88 52 96 80 96 104 C96 134 86 150 65 150 C44 150 34 134 34 104 C34 80 42 52 65 52Z" fill="#f8f8f4"/>' +
+        '<path d="M40 34 C44 24 54 22 58 30 C56 38 48 42 40 34Z" fill="#f8f8f4"/>' +
+        '<path d="M90 34 C86 24 76 22 72 30 C74 38 82 42 90 34Z" fill="#f8f8f4"/>' +
+        '<circle cx="51" cy="31" r="4" fill="#111"/><circle cx="79" cy="31" r="4" fill="#111"/>' +
+        '<path d="M56 42 L74 42 L65 56Z" fill="#f2a12e"/>' +
+        '<path d="M50 56 C56 62 74 62 80 56 C76 66 54 66 50 56Z" fill="#f5c84c" opacity=".7"/>');
+    }
+  
+    function songbird() {
+      return svg('0 0 170 140',
+        '<path d="M76 104 L72 126 M90 104 L94 126" stroke="#6b4a2b" stroke-width="3.5" stroke-linecap="round"/>' +
+        '<path d="M64 126 L80 126 M86 126 L102 126" stroke="#6b4a2b" stroke-width="3" stroke-linecap="round"/>' +
+        '<path d="M118 72 L162 56 L160 72 L122 88Z" fill="#2d64ad"/>' +
+        '<ellipse cx="84" cy="74" rx="44" ry="32" fill="#3f7fd0"/>' +
+        '<ellipse cx="68" cy="84" rx="28" ry="22" fill="#e5853c"/>' +
+        '<path d="M80 58 C104 50 128 62 134 82 C112 84 92 78 78 68Z" fill="#2d64ad"/>' +
+        '<path d="M92 70 C108 70 120 76 126 82 M96 76 C110 77 118 80 124 84" stroke="#244f8a" stroke-width="2" fill="none"/>' +
+        '<circle cx="52" cy="46" r="22" fill="#3f7fd0"/>' +
+        '<path d="M32 42 L14 48 L32 54Z" fill="#e3b23c"/>' +
+        '<circle cx="46" cy="42" r="4.2" fill="#111"/><circle cx="47.5" cy="40.5" r="1.4" fill="#fff"/>');
+    }
+  
+    function frog() {
+      return svg('0 0 180 125',
+        '<path d="M110 104 L160 108 C166 110 166 116 160 118 L104 116Z" fill="#3f8428"/>' +
+        '<path d="M30 72 C30 46 60 32 92 36 C124 38 150 54 152 78 C154 98 132 106 102 106 L62 106 C42 106 30 92 30 72Z" fill="#5aa83a"/>' +
+        '<path d="M44 96 C70 108 110 108 138 96 C122 106 70 108 44 96Z" fill="#b6d97a"/>' +
+        '<path d="M108 66 C138 58 162 80 154 100 C146 112 124 110 104 104 C98 90 100 76 108 66Z" fill="#4a9230"/>' +
+        '<circle cx="96" cy="52" r="6" fill="#3f8428"/><circle cx="120" cy="60" r="5" fill="#3f8428"/><circle cx="78" cy="44" r="4" fill="#3f8428"/>' +
+        '<path d="M52 86 L42 112 C40 116 46 118 50 116 L62 92Z" fill="#4a9230"/>' +
+        '<path d="M36 116 L58 116" stroke="#3f8428" stroke-width="5" stroke-linecap="round"/>' +
+        '<circle cx="56" cy="38" r="15" fill="#5aa83a"/>' +
+        '<circle cx="56" cy="37" r="10" fill="#f3d34a"/><ellipse cx="56" cy="37" rx="6" ry="4" fill="#111"/>' +
+        '<path d="M26 66 Q52 78 86 68" stroke="#2f5f1d" stroke-width="2.6" fill="none" stroke-linecap="round"/>' +
+        '<circle cx="34" cy="58" r="2" fill="#2f5f1d"/>');
+    }
+  
+    return {
+      'Bear': bear({ main: '#8a5a2e', dark: '#6e4521', hi: '#a06b39', muzzle: '#b98a5c', paw: '#5c3a1c' }),
+      'Polar bear': bear({ main: '#f3efe4', dark: '#d9d2c0', hi: '#ffffff', muzzle: '#e9e3d3', paw: '#cfc7b3' }, true),
+      'Wolf': canine({ main: '#8d9198', dark: '#6b7078', light: '#e3e1dc', tip: '#4c5058', ear: '#5c6068' }),
+      'Fox': canine({ main: '#e8742a', dark: '#b8541a', light: '#fbf3e8', tip: '#fbf3e8', ear: '#3a2a22', sock: '#3a2a22' }),
+      'Lion': lion(),
+      'Penguin': penguin(),
+      'Songbird': songbird(),
+      'Frog': frog()
+    };
+  })();
+  // ---- Life cycle stage artwork ----
+  var STAGE_ART = (function () {
+    function svg(vb, body) { return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '">' + body + '</svg>'; }
+    var eggs = '';
+    [[30, 30], [56, 24], [82, 30], [108, 36], [42, 54], [68, 50], [94, 56], [56, 76], [82, 74], [118, 60], [24, 74]].forEach(function (p) {
+      eggs += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="13" fill="#dcefd4" fill-opacity=".9" stroke="#a9cc9a" stroke-width="2"/>' +
+        '<circle cx="' + (p[0] + 1) + '" cy="' + (p[1] + 1) + '" r="5" fill="#1d1f1a"/>';
+    });
+    var tadBody = '<ellipse cx="42" cy="40" rx="27" ry="20" fill="#3e4330"/>' +
+      '<path d="M62 33 C92 18 124 28 154 40 C124 52 92 62 62 47Z" fill="#666d50"/>' +
+      '<path d="M66 37 C96 30 124 34 150 40 C124 44 96 48 66 43Z" fill="#7e866a"/>' +
+      '<ellipse cx="36" cy="32" rx="9" ry="5" fill="#575d45"/>' +
+      '<circle cx="28" cy="35" r="4.5" fill="#f2f0e4"/><circle cx="27" cy="35" r="2.4" fill="#111"/>';
+    var frogBody =
+      '<path d="M110 104 L160 108 C166 110 166 116 160 118 L104 116Z" fill="#3f8428"/>' +
+      '<path d="M30 72 C30 46 60 32 92 36 C124 38 150 54 152 78 C154 98 132 106 102 106 L62 106 C42 106 30 92 30 72Z" fill="#5aa83a"/>' +
+      '<path d="M44 96 C70 108 110 108 138 96 C122 106 70 108 44 96Z" fill="#b6d97a"/>' +
+      '<path d="M108 66 C138 58 162 80 154 100 C146 112 124 110 104 104 C98 90 100 76 108 66Z" fill="#4a9230"/>' +
+      '<path d="M52 86 L42 112 C40 116 46 118 50 116 L62 92Z" fill="#4a9230"/>' +
+      '<path d="M36 116 L58 116" stroke="#3f8428" stroke-width="5" stroke-linecap="round"/>' +
+      '<circle cx="56" cy="38" r="15" fill="#5aa83a"/><circle cx="56" cy="37" r="10" fill="#f3d34a"/><ellipse cx="56" cy="37" rx="6" ry="4" fill="#111"/>' +
+      '<path d="M26 66 Q52 78 86 68" stroke="#2f5f1d" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
+    return {
+      'Frog eggs': svg('0 0 140 96', eggs),
+      'Tadpole': svg('0 0 160 80', tadBody),
+      'Tadpole with legs': svg('0 0 160 90',
+        '<path d="M56 50 C62 62 66 72 78 76 M78 76 L88 74 M78 76 L84 84" stroke="#3e4330" stroke-width="5" fill="none" stroke-linecap="round"/>' + tadBody),
+      'Froglet': svg('0 0 200 125', '<path d="M146 84 C172 82 194 90 196 98 C180 96 162 98 146 100Z" fill="#4a9230"/>' + frogBody),
+      'Butterfly egg': svg('0 0 160 100',
+        '<path d="M10 70 C40 10 120 0 150 30 C120 80 60 100 10 70Z" fill="#4f9a3c"/>' +
+        '<path d="M14 68 C60 50 110 32 148 30" stroke="#3b7b2c" stroke-width="3" fill="none"/>' +
+        '<ellipse cx="82" cy="40" rx="10" ry="14" fill="#f6f1da" stroke="#d6cba0" stroke-width="2"/>' +
+        '<path d="M76 30 L76 50 M82 27 L82 53 M88 30 L88 50" stroke="#e2d8b2" stroke-width="1.5"/>'),
+      'Chrysalis': svg('0 0 80 160',
+        '<path d="M40 0 L40 18" stroke="#4a3a2a" stroke-width="4" stroke-linecap="round"/>' +
+        '<path d="M40 16 C62 22 66 60 60 96 C56 126 48 146 40 150 C32 146 24 126 20 96 C14 60 18 22 40 16Z" fill="#6fbf73"/>' +
+        '<path d="M30 30 C26 60 28 100 36 136" stroke="#8fd493" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+        '<path d="M22 48 C34 55 46 55 58 48" stroke="#1d2b1d" stroke-width="3" fill="none"/>' +
+        '<circle cx="28" cy="44" r="2.6" fill="#e8c547"/><circle cx="40" cy="47" r="2.6" fill="#e8c547"/><circle cx="52" cy="44" r="2.6" fill="#e8c547"/>' +
+        '<circle cx="30" cy="110" r="2.2" fill="#e8c547"/><circle cx="50" cy="110" r="2.2" fill="#e8c547"/>'),
+      'Larva (grub)': svg('0 0 140 120',
+        '<path d="M100 32 C70 2 20 22 24 62 C28 98 80 106 100 82" stroke="#f1e6c8" stroke-width="36" fill="none" stroke-linecap="round"/>' +
+        '<path d="M100 32 C70 2 20 22 24 62 C28 98 80 106 100 82" stroke="#ddcca2" stroke-width="36" fill="none" stroke-dasharray="3 13"/>' +
+        '<circle cx="104" cy="30" r="17" fill="#c47a3a"/><circle cx="110" cy="26" r="3" fill="#3a2414"/>' +
+        '<path d="M80 52 L74 62 M70 50 L62 58 M60 52 L52 58" stroke="#c47a3a" stroke-width="4" stroke-linecap="round"/>'),
+      'Pupa': svg('0 0 90 150',
+        '<ellipse cx="45" cy="80" rx="30" ry="62" fill="#ece0c4"/>' +
+        '<ellipse cx="45" cy="38" rx="20" ry="18" fill="#e2d4b2"/>' +
+        '<path d="M28 56 C30 80 34 96 40 104 M62 56 C60 80 56 96 50 104" stroke="#d3c39c" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+        '<path d="M20 110 C35 116 55 116 70 110 M22 122 C36 128 54 128 68 122 M27 133 C38 138 52 138 63 133" stroke="#d3c39c" stroke-width="3" fill="none"/>'),
+      'Seed': svg('0 0 100 70',
+        '<path d="M10 40 C10 14 40 6 60 10 C86 14 94 34 90 48 C84 66 56 66 44 58 C34 52 26 62 18 58 C12 54 10 48 10 40Z" fill="#b9814a"/>' +
+        '<path d="M22 30 C34 18 54 16 70 20" stroke="#d29c63" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+        '<ellipse cx="38" cy="54" rx="6" ry="3" fill="#7a5130"/>'),
+      'Sprouting seed': svg('0 0 120 150',
+        '<path d="M60 94 C56 112 64 126 58 146 M58 120 C50 126 46 132 44 140 M60 110 C68 116 72 124 74 132" stroke="#e8dcc0" stroke-width="3.5" fill="none" stroke-linecap="round"/>' +
+        '<path d="M60 84 C60 60 56 42 52 30" stroke="#6db54a" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+        '<path d="M52 32 C40 18 24 20 18 26 C28 36 42 38 52 32Z" fill="#7cc657"/>' +
+        '<path d="M53 30 C62 14 80 12 88 18 C80 30 64 34 53 30Z" fill="#6db54a"/>' +
+        '<path d="M30 86 C30 68 50 62 64 66 C84 70 90 84 86 94 C80 106 58 104 48 100 C38 96 30 96 30 86Z" fill="#b9814a"/>')
+    };
+  })();
+  LIB.forEach(function (i) { if (ART[i.n]) i.svg = ART[i.n]; else if (STAGE_ART[i.n]) i.svg = STAGE_ART[i.n]; });
+  function svgUrl(s) { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s); }
+  var CATS = [['plant', 'Plants'], ['animal', 'Animals'], ['water', 'Water life'], ['other', 'Fungi & nonliving']];
+  var WEBP = (function () { try { return document.createElement('canvas').toDataURL('image/webp').indexOf('data:image/webp') === 0; } catch (e) { return false; } })();
+  function encode(c) { return WEBP ? c.toDataURL('image/webp', 0.9) : c.toDataURL('image/png'); }
+  function trim(c) {
+    var x = c.getContext('2d'), d = x.getImageData(0, 0, c.width, c.height).data, W = c.width, H = c.height;
+    var x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (var y = 0; y < H; y++) for (var i = 0; i < W; i++) if (d[(y * W + i) * 4 + 3] > 16) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    x0 = Math.max(0, x0 - 2); y0 = Math.max(0, y0 - 2); x1 = Math.min(W - 1, x1 + 2); y1 = Math.min(H - 1, y1 + 2);
+    var o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+    o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+    return { canvas: o, aspect: o.width / o.height };
+  }
+  function bakeEmoji(e) {
+    var S = 256, c = document.createElement('canvas'); c.width = c.height = S;
+    var x = c.getContext('2d'); x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.font = Math.round(S * 0.8) + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif';
+    x.fillText(e, S / 2, S / 2 + S * 0.04);
+    var t = trim(c); if (!t) return null;
+    return { url: encode(t.canvas), aspect: t.aspect };
+  }
+  function bakeSvg(s) {
+    return new Promise(function (res) {
+      var img = new Image();
+      img.onload = function () {
+        var S = 512, k = S / Math.max(img.naturalWidth || S, img.naturalHeight || S);
+        var c = document.createElement('canvas'); c.width = Math.round((img.naturalWidth || S) * k); c.height = Math.round((img.naturalHeight || S) * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        var t = trim(c); res(t ? { url: encode(t.canvas), aspect: t.aspect } : null);
+      };
+      img.onerror = function () { res(null); };
+      img.src = svgUrl(s);
+    });
+  }
+  function removeBackground(c) {
+    var x = c.getContext('2d'), img = x.getImageData(0, 0, c.width, c.height), d = img.data, W = c.width, H = c.height;
+    var sr = d[0], sg = d[1], sb = d[2], tol = 70, seen = new Uint8Array(W * H), stack = [];
+    for (var i = 0; i < W; i++) { stack.push(i, (H - 1) * W + i); }
+    for (var j = 0; j < H; j++) { stack.push(j * W, j * W + W - 1); }
+    while (stack.length) {
+      var p = stack.pop(); if (seen[p]) continue; seen[p] = 1;
+      var k = p * 4;
+      if (d[k + 3] < 10 || Math.abs(d[k] - sr) + Math.abs(d[k + 1] - sg) + Math.abs(d[k + 2] - sb) < tol) {
+        d[k + 3] = 0;
+        var px = p % W, py = (p - px) / W;
+        if (px > 0) stack.push(p - 1); if (px < W - 1) stack.push(p + 1);
+        if (py > 0) stack.push(p - W); if (py < H - 1) stack.push(p + W);
+      }
+    }
+    x.putImageData(img, 0, 0);
+  }
+  function loadImageFile(file) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () { res(img); setTimeout(function () { URL.revokeObjectURL(url); }, 1000); };
+      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error('bad image')); };
+      img.src = url;
+    });
+  }
+  function libKey(item) {
+    return item.svg ? 'a:' + item.n.toLowerCase().replace(/[^a-z]+/g, '-') + ':1'
+      : 'e:' + Array.from(item.e).map(function (c) { return c.codePointAt(0).toString(16); }).join('-');
+  }
+  // Draw a library item once and return { key, url, aspect }
+  function bakeItem(item) {
+    var key = libKey(item);
+    if (item.svg) return bakeSvg(item.svg).then(function (b) { return b ? { key: key, url: b.url, aspect: b.aspect } : null; });
+    var b = bakeEmoji(item.e);
+    return Promise.resolve(b ? { key: key, url: b.url, aspect: b.aspect } : null);
+  }
+  function findItem(name) { for (var i = 0; i < LIB.length; i++) if (LIB[i].n === name) return LIB[i]; return null; }
+  window.ECOLIB = { LIB: LIB, CATS: CATS, ART: ART, STAGE_ART: STAGE_ART, svgUrl: svgUrl, trim: trim, encode: encode,
+    bakeEmoji: bakeEmoji, bakeSvg: bakeSvg, removeBackground: removeBackground, loadImageFile: loadImageFile,
+    libKey: libKey, bakeItem: bakeItem, findItem: findItem };
+})();</script>
+<script id="eco-builder-common">(function () {
+  var THREE = AFRAME.THREE;
+  var B = window.ECOB = {};
+  var $ = B.$ = function (s) { return document.querySelector(s); };
+  B.esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  B.uid = function () { return 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); };
+  B.slug = function (s) { return (s || 'project').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || 'project'; };
+  var toastT;
+  B.toast = function (msg) { var t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('show'); }, 3400); };
+
+  // Best-effort autosave in this browser
+  B.DB = function (name) {
+    function open() { return new Promise(function (res, rej) { var r = indexedDB.open(name, 1); r.onupgradeneeded = function () { r.result.createObjectStore('kv'); }; r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; }); }
+    var t;
+    return {
+      get: function (k) { return open().then(function (db) { return new Promise(function (res, rej) { var q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = function () { res(q.result); }; q.onerror = function () { rej(q.error); }; }); }).catch(function () { return null; }); },
+      set: function (k, v) { return open().then(function (db) { return new Promise(function (res) { var tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = res; tx.onerror = res; }); }).catch(function () {}); },
+      later: function (k, getV) { var self = this; clearTimeout(t); t = setTimeout(function () { self.set(k, JSON.parse(JSON.stringify(getV()))); }, 600); }
+    };
+  };
+
+  // Blur buttons after clicks so keyboard movement keeps working in the 3D view
+  document.addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) setTimeout(function () { b.blur(); }, 0); });
+
+  // Tabs: buttons with data-tab="x" show #pane-x
+  B.tabs = function () {
+    document.querySelectorAll('.tabs button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('.tabs button').forEach(function (x) { x.setAttribute('aria-selected', x === b); });
+        document.querySelectorAll('.pane').forEach(function (p) { p.classList.toggle('on', p.id === 'pane-' + b.dataset.tab); });
+      });
+    });
+  };
+
+  // Environment chooser (biome presets + own 360 photo). opts: { get: () => state, changed: () => void }
+  B.envPanel = function (opts) {
+    var presets = $('#presets'), card = $('#photo-card'), file = $('#f-photo');
+    function st() { return opts.get(); }
+    function render() {
+      var s = st(), e = s.env;
+      presets.innerHTML = Object.keys(ECO.PRESETS).map(function (k) {
+        var P = ECO.PRESETS[k], on = e.mode === 'preset' && e.preset === k;
+        return '<button class="preset" data-preset="' + k + '" aria-pressed="' + on + '"><div class="sw" style="background:linear-gradient(' +
+          P.sky[0] + ',' + P.sky[1] + ' 55%,' + P.ground + ' 56%)"></div><span>' + B.esc(P.name) + '</span></button>';
+      }).join('');
+      var has = e.photoKey && s.images[e.photoKey], on = e.mode === 'photo' && has;
+      card.classList.toggle('on', !!on);
+      card.innerHTML = has
+        ? '<img alt="Your 360° photo" src="' + s.images[e.photoKey] + '">' +
+          (on ? '' : '<button id="b-use-photo" style="width:100%;margin-bottom:6px">Use this photo</button>') +
+          '<button id="b-photo" style="width:100%">Replace photo</button>' +
+          (on ? '<label>Turn the photo <span class="opt">(line up where you start)</span></label><input type="range" id="p-yaw" min="-180" max="180" step="1" value="' + (e.photoYaw || 0) + '">' +
+            '<label class="check"><input type="checkbox" id="p-ground"' + (e.showGround ? ' checked' : '') + '> Add a solid ground</label>' +
+            (e.showGround ? '<label>Ground color</label><input type="color" id="p-gcol" value="' + (e.groundColor || '#6f7f5a') + '">' : '') : '')
+        : '<p class="muted small" style="margin:0 0 8px">Upload an equirectangular (2:1) 360° photo, like those from a 360 camera or a phone\'s panorama mode.</p>' +
+          '<button id="b-photo" style="width:100%">Upload a 360° photo</button>';
+    }
+    function rebuild() { ECO.buildEnvironment(opts.scene, st().env); render(); opts.changed(); }
+    presets.addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-preset]'); if (!b) return;
+      st().env.mode = 'preset'; st().env.preset = b.dataset.preset; rebuild();
+    });
+    card.addEventListener('click', function (ev) {
+      if (ev.target.id === 'b-photo') file.click();
+      if (ev.target.id === 'b-use-photo') { st().env.mode = 'photo'; rebuild(); }
+    });
+    card.addEventListener('input', function (ev) {
+      var e = st().env;
+      if (ev.target.id === 'p-yaw') {
+        e.photoYaw = +ev.target.value;
+        var env = opts.scene.object3D.getObjectByName('eco-env'); if (env) env.children[0].rotation.y = THREE.MathUtils.degToRad(e.photoYaw);
+        opts.changed();
+      }
+      if (ev.target.id === 'p-gcol') { e.groundColor = ev.target.value; ECO.buildEnvironment(opts.scene, e); opts.changed(); }
+    });
+    card.addEventListener('change', function (ev) { if (ev.target.id === 'p-ground') { st().env.showGround = ev.target.checked; rebuild(); } });
+    file.addEventListener('change', function (ev) {
+      var f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+      ECOLIB.loadImageFile(f).then(function (img) {
+        var s = st(), ratio = img.naturalWidth / img.naturalHeight, w = Math.min(4096, img.naturalWidth), h = Math.round(w / 2);
+        var c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h);
+        if (s.env.photoKey) { delete s.images[s.env.photoKey]; delete ECO._tex[s.env.photoKey]; }
+        var key = 'sky' + B.uid(); s.images[key] = c.toDataURL('image/jpeg', 0.85);
+        s.env.photoKey = key; s.env.mode = 'photo'; s.env.photoYaw = 0;
+        rebuild();
+        B.toast(Math.abs(ratio - 2) > 0.15 ? 'Added. This photo is not 2:1, so it may look stretched. A true 360° photo works best.' : '360° photo added.');
+      }).catch(function () { B.toast('That image could not be opened. Try a JPG or PNG.'); });
+    });
+    return { render: render, rebuild: rebuild };
+  };
+
+  // Organism / stage picture library. opts: { cats: [[key,label]], pick: item => void, start: key }
+  B.library = function (opts) {
+    var tab = opts.start || opts.cats[0][0], q = '';
+    var cats = $('#lib-cats'), grid = $('#lib-grid'), search = $('#lib-search');
+    var keys = opts.cats.map(function (c) { return c[0]; });
+    function render() {
+      cats.innerHTML = opts.cats.map(function (c) { return '<button data-cat="' + c[0] + '" aria-pressed="' + (!q && tab === c[0]) + '">' + c[1] + '</button>'; }).join('');
+      var s = q.trim().toLowerCase();
+      var items = ECOLIB.LIB.filter(function (i) { return s ? (keys.indexOf(i.c) >= 0 || opts.searchAll) && i.n.toLowerCase().indexOf(s) >= 0 : i.c === tab; });
+      grid.innerHTML = items.map(function (i) {
+        return '<button data-i="' + ECOLIB.LIB.indexOf(i) + '" title="Add ' + B.esc(i.n) + '">' +
+          (i.svg ? '<img class="emo-img" alt="" src="' + ECOLIB.svgUrl(i.svg) + '">' : '<span class="emo" aria-hidden="true">' + i.e + '</span>') +
+          '<span>' + B.esc(i.n) + '</span></button>';
+      }).join('') || '<p class="muted small" style="grid-column:1/-1">No matches. Try another word, or upload your own image below.</p>';
+    }
+    cats.addEventListener('click', function (e) { var b = e.target.closest('[data-cat]'); if (!b) return; tab = b.dataset.cat; q = ''; search.value = ''; render(); });
+    search.addEventListener('input', function (e) { q = e.target.value; render(); });
+    grid.addEventListener('click', function (e) { var b = e.target.closest('[data-i]'); if (b) opts.pick(ECOLIB.LIB[+b.dataset.i]); });
+    render();
+    return { render: render };
+  };
+
+  // Turn an uploaded picture into a cut-out { url, aspect, name }
+  B.uploadImage = function (file, removeBg) {
+    return ECOLIB.loadImageFile(file).then(function (img) {
+      var s = Math.min(1, 512 / Math.max(img.naturalWidth, img.naturalHeight));
+      var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.naturalWidth * s)); c.height = Math.max(1, Math.round(img.naturalHeight * s));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      if (removeBg) ECOLIB.removeBackground(c);
+      var t = ECOLIB.trim(c) || { canvas: c, aspect: c.width / c.height };
+      var name = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'My picture';
+      return { url: ECOLIB.encode(t.canvas), aspect: t.aspect, name: name.charAt(0).toUpperCase() + name.slice(1) };
+    });
+  };
+
+  // Which sprite (eco-sprite entity with data-id) is under the pointer?
+  var ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  B.setRay = function (sceneEl, x, y) {
+    var r = sceneEl.canvas.getBoundingClientRect();
+    ndc.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, sceneEl.camera); return ray;
+  };
+  B.pick = function (sceneEl, x, y, extra) {
+    B.setRay(sceneEl, x, y);
+    var objs = [];
+    sceneEl.querySelectorAll('[data-id]').forEach(function (el) {
+      var c = el.components && el.components['eco-sprite']; if (c) { objs.push(c.mesh); if (c.labelMesh) objs.push(c.labelMesh); }
+    });
+    (extra || []).forEach(function (o) { objs.push(o); });
+    var hit = ray.intersectObjects(objs, false)[0];
+    if (!hit) return null;
+    var id = hit.object.userData.el ? hit.object.userData.el.dataset.id : hit.object.userData.id;
+    return { id: id, point: hit.point };
+  };
+
+  // Keep an HTML pop-up beside a point in the 3D view. getAnchor() -> { x, z, y0, h, aspect } or null
+  B.popupPlacer = function (opts) {
+    var v = new THREE.Vector3(), b = new THREE.Vector3(), box = opts.box, behind = opts.behind, stage = opts.stage, sceneEl = opts.scene;
+    function frame() {
+      requestAnimationFrame(frame);
+      var a = opts.getAnchor(), cam = sceneEl.camera;
+      if (!a || !cam || !box.innerHTML) { box.hidden = true; if (behind) behind.hidden = true; return; }
+      var y0 = a.y0 || 0;
+      v.set(a.x, y0 + a.h, a.z).applyMatrix4(cam.matrixWorldInverse);
+      b.set(a.x, y0, a.z).applyMatrix4(cam.matrixWorldInverse);
+      if (v.z > -0.2 && b.z > -0.2) { box.hidden = true; if (behind) behind.hidden = false; return; }
+      if (behind) behind.hidden = true; box.hidden = false;
+      v.set(a.x, y0 + a.h, a.z).project(cam); b.set(a.x, y0, a.z).project(cam);
+      var W = stage.clientWidth, H = stage.clientHeight;
+      var tx = (v.x + 1) / 2 * W, ty = (1 - v.y) / 2 * H, by = (1 - b.y) / 2 * H;
+      var half = Math.max(8, by - ty) * a.aspect / 2, pw = box.offsetWidth, ph = box.offsetHeight;
+      var left = tx + half + 16;
+      if (left + pw > W - 8) left = tx - half - 16 - pw;
+      left = Math.max(8, Math.min(W - pw - 8, left));
+      var top = Math.max(8, Math.min(H - ph - 8, ty));
+      box.style.transform = 'translate(' + Math.round(left) + 'px,' + Math.round(top) + 'px)';
+    }
+    requestAnimationFrame(frame);
+  };
+  B.turnCam = function (camEl, x, z) {
+    var lc = camEl.components['look-controls']; if (!lc) return;
+    var p = new THREE.Vector3(); camEl.object3D.getWorldPosition(p);
+    lc.yawObject.rotation.y = Math.atan2(-(x - p.x), -(z - p.z)); lc.pitchObject.rotation.x = 0;
+  };
+
+  // Keep only the pictures a project actually uses
+  B.pruneImages = function (images, keys) {
+    var out = {}; keys.forEach(function (k) { if (k && images[k]) out[k] = images[k]; }); return out;
+  };
+
+  // Assemble a standalone viewer page. parts: { title, data, css: [ids], body: id, js: [ids] }
+  B.viewerHTML = function (parts) {
+    var json = JSON.stringify(parts.data).replace(/</g, '\\u003c');
+    function txt(id) { return document.getElementById(id).textContent; }
+    return '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
+      '<title>' + B.esc(parts.title) + '</title>\n' +
+      '<script src="https://cdn.jsdelivr.net/npm/aframe@1.7.1/dist/aframe-v1.7.1.min.js"><\/script>\n' +
+      parts.js.map(function (id) { return '<script>' + txt(id) + '<\/script>\n'; }).join('') +
+      '<style>' + parts.css.map(txt).join('\n') + '</style>\n</head>\n<body>\n' + txt(parts.body) +
+      '\n<script type="application/json" id="eco-data">' + json + '<\/script>\n</body>\n</html>\n';
+  };
+  B.download = function (html, filename) {
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' })); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  };
+  B.preview = function (html) {
+    var w = window.open(URL.createObjectURL(new Blob([html], { type: 'text/html' })), '_blank');
+    if (!w) B.toast('Your browser blocked the preview window. Allow pop-ups for this page and try again.');
+  };
+  // Read a downloaded project file back in; resolves with its data if it is the right kind
+  B.readProject = function (file, kind) {
+    return file.text().then(function (txt) {
+      var node = new DOMParser().parseFromString(txt, 'text/html').getElementById('eco-data');
+      if (!node) throw new Error('none');
+      var d = JSON.parse(node.textContent);
+      if (!d || (d.kind || 'ecosystem') !== kind) throw new Error('kind');
+      return d;
+    });
+  };
+})();</script>
+<style>
+  :root {
+    --ink: #1b2620; --muted: #5d6a62; --line: #dfe3dc; --paper: #f7f6f1; --card: #ffffff;
+    --forest: #1e3a2c; --accent: #2e7d4f; --accent-ink: #ffffff; --sel: #2fc4f2; --danger: #b3382c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: var(--paper);
+    display: grid; grid-template-rows: auto 1fr; overflow: hidden; font-size: 14px; }
+  header { background: var(--forest); color: #fff; display: flex; align-items: center; gap: 12px; padding: 10px 16px; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: .2px; }
+  header a.home { color: #fff; text-decoration: none; font-weight: 750; font-size: 17px; padding-right: 12px; border-right: 1px solid rgba(255,255,255,.3); }
+  header a.home:hover { color: #f2c14e; }
+  header .sub { color: #b9cdbf; font-size: 13px; }
+  header .spacer { flex: 1; }
+  header button { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.22); }
+  header button:hover { background: rgba(255,255,255,.2); }
+  header button.primary { background: #f2c14e; color: #1e2a20; border-color: #f2c14e; font-weight: 650; }
+  header button.primary:hover { background: #f6cf6d; }
+  button { font: inherit; border-radius: 8px; padding: 7px 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+  button:hover { border-color: #b9c2b6; }
+  button.danger { color: var(--danger); }
+  main { display: grid; grid-template-columns: 330px minmax(0, 1fr) 300px; min-height: 0; }
+  aside { background: var(--paper); overflow-y: auto; min-height: 0; }
+  #left { border-right: 1px solid var(--line); }
+  #right { border-left: 1px solid var(--line); padding: 16px; }
+  .tabs { display: flex; position: sticky; top: 0; background: var(--paper); z-index: 2; border-bottom: 1px solid var(--line); }
+  .tabs button { flex: 1; border: 0; border-radius: 0; background: transparent; padding: 12px 8px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  .pane { padding: 16px; display: none; }
+  .pane.on { display: block; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 18px 0 8px; font-weight: 650; }
+  h2:first-child { margin-top: 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12.5px; }
+  .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .preset { padding: 0; overflow: hidden; text-align: left; display: flex; flex-direction: column; }
+  .preset .sw { height: 46px; }
+  .preset span { padding: 6px 8px; font-size: 12.5px; font-weight: 550; }
+  .preset[aria-pressed="true"] { outline: 3px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+  .photo-card { margin-top: 10px; border: 1px dashed #b9c2b6; border-radius: 10px; padding: 12px; background: var(--card); }
+  .photo-card.on { border: 3px solid var(--accent); }
+  .photo-card img { width: 100%; height: 80px; object-fit: cover; border-radius: 6px; display: block; margin-bottom: 8px; }
+  label { display: block; font-weight: 600; font-size: 13px; margin: 12px 0 4px; }
+  label .opt { font-weight: 400; color: var(--muted); }
+  input[type=text], textarea, select { width: 100%; font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid #cdd3ca; background: #fff; color: var(--ink); }
+  textarea { resize: vertical; line-height: 1.45; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .check { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .row output { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+  .search { margin-bottom: 8px; }
+  .cats { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .cats button { padding: 5px 10px; font-size: 12.5px; border-radius: 999px; }
+  .cats button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .lib { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .lib button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; font-size: 11.5px; line-height: 1.2; }
+  .lib .emo { font-size: 28px; line-height: 1.1; }
+  .lib .emo-img { height: 31px; max-width: 46px; object-fit: contain; }
+  .upload { margin-top: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .upload button { width: 100%; margin-top: 8px; background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .list { display: flex; flex-direction: column; gap: 4px; }
+  .list button { display: flex; align-items: center; gap: 8px; text-align: left; padding: 6px 8px; }
+  .list button.on { border-color: var(--sel); box-shadow: 0 0 0 2px var(--sel) inset; }
+  .list img { width: 26px; height: 26px; object-fit: contain; }
+  .list .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  #stage { position: relative; min-height: 0; background: #9fb8c8; }
+  #stage a-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #stage.dragging, #stage.dragging canvas { cursor: grabbing !important; }
+  #stage .a-fullscreen, #stage .a-enter-vr, #stage .a-enter-ar, #stage .a-orientation-modal { display: none !important; }
+  .hint { position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; background: rgba(14,26,20,.72); color: #fff; padding: 7px 12px;
+    border-radius: 999px; font-size: 12.5px; pointer-events: none; white-space: nowrap; max-width: calc(100% - 270px); overflow: hidden; text-overflow: ellipsis; }
+  .empty { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(255,255,255,.92); padding: 14px 18px; border-radius: 12px;
+    text-align: center; pointer-events: none; box-shadow: 0 6px 24px rgba(0,0,0,.15); }
+  .stage-tools { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
+  .stage-tools button { background: rgba(255,255,255,.92); }
+  #mapbox { position: absolute; left: 10px; bottom: 10px; background: rgba(255,255,255,.94); border-radius: 12px; padding: 6px; box-shadow: 0 4px 18px rgba(0,0,0,.18); }
+  .map-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 650; color: var(--muted); padding: 0 2px 4px 4px; }
+  .map-head button { padding: 0 8px; line-height: 20px; font-size: 14px; }
+  #map { width: 220px; height: 220px; display: block; touch-action: none; cursor: grab; }
+  .popup { position: absolute; left: 0; top: 0; z-index: 6; width: 300px; max-width: calc(100% - 16px); max-height: calc(100% - 16px); overflow-y: auto;
+    background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 34px rgba(0,0,0,.28); padding: 12px 14px 14px; }
+  .popup label { margin: 9px 0 3px; }
+  .popup .btns { margin-top: 12px; }
+  .popup .insp-head input { font-weight: 650; font-size: 15px; }
+  .popup .icon { padding: 4px 9px; }
+  .behind { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 6; background: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.2); font-weight: 600; }
+  .insp-head { display: flex; gap: 10px; align-items: center; }
+  .insp-head img { width: 48px; height: 48px; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+  .insp-head h3 { margin: 0; font-size: 15px; flex: 1; }
+  .btns { display: flex; gap: 8px; margin-top: 16px; }
+  .btns button { flex: 1; }
+  .tip { background: #eef3ea; border-radius: 10px; padding: 10px 12px; margin-top: 16px; font-size: 13px; line-height: 1.45; }
+  .tip ul { margin: 6px 0 0; padding-left: 18px; }
+  #toast { position: fixed; bottom: 18px; left: 50%; transform: translate(-50%, 30px); opacity: 0; background: #1b2620; color: #fff; padding: 10px 16px;
+    border-radius: 10px; transition: .25s; z-index: 50; pointer-events: none; max-width: 90vw; }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+  @media (max-width: 1050px) {
+    body { overflow: auto; height: auto; }
+    main { grid-template-columns: 1fr; }
+    #stage { height: 60vh; order: -1; }
+    #left, #right { border: 0; border-top: 1px solid var(--line); }
+    .hint { display: none; }
+  }
+  #stage .a-fullscreen, #stage .a-enter-vr, #stage .a-enter-ar, #stage .a-orientation-modal { display: none !important; }
+  .addas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; }
+  .addas button { padding: 7px 2px; font-size: 12.5px; font-weight: 600; border-radius: 8px; }
+  .addas button[aria-pressed="true"] { color: #fff; }
+  .addas [data-type=player][aria-pressed="true"] { background: #2f7fe0; border-color: #2f7fe0; }
+  .addas [data-type=food][aria-pressed="true"] { background: #3c9d4c; border-color: #3c9d4c; }
+  .addas [data-type=predator][aria-pressed="true"] { background: #d03a2f; border-color: #d03a2f; }
+  .addas [data-type=scenery][aria-pressed="true"] { background: #6f7a83; border-color: #6f7a83; }
+  .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .examples button { text-align: left; font-size: 12.5px; padding: 8px; line-height: 1.3; }
+  .examples b { display: block; font-size: 13px; }
+  .group-h { font-size: 12px; font-weight: 700; color: var(--muted); margin: 10px 0 4px; display: flex; align-items: center; gap: 6px; }
+  .rules label { margin-top: 10px; }
+  .goal-row { display: flex; gap: 8px; align-items: center; }
+  .goal-row select { flex: 1; }
+  .goal-row input { width: 76px; }
+  input[type=number] { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid #cdd3ca; }
+  .check-list { list-style: none; padding: 0; margin: 8px 0 0; font-size: 13px; }
+  .check-list li { padding: 3px 0; }
+  .check-list .ok::before { content: "✓ "; color: #2e7d4f; font-weight: 700; }
+  .check-list .no::before { content: "○ "; color: #b3382c; font-weight: 700; }
+  .type-chip { display: inline-block; color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 11.5px; font-weight: 700; }
+</style>
+</head>
+<body>
+<header>
+  <a class="home" href="index.html" title="Back to EcoBuild">🌿 EcoBuild</a>
+  <h1>Survival Game Builder</h1>
+  <span class="sub">Design a world where players eat, hide from predators, and survive.</span>
+  <span class="spacer"></span>
+  <button id="b-new">New</button>
+  <button id="b-open">Open saved game</button>
+  <button id="b-preview">Play test</button>
+  <button id="b-download" class="primary">Download game</button>
+</header>
+<main>
+  <aside id="left">
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="false" data-tab="env">1 · World</button>
+      <button role="tab" aria-selected="true" data-tab="cast">2 · Characters</button>
+    </div>
+    <div class="pane" id="pane-env">
+      <h2>Choose a biome</h2>
+      <div class="presets" id="presets"></div>
+      <h2>Or use your own 360° photo</h2>
+      <div class="photo-card" id="photo-card"></div>
+    </div>
+    <div class="pane on" id="pane-cast">
+      <h2>Start from an example</h2>
+      <div class="examples" id="examples"></div>
+      <h2>Add characters</h2>
+      <div class="addas" id="addas" role="group" aria-label="Add as">
+        <button data-type="player">Player</button><button data-type="food">Food</button><button data-type="predator">Predator</button><button data-type="scenery">Scenery</button>
+      </div>
+      <p class="muted small" id="addas-help" style="margin:-4px 0 8px"></p>
+      <input type="text" class="search" id="lib-search" placeholder="Search (e.g. rabbit, clover, fox)" aria-label="Search organisms">
+      <div class="cats" id="lib-cats"></div>
+      <div class="lib" id="lib-grid"></div>
+      <div class="upload">
+        <strong>Use your own image</strong>
+        <p class="muted small" style="margin:4px 0 6px">It is added as the type selected above.</p>
+        <label class="check small"><input type="checkbox" id="rm-bg" checked> Remove a plain background</label>
+        <button id="b-upload">Upload an image</button>
+      </div>
+      <h2>In your game</h2>
+      <div id="org-list"></div>
+    </div>
+  </aside>
+
+  <section id="stage">
+    <a-scene id="scene" embedded renderer="colorManagement: true; antialias: true; logarithmicDepthBuffer: false" vr-mode-ui="enabled: false" loading-screen="enabled: false" eco-ambient>
+      <a-entity id="cam" camera="near: 0.05; far: 1000" position="0 1.6 6" look-controls="pointerLockEnabled: false" wasd-controls="acceleration: 40"></a-entity>
+    </a-scene>
+    <div class="stage-tools"><button id="b-center" title="Move to the player's starting spot">Go to start</button></div>
+    <div class="empty" id="empty">Pick an example, or add a player, food, and predators from <b>2 · Characters</b>.</div>
+    <div id="mapbox">
+      <div class="map-head"><span>Top-down map</span><span><button id="z-in" aria-label="Zoom in">+</button> <button id="z-out" aria-label="Zoom out">−</button></span></div>
+      <canvas id="map" width="440" height="440" aria-label="Top-down map. Drag characters to move them."></canvas>
+    </div>
+    <div id="popup" class="popup" hidden role="dialog" aria-label="Selected character"></div>
+    <button id="behind" class="behind" hidden>The selected character is behind you · Turn to face it</button>
+    <div class="hint">Drag the background to look · W A S D to walk · Drag a character to move it</div>
+  </section>
+
+  <aside id="right"><div id="info"></div></aside>
+</main>
+<input type="file" id="f-upload" accept="image/*" hidden>
+<input type="file" id="f-photo" accept="image/*" hidden>
+<input type="file" id="f-open" accept=".html,text/html" hidden>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script type="text/plain" id="v-css">html,body{margin:0;height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#1b2620}
+#intro{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,24,18,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:20;padding:16px}
+#intro.hide{display:none}
+.card{max-width:560px;width:100%;background:#fbfaf6;border-radius:16px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:90vh;overflow:auto}
+.eyebrow{text-transform:uppercase;letter-spacing:.8px;font-size:12px;color:#2e7d4f;font-weight:700;margin:0}
+.card h1{margin:6px 0 2px;font-size:28px;line-height:1.15}
+.by{color:#5d6a62;margin:0 0 12px}
+.desc{line-height:1.5;white-space:pre-wrap}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:12px 0;font-size:13px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.how{background:#eef3ea;border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;line-height:1.45}
+.how h2{font-size:13px;margin:4px 0;text-transform:uppercase;letter-spacing:.6px;color:#5d6a62}
+.how ul{margin:4px 0;padding-left:18px}
+button{font:inherit;border-radius:8px;padding:8px 14px;border:1px solid #d5dad2;background:#fff;color:#1b2620;cursor:pointer}
+button.primary{background:#2e7d4f;color:#fff;border-color:#2e7d4f;font-weight:650;padding:11px 18px;width:100%;font-size:16px}
+#hud{position:fixed;top:12px;left:12px;display:flex;gap:8px;z-index:10;flex-wrap:wrap}
+#hud button{background:rgba(255,255,255,.94);box-shadow:0 2px 10px rgba(0,0,0,.15)}
+#guide{position:fixed;top:0;right:0;bottom:0;width:min(390px,92vw);background:#fbfaf6;transform:translateX(105%);transition:transform .25s;z-index:15;overflow:auto;box-shadow:-8px 0 30px rgba(0,0,0,.2)}
+#guide.open{transform:none}
+.g-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;position:sticky;top:0;background:#fbfaf6;border-bottom:1px solid #e2e5df}
+.g-head h2{margin:0;font-size:18px}
+.g-item{padding:14px 16px;border-bottom:1px solid #e9ebe6}
+.g-top{display:flex;gap:10px;align-items:center}
+.g-top img{width:52px;height:52px;object-fit:contain;flex:none}
+.g-top h3{margin:0;font-size:16px}
+.g-top i{color:#5d6a62;font-size:13px}
+.chip{display:inline-block;color:#fff;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600;margin-top:3px}
+.g-note{white-space:pre-wrap;line-height:1.45;font-size:14px;margin:8px 0}
+.g-item button{font-size:13px;padding:5px 10px}
+#hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(14,26,20,.72);color:#fff;padding:7px 14px;border-radius:999px;font-size:13px;z-index:5;pointer-events:none;white-space:nowrap}
+body.in-vr #hud,body.in-vr #guide,body.in-vr #hint{display:none}
+@media (max-width:600px){#hint{display:none}.card{padding:20px}}
+#hud a{font:inherit;border-radius:8px;padding:8px 14px;border:1px solid #d5dad2;background:rgba(255,255,255,.94);color:#1b2620;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+#hud a[hidden]{display:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chips span{display:inline-flex;align-items:center;gap:6px;background:#eef3ea;border-radius:999px;padding:3px 10px 3px 4px;font-size:13px}
+.chips img{width:26px;height:26px;object-fit:contain}
+.you{display:flex;gap:12px;align-items:center;background:#eaf2fd;border-radius:12px;padding:10px 12px;margin:12px 0}
+.you img{width:64px;height:64px;object-fit:contain;flex:none}
+.you b{font-size:17px}
+.you p{margin:3px 0 0;font-size:14px;line-height:1.4}
+.goal{font-weight:650;margin:10px 0}
+.cast{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0;font-size:14px}
+.cast b{margin-right:4px}
+.cast img{height:34px;max-width:46px;object-fit:contain}
+#stats{position:fixed;top:12px;left:50%;transform:translateX(-50%);display:flex;gap:16px;align-items:center;background:rgba(255,255,255,.94);border-radius:12px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,.18);z-index:10;font-size:15px;font-weight:650;white-space:nowrap}
+#s-lives{color:#d03a2f;font-size:18px;letter-spacing:2px}
+.energy{display:flex;align-items:center;gap:8px}
+.energy span{font-size:13px;color:#5d6a62}
+.bar{width:140px;height:12px;background:#e3e6e0;border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#e0761c,#f2c14e 40%,#3c9d4c);transition:width .2s}
+#msg{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:rgba(20,30,24,.88);color:#fff;padding:10px 16px;border-radius:12px;max-width:min(560px,92vw);text-align:center;line-height:1.4;transition:.25s;z-index:12;pointer-events:none}
+#msg.show{opacity:1;transform:translate(-50%,0)}
+#hurt{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 120px 40px rgba(208,58,47,.75);opacity:0;transition:opacity .4s;z-index:9}
+#hurt.on{opacity:1;transition:none}
+.overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,24,18,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:25;padding:16px}
+.overlay.hide{display:none}
+.chain{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:16px 0;background:#f2f4ef;border-radius:12px;padding:12px}
+.chain .grp{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:#5d6a62;font-weight:600}
+.chain .imgs{display:flex;gap:2px}
+.chain img{height:40px;max-width:52px;object-fit:contain}
+.chain .arrow{font-size:20px;color:#5d6a62}
+.think{background:#fff6dd;border-radius:10px;padding:10px 12px;line-height:1.45}
+#joy{position:fixed;left:24px;bottom:24px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.35);border:2px solid rgba(255,255,255,.7);z-index:11;touch-action:none}
+#knob{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+@media (max-width:600px){#stats{gap:10px;font-size:13px;padding:6px 10px}.bar{width:80px}}
+body.in-vr #stats,body.in-vr #joy,body.in-vr #msg,body.in-vr #hurt{display:none}</script>
+<script type="text/plain" id="v-body"><div id="intro" role="dialog" aria-modal="true" aria-labelledby="v-title">
+  <div class="card">
+    <p class="eyebrow">Survival game</p>
+    <h1 id="v-title"></h1>
+    <p class="by" id="v-author"></p>
+    <p class="desc" id="v-desc"></p>
+    <div class="you" id="v-you"></div>
+    <p class="goal" id="v-goal"></p>
+    <div class="cast" id="v-food"></div>
+    <div class="cast" id="v-pred"></div>
+    <div class="how">
+      <h2>How to play</h2>
+      <ul>
+        <li><b>Computer:</b> W A S D or the arrow keys to move, drag to look around.</li>
+        <li><b>Phone or tablet:</b> use the joystick in the corner to move, drag to look.</li>
+        <li><b>VR headset:</b> press the VR button. Left stick moves, right stick turns.</li>
+        <li>Walk into food to eat it. Keep your energy up and stay away from predators!</li>
+      </ul>
+    </div>
+    <button class="primary" id="v-start">Start the game</button>
+  </div>
+</div>
+<div id="hud">
+  <a id="b-gallery" hidden>← EcoBuild</a>
+  <button id="b-pause">Pause</button>
+</div>
+<div id="stats" aria-live="polite">
+  <div id="s-lives"></div>
+  <div class="energy"><span>Energy</span><div class="bar"><i id="s-energy"></i></div></div>
+  <div id="s-goal"></div>
+</div>
+<div id="msg" role="status"></div>
+<div id="hurt"></div>
+<div id="joy" hidden><div id="knob"></div></div>
+<div id="end" class="overlay hide" role="dialog" aria-modal="true" aria-labelledby="e-title">
+  <div class="card">
+    <h1 id="e-title"></h1>
+    <p id="e-sum"></p>
+    <div class="chain" id="e-chain"></div>
+    <p class="think" id="e-think"></p>
+    <button class="primary" id="e-again">Play again</button>
+  </div>
+</div>
+<div id="paused" class="overlay hide"><div class="card"><h1>Paused</h1><button class="primary" id="p-resume">Keep playing</button></div></div>
+<a-scene id="scene" renderer="colorManagement: true; antialias: true; logarithmicDepthBuffer: false" cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .clickable; far: 200" loading-screen="enabled: false" eco-ambient eco-game>
+  <a-entity id="rig" eco-locomotion="enabled: false">
+    <a-entity id="cam" camera="near: 0.05; far: 1000" position="0 1.6 0" look-controls="pointerLockEnabled: false"></a-entity>
+    <a-entity id="lh" laser-controls="hand: left" raycaster="objects: .clickable; far: 200"></a-entity>
+    <a-entity id="rh" laser-controls="hand: right" raycaster="objects: .clickable; far: 200"></a-entity>
+  </a-entity>
+</a-scene></script>
+<script type="text/plain" id="v-common">(function () {
+  var THREE = AFRAME.THREE, UP = new THREE.Vector3(0, 1, 0);
+  var ECOV = window.ECOV = {};
+
+  // Thumbstick locomotion in VR: left stick moves, right stick snap-turns.
+  AFRAME.registerComponent('eco-locomotion', {
+    schema: { speed: { default: 2.5 }, enabled: { default: true } },
+    init: function () {
+      var self = this;
+      this.move = { x: 0, y: 0 }; this.turnReady = true;
+      this.v = new THREE.Vector3(); this.r = new THREE.Vector3(); this.cp = new THREE.Vector3();
+      this.el.sceneEl.addEventListener('loaded', function () {
+        var l = document.getElementById('lh'), r = document.getElementById('rh');
+        if (l) l.addEventListener('thumbstickmoved', function (e) { self.move.x = e.detail.x; self.move.y = e.detail.y; });
+        if (r) r.addEventListener('thumbstickmoved', function (e) {
+          var x = e.detail.x;
+          if (Math.abs(x) > 0.7 && self.turnReady) { self.turnReady = false; self.snap(x > 0 ? -1 : 1); }
+          else if (Math.abs(x) < 0.3) self.turnReady = true;
+        });
+      });
+    },
+    snap: function (dir) {
+      var rig = this.el.object3D, ang = dir * Math.PI / 6;
+      this.el.sceneEl.camera.getWorldPosition(this.cp);
+      rig.position.sub(this.cp).applyAxisAngle(UP, ang).add(this.cp);
+      rig.rotation.y += ang;
+    },
+    // Movement vector in world space from the left stick (used by the game too)
+    stickVector: function (out) {
+      var m = this.move;
+      if (Math.abs(m.x) < 0.15 && Math.abs(m.y) < 0.15) return out.set(0, 0, 0);
+      this.el.sceneEl.camera.getWorldDirection(this.v); this.v.y = 0;
+      if (this.v.lengthSq() < 1e-6) return out.set(0, 0, 0);
+      this.v.normalize(); this.r.set(-this.v.z, 0, this.v.x);
+      return out.set(0, 0, 0).addScaledVector(this.v, -m.y).addScaledVector(this.r, m.x);
+    },
+    tick: function (t, dt) {
+      if (!this.data.enabled || !this.el.sceneEl.is('vr-mode')) return;
+      var v = this.stickVector(new THREE.Vector3());
+      if (v.lengthSq()) this.el.object3D.position.addScaledVector(v, this.data.speed * dt / 1000);
+    }
+  });
+
+  ECOV.esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+  };
+
+  // Draw an information card. spec: { title, italic, chip: [label, color], meta, body, footer, accent }
+  ECOV.cardCanvas = function (spec) {
+    var W = 1024, pad = 60, F = ECO.FONT, c = document.createElement('canvas'), x = c.getContext('2d');
+    x.font = '400 40px ' + F;
+    var body = ECO.wrap(x, spec.body && String(spec.body).trim() ? String(spec.body).trim() : 'No notes yet.', W - pad * 2);
+    x.font = '500 36px ' + F;
+    var meta = spec.meta ? ECO.wrap(x, spec.meta, W - pad * 2) : [];
+    x.font = '700 64px ' + F;
+    var title = ECO.wrap(x, spec.title || 'Untitled', W - pad * 2);
+    var chip = spec.chip && spec.chip[1] ? spec.chip : null;
+    var H = pad + title.length * 76 + (spec.italic ? 56 : 0) + (chip ? 76 : 0) + meta.length * 50 + 24 + body.length * 58 + (spec.footer === '' ? 0 : 70) + pad;
+    c.width = W; c.height = H; x = c.getContext('2d');
+    x.fillStyle = 'rgba(251,250,245,0.97)'; ECO.rr(x, 6, 6, W - 12, H - 12, 36); x.fill();
+    x.lineWidth = 6; x.strokeStyle = spec.accent || (chip && chip[1]) || '#cfd6cc'; x.stroke();
+    var y = pad; x.textBaseline = 'top';
+    x.fillStyle = '#14231a'; x.font = '700 64px ' + F;
+    title.forEach(function (l) { x.fillText(l, pad, y); y += 76; });
+    if (spec.italic) { x.font = 'italic 400 42px ' + F; x.fillStyle = '#4c5d52'; x.fillText(spec.italic, pad, y + 4); y += 56; }
+    if (chip) {
+      x.font = '600 34px ' + F; var tw = x.measureText(chip[0]).width;
+      x.fillStyle = chip[1]; ECO.rr(x, pad, y + 12, tw + 48, 52, 26); x.fill();
+      x.fillStyle = '#fff'; x.fillText(chip[0], pad + 24, y + 22); y += 76;
+    }
+    if (meta.length) { x.font = '500 36px ' + F; x.fillStyle = '#3d5245'; meta.forEach(function (l) { x.fillText(l, pad, y + 6); y += 50; }); }
+    y += 24; x.font = '400 40px ' + F; x.fillStyle = '#24302a';
+    body.forEach(function (l) { x.fillText(l, pad, y); y += 58; });
+    if (spec.footer !== '') {
+      x.font = '500 30px ' + F; x.fillStyle = '#7a857e';
+      x.fillText(spec.footer || 'Select this card again to close', pad, y + 24);
+    }
+    return c;
+  };
+
+  // Show a card right beside an object, facing the visitor, scaled with distance.
+  // anchor: { x, z, y0 (base height), h, aspect }
+  ECOV.openCard = function (scene, spec, anchor) {
+    var c = ECOV.cardCanvas(spec), tex = ECO.canvasTex(c); tex.anisotropy = 8;
+    var w = 1.5, h = w * c.height / c.width;
+    var mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false, fog: false }));
+    mesh.renderOrder = 999;
+    var cp = new THREE.Vector3(); scene.camera.getWorldPosition(cp);
+    var op = new THREE.Vector3(anchor.x, (anchor.y0 || 0) + anchor.h * 0.55, anchor.z);
+    var toCam = new THREE.Vector3(cp.x - op.x, 0, cp.z - op.z), dist = toCam.length();
+    if (dist < 1e-3) toCam.set(0, 0, 1); toCam.normalize();
+    var right = new THREE.Vector3(toCam.z, 0, -toCam.x);
+    var look = new THREE.Vector3(); scene.camera.getWorldDirection(look);
+    var u = new THREE.Vector3(op.x - cp.x, 0, op.z - cp.z);
+    var side = (look.x * u.z - look.z * u.x) > 0 ? -1 : 1;
+    var s = Math.max(0.55, Math.min(5, dist / 2.4));
+    var pos = op.clone()
+      .addScaledVector(toCam, Math.min(0.8, dist * 0.35))
+      .addScaledVector(right, side * (anchor.h * anchor.aspect * 0.5 + w * s * 0.5 + 0.15));
+    pos.y = Math.max(pos.y, h * s * 0.5 + 0.05);
+    var el = document.createElement('a-entity');
+    el.classList.add('clickable');
+    el.setAttribute('position', { x: pos.x, y: pos.y, z: pos.z });
+    el.setAttribute('scale', { x: s, y: s, z: s });
+    el.setAttribute('rotation', { x: 0, y: THREE.MathUtils.radToDeg(Math.atan2(cp.x - pos.x, cp.z - pos.z)), z: 0 });
+    scene.appendChild(el);
+    el.setObject3D('mesh', mesh);
+    setTimeout(function () { ECOV.refreshRays(scene); }, 0); setTimeout(function () { ECOV.refreshRays(scene); }, 200);
+    return el;
+  };
+
+  // A card that floats in front of the visitor (for messages in VR)
+  ECOV.openFrontCard = function (scene, spec, dist) {
+    var c = ECOV.cardCanvas(spec), tex = ECO.canvasTex(c); tex.anisotropy = 8;
+    var w = 1.4, h = w * c.height / c.width;
+    var mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false, fog: false }));
+    mesh.renderOrder = 1000;
+    var cp = new THREE.Vector3(), d = new THREE.Vector3();
+    scene.camera.getWorldPosition(cp); scene.camera.getWorldDirection(d); d.y = 0;
+    if (d.lengthSq() < 1e-6) d.set(0, 0, -1); d.normalize();
+    var pos = cp.clone().addScaledVector(d, dist || 1.8); pos.y = cp.y - 0.1;
+    var el = document.createElement('a-entity');
+    el.classList.add('clickable');
+    el.setAttribute('position', { x: pos.x, y: pos.y, z: pos.z });
+    el.setAttribute('rotation', { x: 0, y: THREE.MathUtils.radToDeg(Math.atan2(cp.x - pos.x, cp.z - pos.z)), z: 0 });
+    scene.appendChild(el);
+    el.setObject3D('mesh', mesh);
+    setTimeout(function () { ECOV.refreshRays(scene); }, 0); setTimeout(function () { ECOV.refreshRays(scene); }, 200);
+    return el;
+  };
+
+  ECOV.refreshRays = function (scene) {
+    [scene, document.getElementById('lh'), document.getElementById('rh')].forEach(function (el) {
+      var rc = el && el.components && el.components.raycaster; if (rc) rc.refreshObjects();
+    });
+  };
+
+  // Turn the desktop/phone view to face a point
+  ECOV.turnTo = function (scene, x, z) {
+    var cam = document.getElementById('cam'), lc = cam && cam.components['look-controls'];
+    if (!lc || scene.is('vr-mode')) return;
+    var p = new THREE.Vector3(); scene.camera.getWorldPosition(p);
+    lc.yawObject.rotation.y = Math.atan2(-(x - p.x), -(z - p.z)); lc.pitchObject.rotation.x = 0;
+    scene.camera.updateMatrixWorld(true);
+  };
+
+  // Show a "Back to EcoBuild" link when the file is opened from the class gallery on the web
+  ECOV.galleryLink = function () {
+    var a = document.getElementById('b-gallery'); if (!a) return;
+    if (/^https?:$/.test(location.protocol)) { a.href = '../'; a.hidden = false; }
+  };
+})();</script>
+<script type="text/plain" id="v-js">(function () {
+  var THREE = AFRAME.THREE, esc = ECOV.esc;
+  var SPEED = { slow: 2.6, medium: 3.6, fast: 4.8 }, PRED = { slow: 2.0, medium: 3.0, fast: 4.2 }, DRAIN = { gentle: 1.2, normal: 2, hard: 3.2 };
+  var WORLD = 40;
+  var G = null; // the running game, created once the page is ready
+
+  // The game loop lives on the scene so it runs every frame.
+  AFRAME.registerComponent('eco-game', { tick: function (t, dt) { if (G) G.tick(Math.min(dt, 100) / 1000); } });
+  window.ecoGameState = function () { return G && { state: G.state, time: G.time, lives: G.lives, energy: G.energy, eaten: G.eaten, invuln: G.invuln }; };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var data = JSON.parse(document.getElementById('eco-data').textContent);
+    ECO.images = data.images || {};
+    var scene = document.getElementById('scene'), rig = document.getElementById('rig'), camEl = document.getElementById('cam');
+    var rules = Object.assign({ goal: 'eat', target: 10, seconds: 90, lives: 3, drain: 'normal' }, data.rules || {});
+    var orgs = data.organisms || [];
+    var me = orgs.filter(function (o) { return o.type === 'player'; })[0] || { name: 'Explorer', x: 0, z: 0, speed: 'medium', img: '', note: '' };
+    var foods = orgs.filter(function (o) { return o.type === 'food'; }), preds = orgs.filter(function (o) { return o.type === 'predator'; });
+    function uniq(list) { var s = {}; return list.filter(function (o) { if (s[o.name]) return false; s[o.name] = 1; return true; }); }
+    function img(o) { return ECO.images[o.img] || ''; }
+    function first(s) { s = String(s || '').trim(); var m = s.match(/^.*?[.!?](\s|$)/); return m ? m[0].trim() : s; }
+    function fmtT(s) { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
+    var $ = function (id) { return document.getElementById(id); };
+
+    // ---------- intro ----------
+    $('v-title').textContent = data.title || 'Survival game';
+    $('v-author').textContent = data.author ? 'Created by ' + data.author : '';
+    $('v-desc').textContent = data.description || '';
+    $('v-you').innerHTML = (img(me) ? '<img alt="" src="' + img(me) + '">' : '') + '<div><b>You are a ' + esc((me.name || 'player').toLowerCase()) + '</b>' + (me.note ? '<p>' + esc(me.note) + '</p>' : '') + '</div>';
+    var goalText = rules.goal === 'eat' ? 'Goal: eat ' + rules.target + ' food' + (rules.target === 1 ? '' : 's') + ' to win. You have ' + rules.lives + ' ' + (rules.lives === 1 ? 'life' : 'lives') + '.'
+      : 'Goal: survive for ' + fmtT(rules.seconds) + '. You have ' + rules.lives + ' ' + (rules.lives === 1 ? 'life' : 'lives') + '.';
+    $('v-goal').textContent = goalText;
+    $('v-food').innerHTML = foods.length ? '<b>Eat:</b>' + uniq(foods).map(function (o) { return '<img alt="' + esc(o.name) + '" title="' + esc(o.name) + '" src="' + img(o) + '">'; }).join('') : '';
+    $('v-pred').innerHTML = preds.length ? '<b>Watch out for:</b>' + uniq(preds).map(function (o) { return '<img alt="' + esc(o.name) + '" title="' + esc(o.name) + '" src="' + img(o) + '">'; }).join('') : '';
+    ECOV.galleryLink();
+    var coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+    if (coarse) $('joy').hidden = false;
+
+    // ---------- world ----------
+    var actors = [], hudMesh = null, hudCtx = null, hudTex = null, vrCard = null;
+    function spawn(o) {
+      var el = document.createElement('a-entity');
+      el.setAttribute('position', { x: o.x, y: 0, z: o.z });
+      var hh = o.type === 'scenery' ? o.h : Math.max(o.h, 0.35);
+      el.setAttribute('eco-sprite', { key: o.img, h: hh, aspect: o.aspect, flip: !!o.flip, elev: o.elev || 0, showRole: false,
+        label: o.type === 'scenery' ? '' : (o.name || ''), showLabel: o.type !== 'scenery', bob: o.type !== 'scenery' });
+      scene.appendChild(el);
+      var a = { o: o, el: el, x: o.x, z: o.z, hx: o.x, hz: o.z, alive: true, back: 0, tx: o.x, tz: o.z, face: 0 };
+      actors.push(a);
+      return a;
+    }
+
+    // ---------- input ----------
+    var keys = {}, joy = { x: 0, y: 0 };
+    window.addEventListener('keydown', function (e) {
+      keys[e.code] = true;
+      if (e.code === 'Escape' || e.code === 'KeyP') togglePause();
+      if (G && G.state === 'playing' && /^Arrow/.test(e.code)) e.preventDefault();
+    });
+    window.addEventListener('keyup', function (e) { keys[e.code] = false; });
+    (function () {
+      var pad = $('joy'), knob = $('knob'), id = null;
+      function setK(e) {
+        var r = pad.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        var dx = e.clientX - cx, dy = e.clientY - cy, m = Math.hypot(dx, dy), max = r.width / 2 - 10;
+        if (m > max) { dx *= max / m; dy *= max / m; }
+        joy.x = dx / max; joy.y = dy / max;
+        knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      }
+      pad.addEventListener('pointerdown', function (e) { id = e.pointerId; pad.setPointerCapture(id); setK(e); e.stopPropagation(); });
+      pad.addEventListener('pointermove', function (e) { if (e.pointerId === id) setK(e); });
+      function end() { id = null; joy.x = joy.y = 0; knob.style.transform = ''; }
+      pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end);
+    })();
+
+    var fwd = new THREE.Vector3(), right = new THREE.Vector3(), mv = new THREE.Vector3(), cp = new THREE.Vector3(), tmp = new THREE.Vector3();
+    function inputVector() {
+      var loco = rig.components['eco-locomotion'];
+      if (scene.is('vr-mode') && loco) return loco.stickVector(mv);
+      var ix = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + joy.x;
+      var iy = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - joy.y;
+      if (!ix && !iy) return mv.set(0, 0, 0);
+      scene.camera.getWorldDirection(fwd); fwd.y = 0; if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, -1); fwd.normalize();
+      right.set(-fwd.z, 0, fwd.x);
+      mv.set(0, 0, 0).addScaledVector(fwd, iy).addScaledVector(right, ix);
+      if (mv.lengthSq() > 1) mv.normalize();
+      return mv;
+    }
+    function camPos() { scene.camera.getWorldPosition(cp); return cp; }
+    function putPlayerAt(x, z) {
+      camEl.object3D.getWorldPosition(tmp); var o = rig.object3D.position;
+      o.x += x - tmp.x; o.z += z - tmp.z;
+    }
+
+    // ---------- HUD in VR ----------
+    function makeVRHud() {
+      var c = document.createElement('canvas'); c.width = 768; c.height = 200; hudCtx = c.getContext('2d');
+      hudTex = ECO.canvasTex(c);
+      hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.16), new THREE.MeshBasicMaterial({ map: hudTex, transparent: true, depthTest: false, fog: false }));
+      hudMesh.renderOrder = 1001; hudMesh.position.set(0, -0.3, -0.85); hudMesh.rotation.x = -0.25; hudMesh.visible = false;
+      scene.camera.add(hudMesh);
+    }
+    var vrMsg = '', vrMsgUntil = 0;
+    function drawVRHud() {
+      if (!hudCtx || !G) return;
+      var x = hudCtx, W = 768, F = ECO.FONT;
+      x.clearRect(0, 0, W, 200);
+      x.fillStyle = 'rgba(16,26,20,0.78)'; ECO.rr(x, 4, 4, W - 8, 192, 28); x.fill();
+      x.font = '700 40px ' + F; x.textBaseline = 'middle'; x.fillStyle = '#ff6b5e';
+      x.fillText(new Array(G.lives + 1).join('♥ ').trim() || '—', 28, 56);
+      x.fillStyle = '#3a453e'; ECO.rr(x, 230, 40, 260, 32, 16); x.fill();
+      x.fillStyle = G.energy > 30 ? '#4cbf5c' : '#f2a12e'; ECO.rr(x, 230, 40, Math.max(16, 260 * G.energy / 100), 32, 16); x.fill();
+      x.fillStyle = '#fff'; x.font = '600 34px ' + F; x.fillText(goalProgress(), 520, 56);
+      if (vrMsg && G.time < vrMsgUntil) { x.font = '500 30px ' + F; x.fillStyle = '#f2f2ea'; x.fillText(vrMsg.length > 46 ? vrMsg.slice(0, 45) + '…' : vrMsg, 28, 140); }
+      hudTex.needsUpdate = true;
+    }
+
+    // ---------- messages ----------
+    var msgT;
+    function say(text) {
+      var m = $('msg'); m.textContent = text; m.classList.add('show');
+      clearTimeout(msgT); msgT = setTimeout(function () { m.classList.remove('show'); }, 3800);
+      if (G) { vrMsg = text; vrMsgUntil = G.time + 4; }
+    }
+    function hurt() { var h = $('hurt'); h.classList.add('on'); setTimeout(function () { h.classList.remove('on'); }, 80); }
+    function goalProgress() {
+      if (!G) return '';
+      return rules.goal === 'eat' ? '🍃 ' + G.eaten + ' / ' + rules.target : '⏱ ' + fmtT(rules.seconds - G.time);
+    }
+    var hudT = 0;
+    function updateHud() {
+      $('s-lives').textContent = new Array(G.lives + 1).join('♥') || '—';
+      $('s-energy').style.width = Math.max(0, G.energy) + '%';
+      $('s-goal').textContent = goalProgress();
+      drawVRHud();
+    }
+
+    // ---------- game ----------
+    function newGame() {
+      if (vrCard) { vrCard.parentNode.removeChild(vrCard); vrCard = null; }
+      G = { state: 'playing', lives: rules.lives, energy: 100, eaten: 0, time: 0, invuln: 1.5, tick: tick };
+      actors.forEach(function (a) { a.x = a.hx; a.z = a.hz; a.alive = true; a.back = 0; a.tx = a.hx; a.tz = a.hz; a.el.object3D.visible = true; a.el.object3D.position.set(a.x, 0, a.z); });
+      putPlayerAt(me.x || 0, me.z || 0);
+      ['end', 'paused', 'intro'].forEach(function (id) { $(id).classList.add('hide'); });
+      if (hudMesh) hudMesh.visible = scene.is('vr-mode');
+      updateHud();
+      say(rules.goal === 'eat' ? 'Find and eat ' + rules.target + ' food!' : 'Survive for ' + fmtT(rules.seconds) + '!');
+    }
+    function togglePause() {
+      if (!G || (G.state !== 'playing' && G.state !== 'paused')) return;
+      G.state = G.state === 'playing' ? 'paused' : 'playing';
+      $('paused').classList.toggle('hide', G.state !== 'paused');
+      $('b-pause').textContent = G.state === 'paused' ? 'Resume' : 'Pause';
+    }
+    function loseLife(text) {
+      G.lives--; hurt();
+      if (G.lives <= 0) { updateHud(); return end(false, text); }
+      say(text + ' ' + G.lives + ' ' + (G.lives === 1 ? 'life' : 'lives') + ' left.');
+      G.energy = Math.max(G.energy, 70); G.invuln = 2.5;
+      putPlayerAt(me.x || 0, me.z || 0);
+      actors.forEach(function (a) { if (a.o.type === 'predator') { a.x = a.hx; a.z = a.hz; } });
+      updateHud();
+    }
+    function chainHTML() {
+      function grp(list, label) { return '<div class="grp"><div class="imgs">' + uniq(list).slice(0, 4).map(function (o) { return '<img alt="' + esc(o.name) + '" src="' + img(o) + '">'; }).join('') + '</div>' + label + '</div>'; }
+      var parts = [];
+      if (foods.length) parts.push(grp(foods, 'Food'));
+      parts.push(grp([me], 'You'));
+      if (preds.length) parts.push(grp(preds, 'Predators'));
+      return parts.join('<span class="arrow" aria-label="is eaten by">→</span>');
+    }
+    function end(won, why) {
+      G.state = 'over';
+      var stat = rules.goal === 'eat' ? 'You ate ' + G.eaten + ' of ' + rules.target + ' foods' : 'You survived ' + fmtT(G.time) + ' of ' + fmtT(rules.seconds);
+      $('e-title').textContent = won ? 'You survived!' : 'Game over';
+      $('e-sum').textContent = (won ? '' : (why ? why + ' ' : '')) + stat + '.';
+      $('e-chain').innerHTML = chainHTML();
+      var f = uniq(foods)[0], p = uniq(preds)[0], meName = (me.name || 'player').toLowerCase();
+      $('e-think').textContent = p && f ? 'Think about it: What would happen to the ' + p.name.toLowerCase() + ' population if there were no ' + meName + 's? What if the ' + f.name.toLowerCase() + ' disappeared?'
+        : f ? 'Think about it: What would happen to the ' + meName + 's if the ' + f.name.toLowerCase() + ' disappeared?' : '';
+      $('end').classList.remove('hide');
+      updateHud();
+      if (scene.is('vr-mode')) {
+        vrCard = ECOV.openFrontCard(scene, { title: won ? 'You survived!' : 'Game over', body: (won ? '' : (why ? why + ' ' : '')) + stat + '.\n\n' + $('e-think').textContent,
+          footer: 'Pull the trigger on this card to play again', accent: won ? '#3c9d4c' : '#d03a2f' });
+        vrCard.addEventListener('click', newGame);
+      }
+    }
+
+    function moveToward(a, x, z, speed, dt) {
+      var dx = x - a.x, dz = z - a.z, d = Math.hypot(dx, dz);
+      if (d < 0.05) return 0;
+      var s = Math.min(d, speed * dt); a.x += dx / d * s; a.z += dz / d * s;
+      var r = Math.hypot(a.x, a.z); if (r > WORLD) { a.x *= WORLD / r; a.z *= WORLD / r; }
+      return dx / d;
+    }
+    function wanderTarget(a, radius) { var ang = Math.random() * Math.PI * 2, r = Math.random() * radius; a.tx = a.hx + Math.cos(ang) * r; a.tz = a.hz + Math.sin(ang) * r; }
+    function faceMove(a, vx, vz) {
+      if (!a.el.components['eco-sprite']) return;
+      scene.camera.getWorldDirection(fwd); right.set(-fwd.z, 0, fwd.x);
+      var side = vx * right.x + vz * right.z; if (Math.abs(side) < 0.15) return;
+      var want = (side > 0 ? -1 : 1) * (a.o.flip ? -1 : 1);
+      if (want === a.face) return;
+      a.face = want; var m = a.el.components['eco-sprite'].mesh; m.scale.x = Math.abs(m.scale.x) * want;
+    }
+
+    function tick(dt) {
+      if (G.state !== 'playing') return;
+      G.time += dt; G.invuln = Math.max(0, G.invuln - dt);
+      // player movement
+      var v = inputVector();
+      if (v.lengthSq()) {
+        var sp = SPEED[me.speed] || SPEED.medium, p0 = rig.object3D.position;
+        p0.addScaledVector(v, sp * dt);
+        var c = camPos(), r = Math.hypot(c.x, c.z);
+        if (r > WORLD) { p0.x -= c.x - c.x * WORLD / r; p0.z -= c.z - c.z * WORLD / r; }
+      }
+      var P = camPos();
+      // energy
+      G.energy -= (DRAIN[rules.drain] || DRAIN.normal) * dt;
+      if (G.energy <= 0) { G.energy = 0; loseLife('You ran out of energy! Eat more often.'); if (G.state !== 'playing') return; }
+      // actors
+      for (var i = 0; i < actors.length; i++) {
+        var a = actors[i], o = a.o; if (o.type === 'scenery') continue;
+        if (!a.alive) {
+          if (a.back && G.time >= a.back) { a.alive = true; a.back = 0; wanderTarget(a, 3); a.x = a.tx; a.z = a.tz; a.el.object3D.visible = true; }
+          continue;
+        }
+        var dx = P.x - a.x, dz = P.z - a.z, d = Math.hypot(dx, dz), px = a.x, pz = a.z;
+        if (o.type === 'food') {
+          if (o.behavior === 'flee' && d < 6) { moveToward(a, a.x - dx / (d || 1) * 3, a.z - dz / (d || 1) * 3, 2.4, dt); }
+          else if (o.behavior === 'wander' || o.behavior === 'flee') {
+            if (Math.hypot(a.tx - a.x, a.tz - a.z) < 0.2) wanderTarget(a, 4);
+            moveToward(a, a.tx, a.tz, 0.8, dt);
+          }
+          if (d < 1.0 + Math.max(o.h, 0.35) * o.aspect * 0.25 && (o.elev || 0) < 2.5) {
+            a.alive = false; a.el.object3D.visible = false; a.back = o.regrow ? G.time + 8 : 0;
+            G.energy = Math.min(100, G.energy + (o.energy || 10)); G.eaten++;
+            say('+' + (o.energy || 10) + ' energy · ' + (o.name || 'Food') + (o.note ? ': ' + first(o.note) : ''));
+            if (rules.goal === 'eat' && G.eaten >= rules.target) { updateHud(); return end(true); }
+          }
+        } else if (o.type === 'predator') {
+          var sight = o.sight || 8;
+          if (G.invuln <= 0 && d < sight) { a.chasing = true; moveToward(a, P.x, P.z, PRED[o.speed] || PRED.medium, dt); }
+          else {
+            if (a.chasing) { a.chasing = false; a.tx = a.hx; a.tz = a.hz; }
+            if (Math.hypot(a.tx - a.x, a.tz - a.z) < 0.3) wanderTarget(a, 7);
+            moveToward(a, a.tx, a.tz, 1.0, dt);
+          }
+          if (G.invuln <= 0 && d < 0.9 + o.h * o.aspect * 0.2) {
+            loseLife('Caught by the ' + (o.name || 'predator').toLowerCase() + '!' + (o.note ? ' ' + first(o.note) : ''));
+            if (G.state !== 'playing') return;
+            break;
+          }
+        }
+        if (a.x !== px || a.z !== pz) { a.el.object3D.position.set(a.x, 0, a.z); faceMove(a, a.x - px, a.z - pz); }
+      }
+      if (rules.goal === 'survive' && G.time >= rules.seconds) { updateHud(); return end(true); }
+      hudT += dt; if (hudT > 0.2) { hudT = 0; updateHud(); }
+    }
+
+    // ---------- buttons and VR ----------
+    $('v-start').addEventListener('click', newGame);
+    $('e-again').addEventListener('click', newGame);
+    $('b-pause').addEventListener('click', togglePause);
+    $('p-resume').addEventListener('click', togglePause);
+    scene.addEventListener('enter-vr', function () {
+      document.body.classList.add('in-vr');
+      if (hudMesh) hudMesh.visible = true;
+      if (!G || G.state !== 'playing') {
+        $('intro').classList.add('hide'); $('end').classList.add('hide');
+        if (vrCard) vrCard.parentNode.removeChild(vrCard);
+        setTimeout(function () {
+          vrCard = ECOV.openFrontCard(scene, { title: data.title || 'Survival game', meta: 'You are a ' + (me.name || 'player').toLowerCase() + '. ' + goalText,
+            body: data.description || '', footer: 'Pull the trigger on this card to start', accent: '#2f7fe0' });
+          vrCard.addEventListener('click', newGame);
+        }, 400);
+      }
+    });
+    scene.addEventListener('exit-vr', function () { document.body.classList.remove('in-vr'); if (hudMesh) hudMesh.visible = false; });
+
+    function go() {
+      ECO.buildEnvironment(scene, data.env || {});
+      orgs.forEach(function (o) { if (o.type !== 'player') spawn(o); });
+      putPlayerAt(me.x || 0, me.z || 0);
+      makeVRHud();
+      ECOV.refreshRays(scene);
+    }
+    if (scene.hasLoaded) go(); else scene.addEventListener('loaded', go);
+  });
+})();</script>
+
+<script>
+(function () {
+  var THREE = AFRAME.THREE, B = ECOB, $ = B.$, esc = B.esc, EL = ECOLIB;
+  var sceneEl = $('#scene'), camEl = $('#cam'), stage = $('#stage'), db = B.DB('ecobuild-game');
+  var TYPES = {
+    player: { label: 'Player', color: '#2f7fe0', help: 'The organism the player controls. There is only one; adding another replaces it.' },
+    food: { label: 'Food', color: '#3c9d4c', help: 'Things the player eats to get energy. Add several.' },
+    predator: { label: 'Predator', color: '#d03a2f', help: 'Animals that chase and catch the player.' },
+    scenery: { label: 'Scenery', color: '', help: 'Plants, rocks, and animals that just make the world feel real.' }
+  };
+  function blank() {
+    return { kind: 'game', version: 1, title: '', author: '', description: '',
+      env: { mode: 'preset', preset: 'grassland', photoKey: '', photoYaw: 0, showGround: false, groundColor: '#6f7f5a' },
+      rules: { goal: 'eat', target: 10, seconds: 90, lives: 3, drain: 'normal' },
+      images: {}, organisms: [] };
+  }
+  var state = blank(), sel = null, ents = new Map(), addAs = 'food', imgEls = {};
+  function save() { db.later('current', function () { return state; }); }
+  function byId(id) { for (var i = 0; i < state.organisms.length; i++) if (state.organisms[i].id === id) return state.organisms[i]; return null; }
+  function player() { return state.organisms.filter(function (o) { return o.type === 'player'; })[0]; }
+
+  // ---------- scene ----------
+  function sync(o) {
+    var el = ents.get(o.id);
+    if (!el) { el = document.createElement('a-entity'); el.dataset.id = o.id; sceneEl.appendChild(el); ents.set(o.id, el); }
+    el.setAttribute('position', { x: o.x, y: 0, z: o.z });
+    el.setAttribute('eco-sprite', { key: o.img, h: o.h, aspect: o.aspect, flip: !!o.flip, elev: o.elev || 0, showRole: false,
+      ring: TYPES[o.type].color, label: (o.type === 'player' ? 'You: ' : '') + (o.name || ''), showLabel: true, selected: o.id === sel });
+  }
+  function unsync(id) { var el = ents.get(id); if (el) { el.parentNode.removeChild(el); ents.delete(id); } }
+
+  function defaults(type, item) {
+    var o = { energy: 10, behavior: 'still', regrow: true, speed: 'medium', sight: 8 };
+    if (type === 'food' && item && item.c !== 'plant' && item.c !== 'stage') o.behavior = 'wander';
+    return o;
+  }
+  function place(o, near) {
+    var cam = sceneEl.camera, p = new THREE.Vector3(), d = new THREE.Vector3();
+    cam.getWorldPosition(p); cam.getWorldDirection(d); d.y = 0; if (d.lengthSq() < 1e-4) d.set(0, 0, -1); d.normalize();
+    d.applyAxisAngle(new THREE.Vector3(0, 1, 0), (Math.random() - 0.5) * 1.2);
+    var dist = (near || Math.max(3, Math.min(14, o.h * 1.3 + 2))) * (0.85 + Math.random() * 0.5);
+    o.x = +(p.x + d.x * dist).toFixed(2); o.z = +(p.z + d.z * dist).toFixed(2);
+  }
+  function addChar(type, info, item) {
+    if (type === 'player') {
+      var old = player();
+      if (old) { state.organisms = state.organisms.filter(function (x) { return x !== old; }); unsync(old.id); B.toast('The player is now the ' + info.name + '.'); }
+    }
+    var o = Object.assign({ id: B.uid(), type: type, name: info.name, note: '', img: info.key, aspect: info.aspect,
+      h: info.h || 1, elev: info.elev || 0, flip: false, x: 0, z: 0 }, defaults(type, item));
+    if (type === 'player') { o.elev = 0; o.x = 0; o.z = 0; } else place(o);
+    state.organisms.push(o); sel = o.id;
+    state.organisms.forEach(sync); renderAll(); save();
+    return o;
+  }
+  function libImage(item) {
+    var key = EL.libKey(item), ex = state.organisms.filter(function (o) { return o.img === key; })[0];
+    if (state.images[key] && ex) return Promise.resolve({ key: key, aspect: ex.aspect });
+    return EL.bakeItem(item).then(function (b) { if (!b) return null; state.images[key] = b.url; return { key: key, aspect: b.aspect }; });
+  }
+  function removeChar(id) {
+    var o = byId(id); if (!o) return;
+    state.organisms = state.organisms.filter(function (x) { return x.id !== id; }); unsync(id);
+    if (o.img.indexOf('u') === 0 && !state.organisms.some(function (x) { return x.img === o.img; })) { delete state.images[o.img]; delete ECO._tex[o.img]; }
+    if (sel === id) sel = null;
+    renderAll(); save();
+  }
+  function select(id) {
+    if (sel === id) return;
+    var prev = sel; sel = id;
+    [prev, id].forEach(function (k) { var o = k && byId(k); if (o) sync(o); });
+    renderPopup(); renderList();
+  }
+
+  // ---------- examples ----------
+  var EXAMPLES = {
+    meadow: { label: 'Rabbit in the meadow', sub: 'Eat clover, escape the fox and owl', preset: 'grassland',
+      title: 'Rabbit Run', description: 'You are a rabbit in a spring meadow. Eat enough clover and grass to survive, but watch out: foxes and owls are hungry too!',
+      rules: { goal: 'eat', target: 12, seconds: 90, lives: 3, drain: 'normal' },
+      cast: [['player', 'Rabbit', 1, 'Rabbits are herbivores. Their big ears and fast legs help them hear and escape predators.'],
+        ['food', 'Clover', 7, 'Clover is a producer. It makes its own food from sunlight.', { h: 0.45 }], ['food', 'Grass', 5, 'Grass is a producer and a favorite food for rabbits.'],
+        ['predator', 'Fox', 1, 'Foxes are secondary consumers. They hunt rabbits and mice.', { speed: 'medium', sight: 9 }],
+        ['predator', 'Owl', 1, 'Owls hunt at dusk and at night, swooping silently on small animals.', { speed: 'slow', sight: 7 }],
+        ['scenery', 'Deciduous tree', 4], ['scenery', 'Wildflower', 6], ['scenery', 'Rock', 3]] },
+    pond: { label: 'Frog at the pond', sub: 'Catch insects, avoid the snake', preset: 'wetland',
+      title: 'Pond Survivor', description: 'You are a frog living at the edge of a pond. Catch insects to keep your energy up, and stay away from snakes and alligators!',
+      rules: { goal: 'survive', target: 10, seconds: 90, lives: 3, drain: 'normal' },
+      cast: [['player', 'Frog', 1, 'Frogs are carnivores. They catch insects with their long sticky tongues.'],
+        ['food', 'Cricket', 5, 'Crickets are primary consumers that eat plants.', { behavior: 'flee', h: 0.35 }],
+        ['food', 'Caterpillar', 4, 'Caterpillars eat leaves and grow quickly before becoming butterflies.', { h: 0.35 }],
+        ['food', 'Butterfly', 3, 'Butterflies drink nectar from flowers.', { behavior: 'wander', elev: 0.8, h: 0.35 }],
+        ['predator', 'Snake', 2, 'Many snakes eat frogs. They are secondary consumers.', { speed: 'medium', sight: 8 }],
+        ['predator', 'Alligator', 1, 'Alligators are apex predators at the top of the wetland food chain.', { speed: 'slow', sight: 6 }],
+        ['scenery', 'Lotus', 4], ['scenery', 'Grass', 6], ['scenery', 'Duck', 2]] }
+  };
+  function useExample(k) {
+    var X = EXAMPLES[k];
+    if (state.organisms.length && !confirm('Replace your game with the “' + X.label + '” example?')) return;
+    var rand = ECO.rng(Date.now() & 0xffff);
+    Promise.all(X.cast.map(function (c) { return libImage(EL.findItem(c[1])); })).then(function (imgs) {
+      ents.forEach(function (el) { el.parentNode.removeChild(el); }); ents.clear();
+      state.organisms = []; state.env.mode = 'preset'; state.env.preset = X.preset;
+      state.rules = Object.assign({}, X.rules); state.title = X.title; state.description = X.description;
+      X.cast.forEach(function (c, ci) {
+        var item = EL.findItem(c[1]), im = imgs[ci]; if (!im) return;
+        for (var n = 0; n < c[2]; n++) {
+          var a = rand() * Math.PI * 2, r = c[0] === 'scenery' ? 8 + rand() * 22 : 5 + rand() * 18;
+          var o = Object.assign({ id: B.uid(), type: c[0], name: item.n, note: c[3] || '', img: im.key, aspect: im.aspect, h: item.h, elev: item.elev || 0,
+            flip: rand() < 0.5, x: +(Math.cos(a) * r).toFixed(2), z: +(Math.sin(a) * r).toFixed(2) }, defaults(c[0], item), c[4] || {});
+          if (c[0] === 'player') { o.x = 0; o.z = 0; o.flip = false; }
+          if (c[0] === 'predator') { o.x = +(Math.cos(a) * (14 + rand() * 10)).toFixed(2); o.z = +(Math.sin(a) * (14 + rand() * 10)).toFixed(2); }
+          state.organisms.push(o);
+        }
+      });
+      sel = null; env.rebuild(); state.organisms.forEach(sync); renderAll(); renderInfo(); save();
+      camEl.setAttribute('position', { x: 0, y: 1.6, z: 6 });
+      B.toast('Example loaded. Press Play test to try it, then change anything you like.');
+    });
+  }
+
+  // ---------- panels ----------
+  function renderExamples() {
+    $('#examples').innerHTML = Object.keys(EXAMPLES).map(function (k) { var X = EXAMPLES[k]; return '<button data-x="' + k + '"><b>' + esc(X.label) + '</b>' + esc(X.sub) + '</button>'; }).join('');
+  }
+  function renderAddAs() {
+    document.querySelectorAll('#addas button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.type === addAs); });
+    $('#addas-help').textContent = TYPES[addAs].help;
+  }
+  function renderList() {
+    var groups = ['player', 'food', 'predator', 'scenery'];
+    $('#org-list').innerHTML = state.organisms.length ? groups.map(function (g) {
+      var list = state.organisms.filter(function (o) { return o.type === g; });
+      if (!list.length) return '';
+      return '<div class="group-h">' + (TYPES[g].color ? '<span class="dot" style="background:' + TYPES[g].color + '"></span>' : '') + TYPES[g].label + ' (' + list.length + ')</div><div class="list">' +
+        list.map(function (o) {
+          return '<button data-id="' + o.id + '" class="' + (o.id === sel ? 'on' : '') + '"><img alt="" src="' + (state.images[o.img] || '') + '"><span class="nm">' + esc(o.name || 'Unnamed') + '</span></button>';
+        }).join('') + '</div>';
+    }).join('') : '<p class="muted small">Nothing yet.</p>';
+    renderChecks();
+  }
+  function renderChecks() {
+    var c = $('#checks'); if (!c) return;
+    var has = function (t) { return state.organisms.some(function (o) { return o.type === t; }); };
+    c.innerHTML = '<li class="' + (has('player') ? 'ok' : 'no') + '">A player to control</li>' +
+      '<li class="' + (has('food') ? 'ok' : 'no') + '">Food for the player to eat</li>' +
+      '<li class="' + (has('predator') ? 'ok' : 'no') + '">At least one predator</li>';
+  }
+  function sel3(id, opts, val) {
+    return '<select id="' + id + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (String(o[0]) === String(val) ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>';
+  }
+  var H_MIN = 0.05, H_MAX = 20;
+  function hToSlider(h) { return Math.round(100 * Math.log(h / H_MIN) / Math.log(H_MAX / H_MIN)); }
+  function sliderToH(v) { var h = H_MIN * Math.pow(H_MAX / H_MIN, v / 100); return h < 1 ? +h.toFixed(2) : +h.toFixed(1); }
+  function fmtM(m) { return m < 1 ? Math.round(m * 100) + ' cm' : m.toFixed(1) + ' m'; }
+
+  function renderPopup(force) {
+    var box = $('#popup'), o = sel && byId(sel);
+    if (!o) { box.hidden = true; box.innerHTML = ''; box.dataset.id = ''; return; }
+    if (box.dataset.id === o.id && !force) return;
+    box.dataset.id = o.id;
+    var noteLabel = { player: 'Who are you? (shown at the start)', food: 'Fact shown when the player eats it', predator: 'Fact shown when it catches the player', scenery: 'Note (optional)' }[o.type];
+    var extra = '';
+    if (o.type === 'food') extra =
+      '<label for="f-energy">Energy it gives</label>' + sel3('f-energy', [[5, 'A little (+5)'], [10, 'Some (+10)'], [20, 'A lot (+20)'], [35, 'A feast (+35)']], o.energy) +
+      '<label for="f-beh">How it moves</label>' + sel3('f-beh', [['still', 'Stays still'], ['wander', 'Wanders around'], ['flee', 'Runs away from the player']], o.behavior) +
+      '<label class="check"><input type="checkbox" id="f-regrow"' + (o.regrow ? ' checked' : '') + '> Comes back after it is eaten</label>';
+    if (o.type === 'predator') extra =
+      '<label for="f-speed">Speed</label>' + sel3('f-speed', [['slow', 'Slow'], ['medium', 'Medium'], ['fast', 'Fast']], o.speed) +
+      '<div class="row"><label for="f-sight">How far it can see</label><output id="o-sight"></output></div><input type="range" id="f-sight" min="3" max="20" step="1" value="' + o.sight + '">';
+    if (o.type === 'player') extra =
+      '<label for="f-speed">Speed</label>' + sel3('f-speed', [['slow', 'Slow'], ['medium', 'Medium'], ['fast', 'Fast']], o.speed) +
+      '<p class="muted small" style="margin:8px 0 0">Where this character stands is where the player starts.</p>';
+    box.innerHTML =
+      '<div class="insp-head"><img alt="" src="' + (state.images[o.img] || '') + '"><input type="text" id="f-name" aria-label="Name" placeholder="Name"><button id="b-desel" class="icon" aria-label="Close">✕</button></div>' +
+      '<label for="f-type">Type</label>' + sel3('f-type', [['player', 'Player (you)'], ['food', 'Food'], ['predator', 'Predator'], ['scenery', 'Scenery']], o.type) +
+      extra +
+      '<label for="f-note">' + noteLabel + '</label><textarea id="f-note" rows="3" placeholder="' + (o.type === 'scenery' ? '' : 'Teach the player something about this organism.') + '"></textarea>' +
+      '<div class="row"><label for="f-h">Size (height)</label><output id="o-h"></output></div><input type="range" id="f-h" min="0" max="100" step="1">' +
+      (o.type === 'player' ? '' : '<div class="row"><label for="f-e">Height above ground</label><output id="o-e"></output></div><input type="range" id="f-e" min="0" max="25" step="0.1">') +
+      '<label class="check"><input type="checkbox" id="f-flip"> Flip to face the other way</label>' +
+      '<div class="btns">' + (o.type === 'player' ? '' : '<button id="b-dup">Duplicate</button>') + '<button id="b-del" class="danger">Delete</button></div>';
+    $('#f-name').value = o.name; $('#f-note').value = o.note || ''; $('#f-h').value = hToSlider(o.h); $('#o-h').textContent = fmtM(o.h); $('#f-flip').checked = !!o.flip;
+    if ($('#f-e')) { $('#f-e').value = o.elev || 0; $('#o-e').textContent = fmtM(o.elev || 0); $('#f-e').oninput = function (e) { o.elev = +e.target.value; $('#o-e').textContent = fmtM(o.elev); upd(); }; }
+    function upd() { sync(o); save(); }
+    $('#f-name').oninput = function (e) { o.name = e.target.value; upd(); renderList(); };
+    $('#f-note').oninput = function (e) { o.note = e.target.value; save(); };
+    $('#f-h').oninput = function (e) { o.h = sliderToH(+e.target.value); $('#o-h').textContent = fmtM(o.h); upd(); };
+    $('#f-flip').onchange = function (e) { o.flip = e.target.checked; upd(); };
+    $('#f-type').onchange = function (e) {
+      var t = e.target.value;
+      if (t === 'player') { var old = player(); if (old && old !== o) { old.type = 'scenery'; sync(old); B.toast('The ' + (old.name || 'old player') + ' is now scenery. There can be only one player.'); } o.elev = 0; }
+      o.type = t; upd(); renderList(); renderPopup(true);
+    };
+    if ($('#f-energy')) $('#f-energy').onchange = function (e) { o.energy = +e.target.value; save(); };
+    if ($('#f-beh')) $('#f-beh').onchange = function (e) { o.behavior = e.target.value; save(); };
+    if ($('#f-regrow')) $('#f-regrow').onchange = function (e) { o.regrow = e.target.checked; save(); };
+    if ($('#f-speed')) $('#f-speed').onchange = function (e) { o.speed = e.target.value; save(); };
+    if ($('#f-sight')) { $('#o-sight').textContent = o.sight + ' m'; $('#f-sight').oninput = function (e) { o.sight = +e.target.value; $('#o-sight').textContent = o.sight + ' m'; save(); }; }
+    $('#b-desel').onclick = function () { select(null); };
+    $('#b-del').onclick = function () { removeChar(o.id); };
+    if ($('#b-dup')) $('#b-dup').onclick = function () {
+      var c = JSON.parse(JSON.stringify(o)); c.id = B.uid(); c.x = +(o.x + 1.5).toFixed(2); c.z = +(o.z + 1).toFixed(2);
+      state.organisms.push(c); sel = c.id; state.organisms.forEach(sync); renderAll(); save();
+    };
+    box.hidden = false;
+  }
+  function renderInfo() {
+    var r = state.rules;
+    $('#info').innerHTML =
+      '<h2>About this game</h2>' +
+      '<label for="i-title">Title</label><input type="text" id="i-title" placeholder="e.g. Rabbit Run">' +
+      '<label for="i-author">Created by</label><input type="text" id="i-author" placeholder="Your name">' +
+      '<label for="i-desc">Story <span class="opt">(shown before the game starts)</span></label>' +
+      '<textarea id="i-desc" rows="4" placeholder="Who is the player? Where are they? What do they need to do to survive?"></textarea>' +
+      '<h2 style="margin-top:20px">Rules</h2><div class="rules">' +
+      '<label>To win, the player must</label><div class="goal-row">' + sel3('r-goal', [['eat', 'Eat this much food'], ['survive', 'Survive this many seconds']], r.goal) +
+      '<input type="number" id="r-num" min="1" max="600" aria-label="Amount"></div>' +
+      '<label for="r-lives">Lives</label>' + sel3('r-lives', [[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']], r.lives) +
+      '<label for="r-drain">How fast energy runs out</label>' + sel3('r-drain', [['gentle', 'Slowly (easier)'], ['normal', 'Normal'], ['hard', 'Quickly (harder)']], r.drain) +
+      '</div><h2 style="margin-top:20px">Ready to play?</h2><ul class="check-list" id="checks"></ul>' +
+      '<div class="tip"><b>Tips</b><ul><li>Click a character to open its pop-up and set how it behaves.</li>' +
+      '<li>Use <b>Play test</b> often and adjust speeds until the game is fair but challenging.</li>' +
+      '<li><b>Download game</b> is your save file. Reopen it with <b>Open saved game</b>.</li></ul></div>';
+    [['i-title', 'title'], ['i-author', 'author'], ['i-desc', 'description']].forEach(function (p) {
+      var el = $('#' + p[0]); el.value = state[p[1]] || ''; el.oninput = function () { state[p[1]] = el.value; save(); };
+    });
+    var num = $('#r-num');
+    function numVal() { num.value = r.goal === 'eat' ? r.target : r.seconds; }
+    numVal();
+    $('#r-goal').onchange = function (e) { r.goal = e.target.value; numVal(); save(); };
+    num.oninput = function () { var v = Math.max(1, Math.min(600, Math.round(+num.value || 1))); if (r.goal === 'eat') r.target = v; else r.seconds = v; save(); };
+    $('#r-lives').onchange = function (e) { r.lives = +e.target.value; save(); };
+    $('#r-drain').onchange = function (e) { r.drain = e.target.value; save(); };
+    renderChecks();
+  }
+  function renderAll() { renderList(); renderPopup(); $('#empty').style.display = state.organisms.length ? 'none' : ''; }
+
+  // ---------- wiring ----------
+  B.tabs();
+  var env = B.envPanel({ scene: sceneEl, get: function () { return state; }, changed: save });
+  B.library({ cats: ECOLIB.CATS, pick: function (item) {
+    libImage(item).then(function (im) {
+      if (!im) { B.toast('That picture could not be drawn. Try uploading an image instead.'); return; }
+      addChar(addAs, { name: item.n, key: im.key, aspect: im.aspect, h: item.h, elev: item.elev }, item);
+    });
+  } });
+  renderExamples(); renderAddAs();
+  $('#examples').addEventListener('click', function (e) { var b = e.target.closest('[data-x]'); if (b) useExample(b.dataset.x); });
+  $('#addas').addEventListener('click', function (e) { var b = e.target.closest('[data-type]'); if (b) { addAs = b.dataset.type; renderAddAs(); } });
+  $('#org-list').addEventListener('click', function (e) { var b = e.target.closest('[data-id]'); if (b) select(b.dataset.id); });
+  $('#b-upload').addEventListener('click', function () { $('#f-upload').click(); });
+  $('#f-upload').addEventListener('change', function (e) {
+    var f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    B.uploadImage(f, $('#rm-bg').checked).then(function (r) {
+      var key = 'u' + B.uid(); state.images[key] = r.url;
+      addChar(addAs, { name: r.name, key: key, aspect: r.aspect, h: 1, elev: 0 });
+      B.toast('Image added as ' + TYPES[addAs].label.toLowerCase() + '. Name it in its pop-up.');
+    }).catch(function () { B.toast('That image could not be opened. Try a JPG or PNG.'); });
+  });
+  $('#b-center').addEventListener('click', function () { var p = player() || { x: 0, z: 0 }; camEl.setAttribute('position', { x: p.x, y: 1.6, z: p.z }); });
+  $('#behind').addEventListener('click', function () { var o = byId(sel); if (o) B.turnCam(camEl, o.x, o.z); });
+  B.popupPlacer({ scene: sceneEl, stage: stage, box: $('#popup'), behind: $('#behind'), getAnchor: function () {
+    var o = sel && byId(sel); return o ? { x: o.x, z: o.z, y0: o.elev || 0, h: o.h, aspect: o.aspect } : null;
+  } });
+  document.addEventListener('keydown', function (e) {
+    if (document.activeElement !== document.body) return;
+    if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { e.preventDefault(); removeChar(sel); }
+    if (e.key === 'Escape') select(null);
+  });
+
+  // ---------- drag characters in the 3D view ----------
+  var drag = null, downPt = null, hitV = new THREE.Vector3();
+  function pt(e) { var t = e.changedTouches ? e.changedTouches[0] : e; return { x: t.clientX, y: t.clientY }; }
+  function onDown(e) {
+    if (!sceneEl.canvas || e.target !== sceneEl.canvas || (e.button && e.button > 0)) return;
+    var p = pt(e), hit = B.pick(sceneEl, p.x, p.y);
+    if (hit) {
+      var o = byId(hit.id); if (!o) return;
+      e.stopPropagation(); if (e.cancelable) e.preventDefault();
+      select(o.id);
+      drag = { o: o, plane: new THREE.Plane(new THREE.Vector3(0, 1, 0), -hit.point.y), off: { x: o.x - hit.point.x, z: o.z - hit.point.z } };
+      stage.classList.add('dragging');
+    } else downPt = p;
+  }
+  function onMove(e) {
+    if (!drag) return;
+    if (e.cancelable) e.preventDefault();
+    var p = pt(e), ray = B.setRay(sceneEl, p.x, p.y);
+    if (ray.ray.intersectPlane(drag.plane, hitV)) {
+      var x = hitV.x + drag.off.x, z = hitV.z + drag.off.z, r = Math.hypot(x, z);
+      if (r > 40) { x *= 40 / r; z *= 40 / r; }
+      drag.o.x = +x.toFixed(2); drag.o.z = +z.toFixed(2);
+      ents.get(drag.o.id).setAttribute('position', { x: drag.o.x, y: 0, z: drag.o.z });
+    }
+  }
+  function onUp(e) {
+    if (drag) { drag = null; stage.classList.remove('dragging'); save(); return; }
+    if (downPt) { var p = pt(e); if (Math.hypot(p.x - downPt.x, p.y - downPt.y) < 5) select(null); downPt = null; }
+  }
+  stage.addEventListener('mousedown', onDown, true);
+  stage.addEventListener('touchstart', onDown, { capture: true, passive: false });
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('mouseup', onUp);
+  window.addEventListener('touchend', onUp);
+
+  // ---------- top-down map ----------
+  var mapC = $('#map'), mctx = mapC.getContext('2d'), ranges = [10, 20, 30, 45], rIdx = 2, mapDrag = null;
+  function R() { return ranges[rIdx]; }
+  function toMap(x, z) { var S = mapC.width, k = (S / 2 - 14) / R(); return [S / 2 + x * k, S / 2 + z * k]; }
+  function fromMap(mx, my) { var S = mapC.width, k = (S / 2 - 14) / R(); return [(mx - S / 2) / k, (my - S / 2) / k]; }
+  function getImg(key) { if (!imgEls[key] && state.images[key]) { imgEls[key] = new Image(); imgEls[key].src = state.images[key]; } return imgEls[key]; }
+  function drawMap() {
+    var S = mapC.width, x = mctx;
+    x.clearRect(0, 0, S, S);
+    x.fillStyle = state.env.mode === 'photo' ? '#e8ecef' : (ECO.PRESETS[state.env.preset] || ECO.PRESETS.forest).ground;
+    x.globalAlpha = 0.35; x.beginPath(); x.arc(S / 2, S / 2, S / 2 - 4, 0, 7); x.fill(); x.globalAlpha = 1;
+    x.strokeStyle = 'rgba(0,0,0,.12)'; x.lineWidth = 2;
+    for (var i = 1; i <= 3; i++) { x.beginPath(); x.arc(S / 2, S / 2, (S / 2 - 14) * i / 3, 0, 7); x.stroke(); }
+    var edge = (S / 2 - 14) * 40 / R();
+    if (edge < S / 2) { x.strokeStyle = 'rgba(176,56,44,.55)'; x.setLineDash([8, 6]); x.beginPath(); x.arc(S / 2, S / 2, edge, 0, 7); x.stroke(); x.setLineDash([]); }
+    x.fillStyle = 'rgba(0,0,0,.45)'; x.font = '600 20px system-ui,sans-serif'; x.textAlign = 'center'; x.fillText(R() + ' m', S / 2, 26);
+    state.organisms.forEach(function (o) {
+      var p = toMap(o.x, o.z), on = o.id === sel, sz = on ? 38 : 28, im = getImg(o.img), col = TYPES[o.type].color;
+      if (Math.hypot(p[0] - S / 2, p[1] - S / 2) > S / 2) return;
+      if (on) { x.fillStyle = '#2fc4f2'; x.beginPath(); x.arc(p[0], p[1], sz * 0.68, 0, 7); x.fill(); }
+      else if (col) { x.fillStyle = col; x.beginPath(); x.arc(p[0], p[1], sz * 0.58, 0, 7); x.fill(); }
+      if (im && im.complete && im.naturalWidth) { var a = im.naturalWidth / im.naturalHeight, w = a > 1 ? sz : sz * a, h = a > 1 ? sz / a : sz; x.drawImage(im, p[0] - w / 2, p[1] - h / 2, w, h); }
+    });
+    if (sceneEl.camera) {
+      var cp = new THREE.Vector3(), cd = new THREE.Vector3();
+      sceneEl.camera.getWorldPosition(cp); sceneEl.camera.getWorldDirection(cd);
+      var c = toMap(cp.x, cp.z), ang = Math.atan2(cd.z, cd.x);
+      x.fillStyle = 'rgba(47,196,242,.25)'; x.beginPath(); x.moveTo(c[0], c[1]); x.arc(c[0], c[1], 46, ang - 0.6, ang + 0.6); x.closePath(); x.fill();
+      x.fillStyle = '#fff'; x.strokeStyle = '#1e3a2c'; x.lineWidth = 4; x.beginPath(); x.arc(c[0], c[1], 8, 0, 7); x.fill(); x.stroke();
+    }
+  }
+  function mapPt(e) { var r = mapC.getBoundingClientRect(); return [(e.clientX - r.left) * mapC.width / r.width, (e.clientY - r.top) * mapC.height / r.height]; }
+  mapC.addEventListener('pointerdown', function (e) {
+    var p = mapPt(e), best = null, bd = 26;
+    state.organisms.forEach(function (o) { var q = toMap(o.x, o.z), d = Math.hypot(q[0] - p[0], q[1] - p[1]); if (d < bd) { bd = d; best = o; } });
+    if (best) { mapDrag = best; select(best.id); mapC.setPointerCapture(e.pointerId); }
+  });
+  mapC.addEventListener('pointermove', function (e) {
+    if (!mapDrag) return;
+    var w = fromMap.apply(null, mapPt(e)), r = Math.hypot(w[0], w[1]);
+    if (r > 40) { w[0] *= 40 / r; w[1] *= 40 / r; }
+    mapDrag.x = +w[0].toFixed(2); mapDrag.z = +w[1].toFixed(2);
+    ents.get(mapDrag.id).setAttribute('position', { x: mapDrag.x, y: 0, z: mapDrag.z });
+  });
+  function endMap() { if (mapDrag) { mapDrag = null; save(); } }
+  mapC.addEventListener('pointerup', endMap); mapC.addEventListener('pointercancel', endMap);
+  $('#z-in').addEventListener('click', function () { rIdx = Math.max(0, rIdx - 1); });
+  $('#z-out').addEventListener('click', function () { rIdx = Math.min(ranges.length - 1, rIdx + 1); });
+  setInterval(drawMap, 100);
+
+  // ---------- export / open ----------
+  function problems() {
+    var out = [];
+    if (!player()) out.push('a player');
+    if (!state.organisms.some(function (o) { return o.type === 'food'; })) out.push('some food');
+    return out;
+  }
+  function exportData() {
+    var keys = state.organisms.map(function (o) { return o.img; });
+    if (state.env.mode === 'photo') keys.push(state.env.photoKey);
+    var d = JSON.parse(JSON.stringify(state)); d.images = B.pruneImages(state.images, keys);
+    d.kind = 'game'; d.title = (state.title || '').trim() || 'Untitled game';
+    d.savedWith = 'EcoBuild Survival Game Builder'; d.savedAt = new Date().toISOString();
+    return d;
+  }
+  function viewer() { var d = exportData(); return B.viewerHTML({ title: d.title, data: d, css: ['v-css'], body: 'v-body', js: ['eco-shared', 'v-common', 'v-js'] }); }
+  function ready() { var p = problems(); if (p.length) { B.toast('Add ' + p.join(' and ') + ' first.'); return false; } return true; }
+  $('#b-download').addEventListener('click', function () {
+    if (!ready()) return;
+    var d = exportData(); B.download(viewer(), B.slug(d.title) + '-game.html');
+    B.toast('Downloaded. This file is your game and your save file.');
+  });
+  $('#b-preview').addEventListener('click', function () { if (ready()) B.preview(viewer()); });
+  $('#b-open').addEventListener('click', function () { $('#f-open').click(); });
+  $('#f-open').addEventListener('change', function (e) {
+    var f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    B.readProject(f, 'game').then(function (d) { load(d); save(); B.toast('Opened “' + (state.title || 'game') + '”.'); })
+      .catch(function () { B.toast('That file is not a game made with EcoBuild.'); });
+  });
+  $('#b-new').addEventListener('click', function () {
+    if (state.organisms.length && !confirm('Start a new game? Anything you have not downloaded will be lost.')) return;
+    load(blank()); save();
+  });
+  function load(d) {
+    var b = blank(); delete d.savedWith; delete d.savedAt;
+    state = Object.assign(b, d); state.env = Object.assign(blank().env, d.env || {}); state.rules = Object.assign(blank().rules, d.rules || {});
+    state.images = d.images || {}; state.organisms = d.organisms || [];
+    ents.forEach(function (el) { el.parentNode.removeChild(el); }); ents.clear();
+    ECO.images = state.images; ECO._tex = {}; imgEls = {}; sel = null;
+    env.rebuild(); state.organisms.forEach(sync); renderAll(); renderInfo();
+  }
+  function start() {
+    db.get('current').then(function (saved) {
+      if (saved && Array.isArray(saved.organisms)) { load(saved); if (saved.organisms.length) B.toast('Welcome back. Your last game was restored from this browser.'); }
+      else load(blank());
+    });
+  }
+  if (sceneEl.hasLoaded) start(); else sceneEl.addEventListener('loaded', start);
+})();
+</script>
+</body>
+</html>
