@@ -10,7 +10,7 @@
    ===================================================================== */
 var ECOBUILD = {
   title: 'EcoBuild',
-  tagline: 'Build ecosystems, life cycles, and survival games you can step inside, on a computer, phone, or VR headset.',
+  tagline: 'Build ecosystems, life cycles, and survival games you can step inside, and see living things at their real size in mixed reality.',
 
   // The menu of builders. Add a new { ... } block here when you create another builder.
   builders: [
@@ -19,7 +19,9 @@ var ECOBUILD = {
     { name: 'Life Cycle Builder', link: 'lifecycle-builder.html', icon: '🦋', color: '#c98a12', kind: 'lifecycle',
       text: 'Show how an organism changes from stage to stage, in a ring of stages with arrows between them.' },
     { name: 'Survival Game Builder', link: 'game-builder.html', icon: '🦊', color: '#c63a2f', kind: 'game',
-      text: 'Design a world where players control an organism, eat to stay alive, and escape predators.' }
+      text: 'Design a world where players control an organism, eat to stay alive, and escape predators.' },
+    { name: 'Size Up', link: 'sizeup.html', icon: '📏', color: '#2f7fe0', go: 'Start exploring',
+      text: 'Mixed reality for Meta Quest 3: see 83 plants and animals at their real size, right next to you in the room.' }
   ],
 
   // Folders (next to this page) where you upload students' downloaded files.
@@ -34,7 +36,7 @@ var ECOBUILD = {
 
   // Student uploads: paste the Web app URL from your EcoBuild uploads Apps Script here.
   // Leave it '' to hide the upload button.
-  uploadUrl: 'https://script.google.com/macros/s/AKfycbxIcdaptWjdb40Ijq_pAG2z-BM85LXmCLW9EWzkrkQ6Qg6PVZ6ZxY1zO66oLjge3c2F/exec',
+  uploadUrl: '',
 
   // Optional: list files to show them instead of listing the folders,
   // e.g. ['gallery/maria-desert-ecosystem.html'].
@@ -173,7 +175,7 @@ var ECOBUILD = {
   $('#t-title').textContent = C.title; $('#t-tag').textContent = C.tagline;
   $('#menu').innerHTML = C.builders.map(function (b) {
     return '<a class="tool" href="' + esc(b.link) + '" style="--c:' + esc(b.color || '#2e7d4f') + '"><span class="ic" aria-hidden="true">' + esc(b.icon || '🌿') + '</span>' +
-      '<h2>' + esc(b.name) + '</h2><p>' + esc(b.text || '') + '</p><span class="go">Start building →</span></a>';
+      '<h2>' + esc(b.name) + '</h2><p>' + esc(b.text || '') + '</p><span class="go">' + esc(b.go || 'Start building') + ' →</span></a>';
   }).join('');
 
   var kind = '', items = [];
