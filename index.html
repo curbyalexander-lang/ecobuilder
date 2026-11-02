@@ -32,6 +32,10 @@ var ECOBUILD = {
   githubRepo: '',
   branch: '',
 
+  // Student uploads: paste the Web app URL from your EcoBuild uploads Apps Script here.
+  // Leave it '' to hide the upload button.
+  uploadUrl: '',
+
   // Optional: list files to show them instead of listing the folders,
   // e.g. ['gallery/maria-desert-ecosystem.html'].
   files: []
@@ -91,6 +95,26 @@ var ECOBUILD = {
   .skeleton .cover { background: linear-gradient(90deg, #e6e9e3, #f1f3ef, #e6e9e3); background-size: 200% 100%; animation: sh 1.2s infinite; }
   .skeleton .bar { height: 12px; border-radius: 6px; background: #eceee9; }
   @keyframes sh { to { background-position: -200% 0; } }
+  .share { font: inherit; font-weight: 650; background: #f2c14e; color: #1e2a20; border: 0; border-radius: 10px; padding: 11px 16px; cursor: pointer; }
+  .share:hover { background: #f6cf6d; }
+  .modal { position: fixed; inset: 0; background: rgba(10,24,18,.55); display: grid; place-items: center; padding: 16px; z-index: 50; }
+  .modal[hidden] { display: none; }
+  .sheet { background: #fff; border-radius: 16px; width: min(480px, 100%); max-height: 92vh; overflow: auto; padding: 22px 24px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  .sheet h2 { margin: 0 0 6px; font-size: 22px; }
+  .sheet p { margin: 0 0 12px; color: #3b4740; line-height: 1.45; }
+  .sheet label { display: block; font-weight: 600; font-size: 14px; margin: 12px 0 5px; }
+  .sheet input[type=text], .sheet input[type=password] { width: 100%; font: inherit; padding: 9px 12px; border-radius: 9px; border: 1px solid #cdd3ca; }
+  .drop { border: 2px dashed #b9c2b6; border-radius: 12px; padding: 18px; text-align: center; cursor: pointer; color: #5d6a62; background: #fafaf7; }
+  .drop.over { border-color: var(--accent); background: #eef6ef; }
+  .picked { display: flex; gap: 10px; align-items: center; background: #f2f4ef; border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
+  .picked .badge { position: static; }
+  .row2 { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+  .row2 button { font: inherit; border-radius: 9px; padding: 10px 16px; border: 1px solid #cdd3ca; background: #fff; cursor: pointer; }
+  .row2 .go2 { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 650; }
+  .row2 .go2:disabled { opacity: .5; cursor: default; }
+  .note { border-radius: 10px; padding: 10px 12px; margin-top: 12px; line-height: 1.45; }
+  .note.err { background: #fdecea; color: #8a2a20; }
+  .note.good { background: #e8f5ea; color: #1f5a33; }
   footer { text-align: center; color: var(--muted); font-size: 13px; padding: 0 16px 32px; }
 </style>
 </head>
@@ -103,7 +127,8 @@ var ECOBUILD = {
 </header>
 <main class="wrap">
   <nav class="menu" id="menu" aria-label="Builders"></nav>
-  <div class="gal-head"><h2>Class gallery</h2><p>Open any project to explore it, or step inside with a VR headset.</p></div>
+  <div class="gal-head"><div><h2>Class gallery</h2><p>Open any project to explore it, or step inside with a VR headset.</p></div>
+    <button class="share" id="b-share" hidden>＋ Share your project</button></div>
   <div class="tools">
     <div class="seg" id="kind" role="group" aria-label="Show"></div>
     <input type="search" id="q" placeholder="Search by title, creator, or organism" aria-label="Search projects">
@@ -117,6 +142,19 @@ var ECOBUILD = {
   <div class="grid" id="grid" aria-live="polite"></div>
 </main>
 <footer>EcoBuild</footer>
+<div class="modal" id="up" hidden role="dialog" aria-modal="true" aria-labelledby="up-title">
+  <div class="sheet">
+    <h2 id="up-title">Share your project</h2>
+    <p id="up-intro">Upload the file you downloaded from an EcoBuild builder.</p>
+    <div class="drop" id="up-drop" tabindex="0">Drop your file here, or <b>click to choose it</b></div>
+    <input type="file" id="up-file" accept=".html,text/html" hidden>
+    <div id="up-picked"></div>
+    <div id="up-name-row" hidden><label for="up-name">Your name</label><input type="text" id="up-name" maxlength="60" placeholder="First name and last initial"></div>
+    <div id="up-code-row"><label for="up-code">Class code <span style="font-weight:400;color:#5d6a62">(from your teacher)</span></label><input type="text" id="up-code" autocomplete="off"></div>
+    <div id="up-note"></div>
+    <div class="row2"><button id="up-cancel">Close</button><button class="go2" id="up-send" disabled>Upload</button></div>
+  </div>
+</div>
 
 <script>
 (function () {
@@ -253,6 +291,61 @@ var ECOBUILD = {
     message('<b>The gallery could not load.</b><br>' + why);
   });
   ['#q', '#sort'].forEach(function (s) { $(s).addEventListener('input', render); });
+
+  // ---------- student uploads ----------
+  if (C.uploadUrl) {
+    var picked = null, mode = 'review';
+    $('#b-share').hidden = false;
+    function note(cls, text) { $('#up-note').innerHTML = text ? '<div class="note ' + cls + '">' + esc(text) + '</div>' : ''; }
+    function openUp() {
+      picked = null; $('#up-picked').innerHTML = ''; $('#up-name-row').hidden = true; $('#up-send').disabled = true; note('', '');
+      $('#up').hidden = false;
+      fetch(C.uploadUrl).then(function (r) { return r.json(); }).then(function (s) {
+        mode = s.mode; $('#up-code-row').hidden = !s.needsCode;
+        $('#up-intro').textContent = 'Upload the file you downloaded from an EcoBuild builder. ' +
+          (s.mode === 'review' ? 'Your teacher will check it before it appears in the gallery.' : 'It will appear in the gallery in about a minute.');
+      }).catch(function () {});
+    }
+    function choose(file) {
+      note('', ''); picked = null; $('#up-send').disabled = true; $('#up-picked').innerHTML = '';
+      if (!file) return;
+      if (file.size > 15 * 1024 * 1024) { note('err', 'That file is larger than 15 MB. Try a smaller 360° photo or fewer uploaded images.'); return; }
+      file.text().then(function (txt) {
+        var m = txt.match(/<script type="application\/json" id="eco-data">([\s\S]*?)<\/script>/), d = null;
+        try { d = m && JSON.parse(m[1]); } catch (e) {}
+        if (!d) { note('err', 'That file is not an EcoBuild project. Choose the file you downloaded from one of the builders.'); return; }
+        var K = KINDS[d.kind || 'ecosystem'] || ['Project', '', '#555'];
+        picked = { name: file.name, content: txt, author: d.author || '' };
+        $('#up-picked').innerHTML = '<div class="picked"><span class="badge" style="background:' + K[2] + '">' + esc(K[0]) + '</span><div><b>' + esc(d.title || file.name) + '</b>' +
+          (d.author ? '<br><span style="color:#5d6a62">by ' + esc(d.author) + '</span>' : '') + '</div></div>';
+        $('#up-name-row').hidden = !!d.author;
+        $('#up-send').disabled = false;
+      });
+    }
+    $('#b-share').addEventListener('click', openUp);
+    $('#up-cancel').addEventListener('click', function () { $('#up').hidden = true; });
+    $('#up').addEventListener('click', function (e) { if (e.target.id === 'up') $('#up').hidden = true; });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#up').hidden = true; });
+    $('#up-drop').addEventListener('click', function () { $('#up-file').click(); });
+    $('#up-drop').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#up-file').click(); } });
+    $('#up-file').addEventListener('change', function (e) { choose(e.target.files[0]); e.target.value = ''; });
+    ['dragover', 'dragenter'].forEach(function (ev) { $('#up-drop').addEventListener(ev, function (e) { e.preventDefault(); $('#up-drop').classList.add('over'); }); });
+    ['dragleave', 'drop'].forEach(function (ev) { $('#up-drop').addEventListener(ev, function () { $('#up-drop').classList.remove('over'); }); });
+    $('#up-drop').addEventListener('drop', function (e) { e.preventDefault(); choose(e.dataTransfer.files[0]); });
+    $('#up-send').addEventListener('click', function () {
+      if (!picked) return;
+      if (!picked.author && !$('#up-name').value.trim()) { note('err', 'Please type your name.'); return; }
+      var btn = $('#up-send'); btn.disabled = true; btn.textContent = 'Uploading…'; note('', '');
+      fetch(C.uploadUrl, { method: 'POST', body: JSON.stringify({ code: $('#up-code').value, name: $('#up-name').value, filename: picked.name, content: picked.content }) })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          btn.textContent = 'Upload';
+          if (res.ok) { note('good', res.message); picked = null; $('#up-picked').innerHTML = ''; }
+          else { note('err', res.error || 'The upload did not work. Please try again.'); btn.disabled = false; }
+        })
+        .catch(function () { btn.textContent = 'Upload'; btn.disabled = false; note('err', 'The upload did not go through. Check your internet connection and try again.'); });
+    });
+  }
 })();
 </script>
 </body>
