@@ -1,8 +1,0 @@
-ECOBUILD STUDENT UPLOADS: SETUP (about 15 minutes, done once)
-
-What you'll end up with
-- A "Share your project" button on the EcoBuild home page.
-- Students upload their downloaded file and type the class code.
-- In review mode (the default), uploads wait in a "submissions" folder that the gallery
-  does not show. You get an email, open your review page, preview, and click Approve
-  or Remove. Approved projects appear in the gallery about a minute later.
