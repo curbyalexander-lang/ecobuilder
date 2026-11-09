@@ -686,18 +686,9 @@
     return { render: render };
   };
 
-  // Turn an uploaded picture into a cut-out { url, aspect, name }
-  B.uploadImage = function (file, removeBg) {
-    return ECOLIB.loadImageFile(file).then(function (img) {
-      var s = Math.min(1, 512 / Math.max(img.naturalWidth, img.naturalHeight));
-      var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.naturalWidth * s)); c.height = Math.max(1, Math.round(img.naturalHeight * s));
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      if (removeBg) ECOLIB.removeBackground(c);
-      var t = ECOLIB.trim(c) || { canvas: c, aspect: c.width / c.height };
-      var name = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'My picture';
-      return { url: ECOLIB.encode(t.canvas), aspect: t.aspect, name: name.charAt(0).toUpperCase() + name.slice(1) };
-    });
-  };
+  // Turn an uploaded picture into a cut-out { url, aspect, name } using the cleanup window.
+  // Resolves with null if the student cancels.
+  B.uploadImage = function (file) { return CUTOUT.open(file); };
 
   // Which sprite (eco-sprite entity with data-id) is under the pointer?
   var ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
@@ -781,6 +772,334 @@
       var d = JSON.parse(node.textContent);
       if (!d || (d.kind || 'ecosystem') !== kind) throw new Error('kind');
       return d;
+    });
+  };
+})();</script>
+<script>// CUTOUT: turns an uploaded photo or drawing into a cut-out with a transparent background.
+// 1) Plain backgrounds (a drawing on paper) are removed instantly by color.
+// 2) Busy backgrounds use a small AI model (U-2-Net-p, Apache-2.0) that runs in the browser.
+// 3) Students can touch up the result with Erase / Bring back brushes before saving.
+(function () {
+  var C = window.CUTOUT = {};
+  C.config = {
+    ortScript: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js',
+    ortWasm: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/',
+    // The site's own copy is tried first; the public copy is the backup.
+    models: ['models/u2netp.onnx', 'https://cdn.jsdelivr.net/npm/@planby-tech/rmbg-webgpu@0.2.1/models/u2netp.onnx'],
+    workSize: 768,   // largest side while editing
+    outSize: 512     // largest side of the saved cut-out
+  };
+
+  // ---------- AI model (loaded only when first needed) ----------
+  var sessionP = null;
+  function loadScript(src) {
+    return new Promise(function (res, rej) {
+      if (window.ort) return res();
+      var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function () { rej(new Error('script')); };
+      document.head.appendChild(s);
+    });
+  }
+  function fetchModel(urls, i) {
+    i = i || 0;
+    if (i >= urls.length) return Promise.reject(new Error('model'));
+    return fetch(urls[i]).then(function (r) { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .catch(function () { return fetchModel(urls, i + 1); });
+  }
+  C.session = function () {
+    if (sessionP) return sessionP;
+    sessionP = loadScript(C.config.ortScript).then(function () {
+      ort.env.wasm.wasmPaths = C.config.ortWasm;
+      ort.env.wasm.numThreads = 1;
+      return fetchModel(C.config.models);
+    }).then(function (buf) {
+      return ort.InferenceSession.create(new Uint8Array(buf), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+    });
+    sessionP.catch(function () { sessionP = null; });
+    return sessionP;
+  };
+
+  // Returns a Uint8Array mask (0 = background, 255 = keep) for a canvas
+  C.aiMask = function (canvas) {
+    return C.session().then(function (session) {
+      var S = 320, t = document.createElement('canvas'); t.width = t.height = S;
+      var tx = t.getContext('2d'); tx.drawImage(canvas, 0, 0, S, S);
+      var px = tx.getImageData(0, 0, S, S).data, n = S * S, max = 1;
+      for (var i = 0; i < px.length; i += 4) { if (px[i] > max) max = px[i]; if (px[i + 1] > max) max = px[i + 1]; if (px[i + 2] > max) max = px[i + 2]; }
+      var mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225], input = new Float32Array(3 * n);
+      for (var p = 0, k = 0; p < n; p++, k += 4) {
+        input[p] = (px[k] / max - mean[0]) / std[0];
+        input[n + p] = (px[k + 1] / max - mean[1]) / std[1];
+        input[2 * n + p] = (px[k + 2] / max - mean[2]) / std[2];
+      }
+      var feeds = {}; feeds[session.inputNames[0]] = new ort.Tensor('float32', input, [1, 3, S, S]);
+      return session.run(feeds).then(function (out) {
+        var o = out[session.outputNames[0]].data, lo = Infinity, hi = -Infinity;
+        for (var j = 0; j < n; j++) { if (o[j] < lo) lo = o[j]; if (o[j] > hi) hi = o[j]; }
+        var range = Math.max(hi - lo, 1e-6), small = tx.createImageData(S, S);
+        for (var q = 0, m = 0; q < n; q++, m += 4) { var v = (o[q] - lo) / range * 255; small.data[m] = small.data[m + 1] = small.data[m + 2] = v; small.data[m + 3] = 255; }
+        tx.putImageData(small, 0, 0);
+        // scale the mask up smoothly to the picture size
+        var W = canvas.width, H = canvas.height, big = document.createElement('canvas'); big.width = W; big.height = H;
+        var bx = big.getContext('2d'); bx.imageSmoothingQuality = 'high'; bx.drawImage(t, 0, 0, W, H);
+        var bd = bx.getImageData(0, 0, W, H).data, mask = new Uint8Array(W * H);
+        for (var a = 0, b = 0; a < mask.length; a++, b += 4) {
+          var x = (bd[b] / 255 - 0.2) / 0.6; mask[a] = x <= 0 ? 0 : x >= 1 ? 255 : Math.round(x * x * (3 - 2 * x) * 255);
+        }
+        return mask;
+      });
+    });
+  };
+
+  // ---------- plain-background removal by color ----------
+  function dist(d, i, c) { return Math.abs(d[i] - c[0]) + Math.abs(d[i + 1] - c[1]) + Math.abs(d[i + 2] - c[2]); }
+  // Find the main colors along the edge of the picture and how much of the edge they cover
+  C.border = function (canvas) {
+    var W = canvas.width, H = canvas.height, d = canvas.getContext('2d').getImageData(0, 0, W, H).data, idx = [];
+    for (var x = 0; x < W; x += 2) { idx.push(x * 4, ((H - 1) * W + x) * 4); }
+    for (var y = 0; y < H; y += 2) { idx.push(y * W * 4, (y * W + W - 1) * 4); }
+    var palette = [], counts = [];
+    idx.forEach(function (i) {
+      if (d[i + 3] < 20) return;
+      for (var p = 0; p < palette.length; p++) if (dist(d, i, palette[p]) < 60) { counts[p]++; return; }
+      if (palette.length < 8) { palette.push([d[i], d[i + 1], d[i + 2]]); counts.push(1); }
+    });
+    var order = counts.map(function (c, i) { return i; }).sort(function (a, b) { return counts[b] - counts[a]; });
+    var top = order.slice(0, 3).map(function (i) { return palette[i]; }), covered = 0;
+    order.slice(0, 2).forEach(function (i) { covered += counts[i]; });
+    var transparentEdge = idx.filter(function (i) { return d[i + 3] < 20; }).length / idx.length;
+    return { palette: top, plain: (covered / idx.length) + transparentEdge, transparent: transparentEdge > 0.6 };
+  };
+  C.colorMask = function (canvas, tol) {
+    tol = tol || 70;
+    var W = canvas.width, H = canvas.height, d = canvas.getContext('2d').getImageData(0, 0, W, H).data;
+    var info = C.border(canvas), pal = info.palette, mask = new Uint8Array(W * H).fill(255), stack = [];
+    function isBg(i) {
+      var k = i * 4; if (d[k + 3] < 20) return true;
+      for (var p = 0; p < pal.length; p++) if (dist(d, k, pal[p]) < tol) return true;
+      return false;
+    }
+    for (var x = 0; x < W; x++) stack.push(x, (H - 1) * W + x);
+    for (var y = 0; y < H; y++) stack.push(y * W, y * W + W - 1);
+    var seen = new Uint8Array(W * H);
+    while (stack.length) {
+      var p = stack.pop(); if (seen[p]) continue; seen[p] = 1;
+      if (!isBg(p)) continue;
+      mask[p] = 0;
+      var px = p % W;
+      if (px > 0) stack.push(p - 1); if (px < W - 1) stack.push(p + 1);
+      if (p >= W) stack.push(p - W); if (p < W * (H - 1)) stack.push(p + W);
+    }
+    return soften(mask, W, H);
+  };
+  // Soften hard edges by one pixel so cut-outs don't look jagged
+  function soften(mask, W, H) {
+    var out = new Uint8Array(mask.length);
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+      var s = 0, n = 0;
+      for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+        var xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        s += mask[yy * W + xx]; n++;
+      }
+      out[y * W + x] = mask[y * W + x] === 0 ? Math.min(s / n, 60) | 0 : Math.round(s / n);
+    }
+    return out;
+  }
+
+  // Automatic choice: plain edge → color method; busy edge → AI
+  C.autoMask = function (canvas) {
+    var b = C.border(canvas);
+    if (b.transparent) return Promise.resolve({ mask: alphaMask(canvas), method: 'already' });
+    if (b.plain >= 0.85) return Promise.resolve({ mask: C.colorMask(canvas), method: 'color' });
+    return C.aiMask(canvas).then(function (m) { return { mask: m, method: 'ai' }; });
+  };
+  function alphaMask(canvas) {
+    var d = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data, m = new Uint8Array(d.length / 4);
+    for (var i = 0; i < m.length; i++) m[i] = d[i * 4 + 3];
+    return m;
+  }
+
+  // Put a mask on a picture and return a new canvas
+  C.apply = function (canvas, mask) {
+    var W = canvas.width, H = canvas.height, out = document.createElement('canvas'); out.width = W; out.height = H;
+    var x = out.getContext('2d'); x.drawImage(canvas, 0, 0);
+    var id = x.getImageData(0, 0, W, H);
+    for (var i = 0; i < mask.length; i++) id.data[i * 4 + 3] = Math.min(id.data[i * 4 + 3], mask[i]);
+    x.putImageData(id, 0, 0);
+    return out;
+  };
+  function trim(c) {
+    var x = c.getContext('2d'), d = x.getImageData(0, 0, c.width, c.height).data, W = c.width, H = c.height, x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (var y = 0; y < H; y++) for (var i = 0; i < W; i++) if (d[(y * W + i) * 4 + 3] > 16) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    x0 = Math.max(0, x0 - 2); y0 = Math.max(0, y0 - 2); x1 = Math.min(W - 1, x1 + 2); y1 = Math.min(H - 1, y1 + 2);
+    var o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+    o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+    return o;
+  }
+  function encode(c) {
+    var webp = c.toDataURL('image/webp', 0.9);
+    return webp.indexOf('data:image/webp') === 0 ? webp : c.toDataURL('image/png');
+  }
+  function finish(canvas, mask) {
+    var cut = mask ? C.apply(canvas, mask) : canvas, t = trim(cut) || cut;
+    var k = Math.min(1, C.config.outSize / Math.max(t.width, t.height));
+    var o = document.createElement('canvas'); o.width = Math.max(1, Math.round(t.width * k)); o.height = Math.max(1, Math.round(t.height * k));
+    var ox = o.getContext('2d'); ox.imageSmoothingQuality = 'high'; ox.drawImage(t, 0, 0, o.width, o.height);
+    return { url: encode(o), aspect: o.width / o.height };
+  }
+  function loadFile(file) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var k = Math.min(1, C.config.workSize / Math.max(img.naturalWidth, img.naturalHeight));
+        var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url); res(c);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error('bad image')); };
+      img.src = url;
+    });
+  }
+  function niceName(file) {
+    var n = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\b(img|image|photo|dsc|pxl)\s*\d+\b/ig, '').trim() || 'My picture';
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  }
+
+  // ---------- the cleanup window ----------
+  var CSS = [
+    '.co-modal{position:fixed;inset:0;z-index:100;background:rgba(10,24,18,.6);display:grid;place-items:center;padding:12px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#1b2620}',
+    '.co-sheet{background:#fff;border-radius:16px;width:min(720px,100%);max-height:96vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden}',
+    '.co-head{padding:16px 20px 8px}.co-head h2{margin:0;font-size:21px;text-transform:none;letter-spacing:0;color:#1b2620;font-weight:700}.co-status{margin:4px 0 0;color:#4c5d52;font-size:14.5px;min-height:20px}',
+    '.co-stage{position:relative;flex:1;min-height:200px;margin:0 20px;border-radius:12px;overflow:hidden;display:grid;place-items:center;',
+    'background:#fff conic-gradient(#e6e9e4 25%,#fff 0 50%,#e6e9e4 0 75%,#fff 0) 0 0/22px 22px}',
+    '.co-stage canvas{max-width:100%;max-height:56vh;display:block;touch-action:none;cursor:none}',
+    '.co-ring{position:absolute;pointer-events:none;border:2px solid #fff;outline:2px solid #1b2620;border-radius:50%;display:none}',
+    '.co-busy{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.75);font-weight:600;font-size:16px;text-align:center;padding:20px}',
+    '.co-busy[hidden]{display:none}.co-spin{width:38px;height:38px;border:4px solid #cfd8d2;border-top-color:#2e7d4f;border-radius:50%;animation:cospin 1s linear infinite;margin:0 auto 10px}',
+    '@keyframes cospin{to{transform:rotate(360deg)}}',
+    '.co-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 20px 4px}',
+    '.co-tools button,.co-foot button{font:inherit;border-radius:10px;padding:9px 14px;border:1px solid #cdd3ca;background:#fff;color:#1b2620;cursor:pointer;font-weight:600}',
+    '.co-tools button[aria-pressed="true"]{background:#2e7d4f;color:#fff;border-color:#2e7d4f}',
+    '.co-tools .sz{display:inline-flex;gap:4px;align-items:center;margin-left:4px;font-size:14px;color:#4c5d52}',
+    '.co-tools .sz button{width:40px;height:40px;padding:0;display:grid;place-items:center}',
+    '.co-tools .sz i{display:block;border-radius:50%;background:currentColor}',
+    '.co-tools .sp{flex:1}',
+    '.co-foot{display:flex;flex-wrap:wrap;gap:8px;padding:10px 20px 18px;justify-content:flex-end}',
+    '.co-foot .done{background:#2e7d4f;color:#fff;border-color:#2e7d4f}.co-foot .done:disabled{opacity:.5}',
+    '.co-foot .left{margin-right:auto}',
+    '.co-tools button:disabled,.co-foot button:disabled{opacity:.45;cursor:default}'
+  ].join('\n');
+  var styled = false;
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+
+  // Opens the cleanup window. Resolves with { url, aspect, name } or null if the student cancels.
+  C.open = function (file) {
+    if (!styled) { var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st); styled = true; }
+    return loadFile(file).then(function (pic) {
+      return new Promise(function (resolve) {
+        var W = pic.width, H = pic.height, mask = new Uint8Array(W * H).fill(255), undo = [], tool = 'erase', size = 2, method = '';
+        var modal = el('div', 'co-modal'); modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true');
+        modal.innerHTML =
+          '<div class="co-sheet"><div class="co-head"><h2>Clean up your picture</h2><p class="co-status"></p></div>' +
+          '<div class="co-stage"><canvas></canvas><div class="co-ring"></div><div class="co-busy"><div><div class="co-spin"></div><span>Removing the background…</span></div></div></div>' +
+          '<div class="co-tools">' +
+            '<button data-tool="erase" aria-pressed="true">🧽 Erase</button>' +
+            '<button data-tool="restore" aria-pressed="false">🖌️ Bring back</button>' +
+            '<span class="sz">Brush <button data-size="1" aria-label="Small brush"><i style="width:8px;height:8px"></i></button><button data-size="2" aria-label="Medium brush"><i style="width:14px;height:14px"></i></button><button data-size="3" aria-label="Large brush"><i style="width:22px;height:22px"></i></button></span>' +
+            '<span class="sp"></span><button data-act="undo" disabled>↶ Undo</button>' +
+          '</div>' +
+          '<div class="co-foot"><button class="left" data-act="whole">Keep the whole picture</button><button data-act="again">Try again</button><button data-act="cancel">Cancel</button><button class="done" data-act="done" disabled>Done ✓</button></div></div>';
+        document.body.appendChild(modal);
+        var cv = modal.querySelector('canvas'), cx = cv.getContext('2d'), ring = modal.querySelector('.co-ring'), busy = modal.querySelector('.co-busy');
+        var status = modal.querySelector('.co-status'), stage = modal.querySelector('.co-stage');
+        cv.width = W; cv.height = H;
+        var src = pic.getContext('2d').getImageData(0, 0, W, H), view = cx.createImageData(W, H), raf = 0;
+        function draw() {
+          raf = 0;
+          for (var i = 0, k = 0; i < mask.length; i++, k += 4) { view.data[k] = src.data[k]; view.data[k + 1] = src.data[k + 1]; view.data[k + 2] = src.data[k + 2]; view.data[k + 3] = Math.min(src.data[k + 3], mask[i]); }
+          cx.putImageData(view, 0, 0);
+        }
+        function redraw() { if (!raf) raf = requestAnimationFrame(draw); }
+        function setStatus(t) { status.textContent = t; }
+        function sizes() { modal.querySelectorAll('[data-size]').forEach(function (b) { b.setAttribute('aria-pressed', +b.dataset.size === size); }); }
+        sizes();
+        function run(mode) {
+          busy.hidden = false; modal.querySelector('[data-act="done"]').disabled = true;
+          var needsAI = mode === 'ai' || (mode === 'auto' && !C.border(pic).transparent && C.border(pic).plain < 0.85);
+          busy.querySelector('span').textContent = needsAI && !sessionP ? 'Getting the background remover ready… (only the first time)' : 'Removing the background…';
+          var job = mode === 'ai' ? C.aiMask(pic).then(function (m) { return { mask: m, method: 'ai' }; })
+            : mode === 'color' ? Promise.resolve({ mask: C.colorMask(pic, 80), method: 'color' }) : C.autoMask(pic);
+          job.then(function (r) {
+            undo.push(mask.slice()); mask = r.mask; method = r.method;
+            setStatus(r.method === 'already' ? 'This picture already has a see-through background. Touch it up if you like, then press Done.'
+              : 'Use Erase to rub out any background that is left. Use Bring back to paint back anything removed by mistake.');
+          }).catch(function () {
+            // AI not available (offline?), so fall back to the color method
+            undo.push(mask.slice()); mask = C.colorMask(pic, 80); method = 'color';
+            setStatus('The smart background remover could not load, so a simpler one was used. Erase anything that is left over.');
+          }).then(function () { busy.hidden = true; modal.querySelector('[data-act="done"]').disabled = false; modal.querySelector('[data-act="undo"]').disabled = undo.length < 2; redraw(); });
+        }
+        draw(); run('auto');
+
+        // brush painting
+        var painting = false, last = null;
+        function toImg(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height, s: r.width / W }; }
+        function radius(s) { return [0, 7, 16, 32][size] / s; }
+        function dab(p) {
+          var R = radius(p.s), val = tool === 'erase' ? 0 : 255, x0 = Math.max(0, Math.floor(p.x - R)), x1 = Math.min(W - 1, Math.ceil(p.x + R)), y0 = Math.max(0, Math.floor(p.y - R)), y1 = Math.min(H - 1, Math.ceil(p.y + R));
+          for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++) {
+            var dd = Math.hypot(x - p.x, y - p.y); if (dd > R) continue;
+            var f = dd > R - 1.5 ? (R - dd) / 1.5 : 1, i = y * W + x;
+            mask[i] = val ? Math.max(mask[i], Math.round(255 * f)) : Math.min(mask[i], Math.round(255 * (1 - f)));
+          }
+        }
+        function stroke(p) {
+          if (last) { var steps = Math.ceil(Math.hypot(p.x - last.x, p.y - last.y) / Math.max(1, radius(p.s) / 3)); for (var s = 1; s <= steps; s++) dab({ x: last.x + (p.x - last.x) * s / steps, y: last.y + (p.y - last.y) * s / steps, s: p.s }); }
+          else dab(p);
+          last = p; redraw();
+        }
+        function showRing(e) {
+          var r = stage.getBoundingClientRect(), d = [0, 7, 16, 32][size] * 2;
+          ring.style.display = 'block'; ring.style.width = ring.style.height = d + 'px';
+          ring.style.left = (e.clientX - r.left - d / 2) + 'px'; ring.style.top = (e.clientY - r.top - d / 2) + 'px';
+          ring.style.borderColor = tool === 'erase' ? '#fff' : '#3cbf6a';
+        }
+        cv.addEventListener('pointerdown', function (e) {
+          if (!busy.hidden) return;
+          painting = true; last = null; cv.setPointerCapture(e.pointerId);
+          undo.push(mask.slice()); if (undo.length > 30) undo.shift();
+          modal.querySelector('[data-act="undo"]').disabled = false;
+          stroke(toImg(e)); showRing(e); e.preventDefault();
+        });
+        cv.addEventListener('pointermove', function (e) { showRing(e); if (painting) stroke(toImg(e)); });
+        cv.addEventListener('pointerup', function () { painting = false; last = null; });
+        cv.addEventListener('pointercancel', function () { painting = false; last = null; });
+        cv.addEventListener('pointerleave', function () { if (!painting) ring.style.display = 'none'; });
+
+        function close(result) { modal.remove(); document.removeEventListener('keydown', onKey); resolve(result); }
+        function onKey(e) {
+          if (e.key === 'Escape') close(null);
+          if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); modal.querySelector('[data-act="undo"]').click(); }
+        }
+        document.addEventListener('keydown', onKey);
+        modal.addEventListener('click', function (e) {
+          var b = e.target.closest('button'); if (!b || b.disabled) return;
+          if (b.dataset.tool) { tool = b.dataset.tool; modal.querySelectorAll('[data-tool]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
+          if (b.dataset.size) { size = +b.dataset.size; sizes(); }
+          var a = b.dataset.act;
+          if (a === 'undo' && undo.length) { mask = undo.pop(); b.disabled = !undo.length; redraw(); }
+          if (a === 'again') run(method === 'ai' ? 'color' : 'ai');
+          if (a === 'whole') { undo.push(mask.slice()); mask = new Uint8Array(W * H).fill(255); modal.querySelector('[data-act="undo"]').disabled = false; redraw(); setStatus('The whole picture will be used. Press Done, or use Erase to remove parts.'); }
+          if (a === 'cancel') close(null);
+          if (a === 'done') {
+            var r = finish(pic, mask);
+            if (!r || r.aspect !== r.aspect) { setStatus('Nothing is left to keep. Use Bring back or Undo.'); return; }
+            var keep = 0; for (var i = 0; i < mask.length; i += 7) if (mask[i] > 16) keep++;
+            if (!keep) { setStatus('Nothing is left to keep. Use Bring back or Undo.'); return; }
+            r.name = niceName(file); r.method = method; close(r);
+          }
+        });
+      });
     });
   };
 })();</script>
@@ -949,8 +1268,7 @@
       <div class="lib" id="lib-grid"></div>
       <div class="upload">
         <strong>Use your own image</strong>
-        <p class="muted small" style="margin:4px 0 6px">It is added as the type selected above.</p>
-        <label class="check small"><input type="checkbox" id="rm-bg" checked> Remove a plain background</label>
+        <p class="muted small" style="margin:4px 0 6px">A photo or drawing. The background is removed for you, and you can touch it up. It is added as the type selected above.</p>
         <button id="b-upload">Upload an image</button>
       </div>
       <h2>In your game</h2>
@@ -1798,7 +2116,8 @@ body.in-vr #stats,body.in-vr #joy,body.in-vr #msg,body.in-vr #hurt{display:none}
   $('#b-upload').addEventListener('click', function () { $('#f-upload').click(); });
   $('#f-upload').addEventListener('change', function (e) {
     var f = e.target.files[0]; e.target.value = ''; if (!f) return;
-    B.uploadImage(f, $('#rm-bg').checked).then(function (r) {
+    B.uploadImage(f).then(function (r) {
+      if (!r) return;
       var key = 'u' + B.uid(); state.images[key] = r.url;
       addChar(addAs, { name: r.name, key: key, aspect: r.aspect, h: 1, elev: 0 });
       B.toast('Image added as ' + TYPES[addAs].label.toLowerCase() + '. Name it in its pop-up.');
