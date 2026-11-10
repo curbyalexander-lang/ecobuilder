@@ -153,12 +153,15 @@
     if (!photo || env.showGround) {
       var gt = canvasTex(noiseCanvas(groundCol, ECO.rng(7)));
       gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.repeat.set(25, 25);
-      var ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200, 160, 160), new THREE.MeshLambertMaterial({ map: gt }));
+      var cut = !photo && P.park && ECO.groundFor ? ECO.groundFor(env.preset) : null;
+      var ground = new THREE.Mesh(cut ? new THREE.PlaneGeometry(200, 100 - cut.from, 160, 80) : new THREE.PlaneGeometry(200, 200, 160, 160), new THREE.MeshLambertMaterial({ map: gt }));
       ground.rotation.x = -Math.PI / 2; ground.raycast = function () {};
+      if (cut) ground.position.z = (100 + cut.from) / 2;
       g.add(ground);
     }
     if (!photo) {
       addHills(g, P.hills, ECO.rng(1234 + hash(env.preset)));
+      if (P.park && ECO.buildPark) ECO.buildPark(g, P, env.preset);
       if (P.water) {
         var w = new THREE.Mesh(new THREE.CircleGeometry(P.water.r, 48),
           new THREE.MeshLambertMaterial({ color: P.water.color, transparent: true, opacity: 0.88 }));
@@ -271,6 +274,447 @@
   AFRAME.registerComponent('eco-ambient', {
     tick: function (t, dt) { for (var i = 0; i < ECO._anim.length; i++) ECO._anim[i](t, dt); }
   });
+})();
+// National park scenes: a painted 360° backdrop (vector style) around the scene,
+// plus matching sky, ground, haze, and a few 3D features in the foreground.
+(function () {
+  var THREE = AFRAME.THREE;
+  var R = 85;                    // backdrop radius (m); organisms are kept inside this
+  var HS = 1.9;                  // landmarks are painted in 'units' and shown this many meters tall, so they feel big
+  var CW = 4096, CH = 1024;      // backdrop canvas size
+
+  var PARKS = {
+    yellowstone: { name: 'Yellowstone', state: 'Wyoming, Montana & Idaho', sky: ['#4f92d6', '#dcecf6', '#c9d2c4'], ground: '#9a9a6a', fog: ['#dfe7ea', 0.005],
+      blurb: 'The world’s first national park, full of geysers and hot springs like Grand Prismatic Spring.' },
+    grandteton: { name: 'Grand Teton', state: 'Wyoming', sky: ['#3f86d4', '#e2eef6', '#c7cfbf'], ground: '#8e9670', fog: ['#e0e8ec', 0.004],
+      blurb: 'Jagged, snowy peaks rise sharply above sagebrush flats and mountain lakes.' },
+    yosemite: { name: 'Yosemite', state: 'California', sky: ['#4a8fd8', '#e4eff7', '#c6cfbd'], ground: '#7f9a52', fog: ['#e2e9ee', 0.004],
+      blurb: 'Giant granite cliffs like Half Dome and El Capitan tower over a valley of meadows and forest.' },
+    grandcanyon: { name: 'Grand Canyon', state: 'Arizona', sky: ['#3d86d8', '#f1e6d8', '#d9c3a6'], ground: '#bfae8c', fog: ['#e9ddd0', 0.003], canyon: true,
+      blurb: 'A mile-deep canyon carved by the Colorado River, showing layers of rock nearly 2 billion years old.' },
+    bigbend: { name: 'Big Bend', state: 'Texas', sky: ['#3b88dd', '#f3e7cf', '#d6bf98'], ground: '#c4a777', fog: ['#efe2c9', 0.004],
+      blurb: 'Chihuahuan Desert, the Chisos Mountains, and canyons cut by the Rio Grande.' },
+    everglades: { name: 'Everglades', state: 'Florida', sky: ['#4a96d8', '#eaf2ef', '#c9d3b9'], ground: '#9e9d55', fog: ['#e6eee8', 0.007],
+      blurb: 'A slow-moving “river of grass” of sawgrass marsh, tree islands, and cypress swamps.' },
+    smokies: { name: 'Great Smoky Mountains', state: 'Tennessee & North Carolina', sky: ['#6d9ccc', '#e3ebf2', '#c3cdc7'], ground: '#53703a', fog: ['#cfdbe6', 0.018],
+      blurb: 'Ancient, forest-covered ridges wrapped in the blue haze that gives the mountains their name.' },
+    arches: { name: 'Arches', state: 'Utah', sky: ['#3a83d6', '#f2e6d6', '#dcbf9c'], ground: '#c47a48', fog: ['#efdccb', 0.004],
+      blurb: 'More than 2,000 natural stone arches, like Delicate Arch, carved in red sandstone.' }
+  };
+  Object.keys(PARKS).forEach(function (k) {
+    var p = PARKS[k];
+    ECO.PRESETS[k] = { name: p.name, park: k, state: p.state, blurb: p.blurb, sky: p.sky, ground: p.ground, fog: p.fog, hills: { type: 'none' } };
+  });
+
+  // ---------- painting helpers ----------
+  var yTop = 40, yBot = -2;
+  function setRange(top, bot) { yTop = top; yBot = bot; }
+  function Y(y) { return (yTop - y) / (yTop - yBot) * CH; }              // world height (m) at the backdrop -> canvas row
+  function X(deg) { return ((0.5 + deg / 360) % 1 + 1) % 1 * CW; }      // direction (0 = straight ahead) -> canvas column
+  function mix(a, b, t) { var A = new THREE.Color(a), B = new THREE.Color(b); return '#' + A.lerp(B, t).getHexString(); }
+  function shade(c, t) { return mix(c, t > 0 ? '#ffffff' : '#000000', Math.abs(t)); }
+  function noise(rand, terms) { // periodic 1D noise over the full circle
+    var waves = []; for (var i = 0; i < terms; i++) waves.push([1 + Math.floor(rand() * (3 + i * 4)), rand() * Math.PI * 2, 1 / (1 + i * 0.9)]);
+    var sum = waves.reduce(function (s, w) { return s + w[2]; }, 0);
+    return function (u) { var v = 0; for (var i = 0; i < waves.length; i++) v += Math.sin(u * Math.PI * 2 * waves[i][0] + waves[i][1]) * waves[i][2]; return v / sum; };
+  }
+  // A ridge line around the whole circle (or a range of directions)
+  function ridge(x, o) {
+    var rand = ECO.rng(o.seed || 1), n = noise(rand, o.terms || 6), from = o.from == null ? -180 : o.from, to = o.to == null ? 180 : o.to;
+    var steps = Math.ceil((to - from) / 360 * CW / 6);
+    x.beginPath(); x.moveTo(X(from) || (from === -180 ? 0 : X(from)), Y(yBot));
+    var pts = [];
+    for (var i = 0; i <= steps; i++) {
+      var deg = from + (to - from) * i / steps, u = (deg + 180) / 360;
+      var env = o.from == null ? 1 : Math.sin(Math.PI * i / steps);
+      var h = o.base + (o.amp * (0.5 + 0.5 * n(u)) + (o.jag ? (rand() - 0.5) * o.jag : 0)) * (o.envelope ? Math.pow(env, o.envelope) : 1);
+      pts.push([deg, h]);
+    }
+    drawPoly(x, pts, o.color, o.top);
+  }
+  function drawPoly(x, pts, color, topColor) {
+    // draw as one or two pieces if it crosses the canvas seam
+    var cols = pts.map(function (p) { return (0.5 + p[0] / 360) * CW; });
+    [0, CW, -CW].forEach(function (shift) {
+      var minC = Math.min.apply(null, cols) + shift, maxC = Math.max.apply(null, cols) + shift;
+      if (maxC < 0 || minC > CW) return;
+      x.beginPath(); x.moveTo(cols[0] + shift, Y(yBot) + 2);
+      pts.forEach(function (p, i) { x.lineTo(cols[i] + shift, Y(p[1])); });
+      x.lineTo(cols[cols.length - 1] + shift, Y(yBot) + 2); x.closePath();
+      if (topColor) { var top = Math.min.apply(null, pts.map(function (p) { return Y(p[1]); })), g = x.createLinearGradient(0, top, 0, Y(0)); g.addColorStop(0, topColor); g.addColorStop(1, color); x.fillStyle = g; }
+      else x.fillStyle = color;
+      x.fill();
+    });
+  }
+  // A shape given as [deg, height] points, centered on a direction
+  function shape(x, deg, pts, color, opts) {
+    opts = opts || {};
+    var ws = opts.noScale ? 1 : HS, abs = pts.map(function (p) { return [deg + p[0] * ws, p[1]]; });
+    [0, 360, -360].forEach(function (s) {
+      x.beginPath();
+      abs.forEach(function (p, i) { var cx = X(p[0]) + (p[0] + s > 180 || p[0] + s < -180 ? 0 : 0); var px = (0.5 + (p[0] + s) / 360) * CW; if (i) x.lineTo(px, Y(p[1])); else x.moveTo(px, Y(p[1])); });
+      x.closePath();
+      if (opts.grad) { var g = x.createLinearGradient((0.5 + (deg + s + opts.grad[0] * ws) / 360) * CW, 0, (0.5 + (deg + s + opts.grad[1] * ws) / 360) * CW, 0); g.addColorStop(0, opts.grad[2]); g.addColorStop(1, opts.grad[3]); x.fillStyle = g; }
+      else if (opts.vgrad) { var g2 = x.createLinearGradient(0, Y(opts.vgrad[0]), 0, Y(opts.vgrad[1])); g2.addColorStop(0, opts.vgrad[2]); g2.addColorStop(1, opts.vgrad[3]); x.fillStyle = g2; }
+      else x.fillStyle = color;
+      x.fill();
+      if (opts.stroke) { x.strokeStyle = opts.stroke; x.lineWidth = opts.lw || 2; x.stroke(); }
+    });
+  }
+  // Rows of small trees along the horizon
+  function trees(x, o) {
+    var rand = ECO.rng(o.seed || 3), from = o.from == null ? -180 : o.from, to = o.to == null ? 180 : o.to;
+    var count = Math.round((to - from) / 360 * o.count);
+    for (var i = 0; i < count; i++) {
+      var deg = from + (to - from) * rand(), h = o.hMin + rand() * (o.hMax - o.hMin), base = o.base + (o.baseJitter || 0) * rand();
+      var w = h * HS * (o.kind === 'round' ? 0.9 : o.kind === 'palm' ? 0.8 : 0.32) * 360 / (2 * Math.PI * R) / HS;
+      var c = shade(o.color, (rand() - 0.5) * 0.18);
+      if (o.kind === 'round') {
+        shape(x, deg, [[-w * 0.06, base], [-w * 0.06, base + h * 0.35], [w * 0.06, base + h * 0.35], [w * 0.06, base]], shade(o.color, -0.3));
+        blob(x, deg, base + h * 0.62, w * 0.5, h * 0.42, c);
+      } else {
+        shape(x, deg, [[-w / 2, base], [0, base + h], [w / 2, base]], c);
+      }
+    }
+  }
+  function blob(x, deg, y, wDeg, hM, color, alpha) {
+    [0, 360, -360].forEach(function (s) {
+      var cx = (0.5 + (deg + s) / 360) * CW; if (cx < -300 || cx > CW + 300) return;
+      x.save(); x.globalAlpha = alpha == null ? 1 : alpha; x.fillStyle = color;
+      x.beginPath(); x.ellipse(cx, Y(y), wDeg * HS / 360 * CW, Math.abs(Y(y + hM) - Y(y)), 0, 0, Math.PI * 2); x.fill(); x.restore();
+    });
+  }
+  function cloud(x, deg, y, size, alpha) {
+    for (var i = 0; i < 7; i++) blob(x, deg + (i - 3) * size * 0.5, y + Math.sin(i * 1.7) * size * 0.25 + (i % 2) * size * 0.2, size * 0.7, size * 0.55, '#ffffff', alpha);
+  }
+  function steam(x, deg, y, height, width, alpha) {
+    var rand = ECO.rng(Math.round(deg * 13 + 7));
+    for (var i = 0; i < 14; i++) { var t = i / 13; blob(x, deg + (rand() - 0.5) * width * 0.6 + t * width * 0.4, y + t * height, width * (0.35 + t * 0.6), height * 0.14 * (0.6 + t), '#ffffff', alpha * (1 - t * 0.6)); }
+  }
+  function hlines(x, deg0, deg1, ys, color, lw) { // strata lines on rock
+    x.save(); x.strokeStyle = color; x.lineWidth = lw || 3; x.globalAlpha = 0.5;
+    ys.forEach(function (y) { x.beginPath(); x.moveTo(X(deg0), Y(y)); x.lineTo(X(deg1), Y(y)); x.stroke(); }); x.restore();
+  }
+
+  // ---------- the eight parks ----------
+  var PAINT = {
+    yellowstone: function (x) {
+      setRange(40, -2);
+      ridge(x, { seed: 11, base: 3, amp: 9, color: '#9fb2c8', top: '#c9d6e3', terms: 5 });
+      ridge(x, { seed: 12, base: 1.5, amp: 5, color: '#5f7a63', terms: 7 });
+      trees(x, { seed: 13, base: 1.2, baseJitter: 2.5, count: 900, hMin: 1.2, hMax: 2.6, color: '#36513a' });
+      ridge(x, { seed: 14, base: 0, amp: 2, color: '#44603f', terms: 8 });
+      trees(x, { seed: 15, base: 0, baseJitter: 1, count: 700, hMin: 1.4, hMax: 3, color: '#2d4630' });
+      // Old Faithful erupting, and steam from other thermal features
+      steam(x, 105, 0, 26, 7, 0.75);
+      steam(x, -60, 0, 9, 6, 0.55); steam(x, -140, 0, 7, 5, 0.5); steam(x, 40, 0, 6, 5, 0.5);
+      cloud(x, -20, 31, 14, 0.85); cloud(x, 150, 29, 12, 0.8);
+    },
+    grandteton: function (x) {
+      setRange(40, -2);
+      ridge(x, { seed: 21, base: 1, amp: 5, color: '#8a9db3', top: '#a9bacb', terms: 5 }); // distant Gros Ventre range
+      // the Teton Range: jagged peaks rising straight from the valley, Grand Teton in the middle
+      var peaks = [[-62, 9], [-50, 14], [-41, 12], [-32, 18], [-24, 16], [-15, 23], [-8, 21], [0, 30], [5, 26], [10, 27], [17, 21], [25, 19], [33, 15], [42, 13], [52, 10], [62, 7]];
+      var pts = [[-75, 1]]; peaks.forEach(function (p, i) { pts.push(p); if (i < peaks.length - 1) pts.push([(p[0] + peaks[i + 1][0]) / 2, Math.min(p[1], peaks[i + 1][1]) * 0.72]); }); pts.push([75, 1]);
+      shape(x, 0, pts, '#6f7f96', { vgrad: [30, 0, '#7d8ea6', '#4f5f74'], noScale: true });
+      // shadowed faces
+      peaks.forEach(function (p, i) { if (i % 2) return; shape(x, 0, [[p[0], p[1]], [p[0] + 3.5, p[1] * 0.55], [p[0] + 0.8, p[1] * 0.45]], 'rgba(30,40,60,0.28)', { noScale: true }); });
+      // snow on the peaks and in gullies
+      peaks.forEach(function (p) {
+        if (p[1] < 12) return; var s = p[1] * 0.18;
+        shape(x, 0, [[p[0], p[1]], [p[0] + 1.6, p[1] - s], [p[0] + 0.6, p[1] - s * 0.7], [p[0] - 0.3, p[1] - s * 1.2], [p[0] - 1.4, p[1] - s * 0.9]], '#f4f7fb', { noScale: true });
+        shape(x, 0, [[p[0] + 0.4, p[1] - s * 1.4], [p[0] + 0.9, p[1] - s * 3], [p[0] + 0.2, p[1] - s * 2.6]], '#e6edf5', { noScale: true });
+      });
+      // forest at the foot of the range, sagebrush hills elsewhere
+      trees(x, { seed: 22, from: -80, to: 80, base: 0.5, baseJitter: 2, count: 1400, hMin: 1.2, hMax: 2.8, color: '#2f4a35' });
+      ridge(x, { seed: 23, from: 70, to: 290, base: 0, amp: 3, color: '#9aa27a', terms: 6 });
+      trees(x, { seed: 24, from: 95, to: 265, base: 0.5, baseJitter: 2, count: 500, hMin: 1, hMax: 2.2, color: '#40593f' });
+      cloud(x, 140, 30, 13, 0.85); cloud(x, -150, 32, 11, 0.8);
+    },
+    yosemite: function (x) {
+      setRange(40, -2);
+      ridge(x, { seed: 31, base: 4, amp: 10, color: '#9aa9b9', top: '#bccad8', terms: 6 });
+      // Half Dome: rounded back, sheer flat face
+      var hd = [[-14, 6], [-11, 12], [-8, 17], [-5, 20.5], [-2, 22.3], [0.5, 22.8], [2.4, 22.4], [3.4, 21.8], [3.6, 14], [4.2, 11], [7, 8], [10, 6]];
+      shape(x, 0, hd, null, { grad: [-14, 4, '#d9d4c8', '#a8a397'] });
+      shape(x, 0, [[3.4, 21.8], [3.6, 14], [4.2, 11], [5.5, 10.4], [4.6, 15], [4.1, 21.2]], '#8c877c');   // the shadowed sheer face
+      hlines(x, -8 * HS, 3 * HS, [16, 12.5], '#b8b2a5', 3);
+      // El Capitan
+      shape(x, -68, [[-12, 4], [-9, 16], [-6, 19.5], [-1, 20.5], [3, 20], [5, 18.5], [5.6, 6], [8, 4]], null, { grad: [-12, 8, '#e3ded2', '#aaa497'] });
+      shape(x, -68, [[3, 20], [5, 18.5], [5.6, 6], [4.4, 7], [3.8, 19]], '#948e82');
+      // Yosemite Falls on a long cliff
+      shape(x, 62, [[-16, 4], [-12, 15], [-4, 17], [6, 16.5], [14, 13], [18, 4]], null, { grad: [-16, 18, '#d6d1c4', '#aaa498'] });
+      shape(x, 62, [[-0.5, 16.8], [0.5, 16.8], [0.7, 10], [1.6, 9.6], [1.8, 4], [0.4, 4], [0.2, 9.4], [-0.6, 10]], '#f6f9fc');
+      blob(x, 63, 4.2, 2.4, 1.6, '#ffffff', 0.6);
+      // Sentinel and other domes behind
+      shape(x, 160, [[-14, 4], [-6, 13], [-2, 15], [2, 14.5], [9, 9], [14, 4]], null, { grad: [-14, 14, '#cfcabd', '#a29d91'] });
+      // conifer forest along the valley floor
+      trees(x, { seed: 32, base: 0.3, baseJitter: 3.5, count: 1600, hMin: 1.5, hMax: 4, color: '#2f4c35' });
+      trees(x, { seed: 33, base: 0, baseJitter: 1, count: 900, hMin: 2, hMax: 4.5, color: '#28412d' });
+      cloud(x, -120, 32, 12, 0.85); cloud(x, 110, 33, 10, 0.8);
+    },
+    grandcanyon: function (x) {
+      // seen from the South Rim: the far rim at eye level, buttes stepping down into the canyon
+      setRange(30, -30);
+      var bands = ['#efe2c6', '#e2c59e', '#c4693f', '#d68353', '#b25934', '#9a9077', '#7a4c37'];
+      function rim(edgeY, depth, seed, haze) {
+        var rand = ECO.rng(seed), steps = 720, edge = [];
+        for (var i = 0; i <= steps; i++) edge.push(edgeY + Math.sin(i / steps * Math.PI * 14) * 0.15 + (rand() - 0.5) * 0.2);
+        bands.forEach(function (c, b) {
+          var pts = []; for (var i = 0; i <= steps; i++) pts.push([-180 + 360 * i / steps, edge[i] - b * depth / bands.length - rand() * 0.15]);
+          drawPoly(x, pts, mix(c, '#b9a7c6', haze));
+        });
+      }
+      // a stepped butte: ledges and cliffs, layered colors
+      function butte(deg, w, topY, haze, seed) {
+        var rand = ECO.rng(seed), lv = 6, bottom = -30, pts = [];
+        var left = [], right = [];
+        for (var i = 0; i <= lv; i++) {
+          var y = topY - (topY - bottom) * Math.pow(i / lv, 1.4), hw = w * (0.45 + i * 0.32) * (0.9 + rand() * 0.2);
+          left.push([-hw, y]); left.push([-hw * 1.08, y - (topY - bottom) * 0.04]);
+          right.push([hw * 1.08, y - (topY - bottom) * 0.04]); right.push([hw, y]);
+        }
+        pts = left.reverse().concat([[0, topY + 0.15]]).concat(right);
+        pts.unshift([-w * 3, bottom]); pts.push([w * 3, bottom]);
+        shape(x, deg, pts, null, { vgrad: [topY, bottom, mix('#ecd9b6', '#b9a7c6', haze), mix('#6e3d2a', '#9d8fae', haze)], noScale: true });
+        for (var b = 1; b <= 4; b++) {
+          var yb = topY - (topY - bottom) * Math.pow(b / lv, 1.4) - 0.4, hw2 = w * (0.45 + b * 0.32);
+          shape(x, deg, [[-hw2, yb], [hw2, yb], [hw2 * 1.02, yb - 0.6], [-hw2 * 1.02, yb - 0.6]], mix(b % 2 ? '#b8552f' : '#e7d3ad', '#b9a7c6', haze), { noScale: true });
+        }
+      }
+      rim(1.0, 9, 41, 0.55);
+      var r = ECO.rng(77);
+      // far, middle, and near rows of buttes across the canyon (front half of the view)
+      for (var i = 0; i < 16; i++) butte(-115 + i * 15 + (r() - 0.5) * 8, 3 + r() * 3, -1.5 - r() * 1.5, 0.45, 100 + i);
+      for (var j = 0; j < 11; j++) butte(-105 + j * 21 + (r() - 0.5) * 10, 5 + r() * 4, -4.5 - r() * 2.5, 0.28, 200 + j);
+      for (var k = 0; k < 7; k++) butte(-90 + k * 30 + (r() - 0.5) * 12, 8 + r() * 5, -8.5 - r() * 3, 0.12, 300 + k);
+      // the inner gorge and the Colorado River at the bottom
+      ridge(x, { seed: 43, from: -125, to: 125, base: -29.5, amp: 5, color: '#5b3a2c', terms: 6 });
+      ridge(x, { seed: 44, from: -110, to: 110, base: -29.8, amp: 0.5, color: '#4f8a7a', terms: 3 });
+      // behind you: ponderosa pine forest on the rim
+      trees(x, { seed: 45, from: 118, to: 242, base: 0, baseJitter: 1.5, count: 1200, hMin: 3, hMax: 7, color: '#3c5a3a' });
+      cloud(x, -30, 22, 12, 0.8); cloud(x, 70, 24, 10, 0.75);
+    },
+    bigbend: function (x) {
+      setRange(40, -2);
+      ridge(x, { seed: 61, base: 1, amp: 4, color: '#c6b08e', top: '#d8c7a8', terms: 6 });
+      // the Chisos Mountains with Casa Grande and the Window
+      var ch = [[-60, 2], [-50, 6], [-44, 9], [-38, 8], [-33, 12], [-27, 11], [-22, 15], [-17, 13.5], [-12, 16], [-8, 19.5], [-6, 20], [-2, 20], [0, 19.6], [2, 17], [5, 14],
+                [8, 10], [9.5, 7.5], [11, 10], [14, 13], [19, 15], [24, 12], [30, 13], [36, 9], [44, 7], [52, 4], [62, 2]];
+      shape(x, 0, ch, null, { vgrad: [20, 0, '#9a6d63', '#6f5148'], noScale: true });
+      shape(x, 0, [[-8, 19.5], [-6, 20], [-2, 20], [0, 19.6], [-1, 16], [-5, 15], [-7, 16.5]], '#b07f6c', { noScale: true });   // Casa Grande's sunlit cap
+      hlines(x, -9, 1, [18.2, 17], '#7d574b', 3);
+      trees(x, { seed: 62, from: -45, to: 45, base: 3, baseJitter: 8, count: 600, hMin: 0.6, hMax: 1.2, color: '#5b6b45', kind: 'round' });
+      // Santa Elena Canyon: a tall cliff wall with a narrow gap
+      shape(x, 125, [[-30, 0], [-28, 11], [-3, 12], [-1.2, 12], [-0.6, 0.5], [0.6, 0.5], [1.2, 12], [3, 12.5], [28, 11], [30, 0]], null, { vgrad: [12.5, 0, '#c99a6c', '#946b4c'], noScale: true });
+      hlines(x, 97, 152, [10, 8.5, 6.5], '#a47a55', 3);
+      // desert mesas
+      shape(x, -125, [[-18, 0], [-15, 6], [-6, 6.3], [-4, 4], [6, 4.2], [9, 2], [16, 0]], '#b9936a');
+      trees(x, { seed: 63, base: 0, baseJitter: 1, count: 500, hMin: 0.6, hMax: 1.4, color: '#7c8150', kind: 'round' });
+      cloud(x, 60, 33, 12, 0.8);
+    },
+    everglades: function (x) {
+      setRange(40, -2);
+      ridge(x, { seed: 71, base: 0, amp: 0.8, color: '#a8a65b', terms: 8 });
+      // tree islands (hammocks) and cypress domes on the flat horizon
+      var rand = ECO.rng(72);
+      for (var i = 0; i < 26; i++) {
+        var deg = -180 + rand() * 360, w = 3 + rand() * 9, h = 2 + rand() * 4;
+        for (var k = 0; k < 6; k++) blob(x, deg + (k - 2.5) * w * 0.16, 1 + rand() * h * 0.5, w * 0.22, h * 0.45, shade(rand() < 0.4 ? '#4d6a3c' : '#3a5833', (rand() - 0.5) * 0.15));
+      }
+      trees(x, { seed: 73, base: 0.6, baseJitter: 1, count: 180, hMin: 4, hMax: 6, color: '#40613a', kind: 'round' });
+      // a few palms
+      var rp = ECO.rng(74);
+      for (var p = 0; p < 10; p++) { var d = -180 + rp() * 360, ht = 5 + rp() * 3; shape(x, d, [[-0.08, 0.5], [0.05, ht], [0.12, ht], [0.04, 0.5]], '#5a4d3a'); for (var f = 0; f < 6; f++) { var a = f / 6 * Math.PI * 2; shape(x, d + 0.08, [[0, ht], [Math.cos(a) * 1.4, ht + Math.sin(a) * 0.9 - 0.4], [Math.cos(a) * 0.7, ht + Math.sin(a) * 0.5]], '#3f6b3a'); } }
+      // big summer clouds
+      cloud(x, -40, 18, 16, 0.92); cloud(x, 50, 22, 14, 0.9); cloud(x, 140, 17, 15, 0.9); cloud(x, -130, 21, 13, 0.88); cloud(x, 95, 30, 10, 0.8);
+    },
+    smokies: function (x) {
+      setRange(40, -2);
+      var layers = [['#c3d1df', 14, 11, 81], ['#a9bdd2', 11, 9, 82], ['#8ea8c2', 8, 8, 83], ['#7493ab', 6, 7, 84], ['#5b7a8f', 4, 5, 85], ['#45624f', 2, 4, 86]];
+      layers.forEach(function (L, i) {
+        ridge(x, { seed: L[3], base: L[1] - L[2] * 0.5, amp: L[2], color: L[0], terms: 7 });
+        // valley mist between ridges
+        x.save(); var g = x.createLinearGradient(0, Y(L[1] - L[2] * 0.4), 0, Y(L[1] - L[2] * 0.9));
+        g.addColorStop(0, 'rgba(235,242,248,0)'); g.addColorStop(1, 'rgba(235,242,248,0.55)'); x.fillStyle = g;
+        x.fillRect(0, Y(L[1] - L[2] * 0.4), CW, Y(L[1] - L[2] * 0.9) - Y(L[1] - L[2] * 0.4)); x.restore();
+      });
+      trees(x, { seed: 87, base: 0, baseJitter: 1.5, count: 1100, hMin: 1.2, hMax: 2.6, color: '#3c5a35', kind: 'round' });
+      trees(x, { seed: 88, base: 0, baseJitter: 1, count: 300, hMin: 2, hMax: 3.5, color: '#2c4630' });
+    },
+    arches: function (x) {
+      setRange(40, -2);
+      // the snowy La Sal Mountains in the distance
+      ridge(x, { seed: 91, from: -60, to: 60, base: 2, amp: 9, color: '#8b9bb6', top: '#a9b6cc', terms: 5, envelope: 0.6 });
+      shape(x, 6, [[-6, 9.5], [-3, 10.6], [0, 11.2], [3, 10.4], [5, 9.3], [2, 9.6], [0, 9.9], [-3, 9.4]], '#f1f4f9', { noScale: true });
+      shape(x, -18, [[-4, 8.4], [-1.5, 9.2], [1, 9.0], [3, 8.1], [0, 8.4]], '#f1f4f9', { noScale: true });
+      // slickrock bowl, then Delicate Arch standing alone in front
+      ridge(x, { seed: 92, base: 0, amp: 3, color: '#c67a46', top: '#d58d58', terms: 6 });
+      var arch = [[-5.2, 1.5], [-4.6, 7], [-4.2, 10.5], [-3, 12.2], [-1, 12.9], [1, 12.8], [3, 12], [4.2, 10.2], [4.4, 7], [4.8, 1.5], [3.1, 1.5], [3, 6], [2.6, 9], [1, 10.4], [-1, 10.5], [-2.7, 9.2], [-3.2, 6], [-3.4, 1.5]];
+      shape(x, 0, arch, null, { grad: [-5, 5, '#e08a50', '#a8522c'] });
+      hlines(x, -4.5 * HS, 4.6 * HS, [11.5], '#b35d33', 2);
+      shape(x, 0, [[-7, 1.5], [7, 1.5], [6, 0], [-6, 0]], '#b9693c');
+      // Balanced Rock
+      shape(x, 92, [[-1.8, 0], [-1.2, 5], [-0.8, 6], [0.9, 6], [1.3, 5], [1.9, 0]], '#b65f35');
+      blob(x, 92, 7.6, 2.3, 1.7, '#cf7a46');
+      // fins and buttes all around
+      [[-110, 6, 9], [-150, 9, 12], [150, 7, 10], [125, 5, 7], [-75, 4, 6], [60, 5, 7]].forEach(function (b, i) {
+        shape(x, b[0], [[-b[1], 0], [-b[1] * 0.9, b[2] * 0.9], [-b[1] * 0.5, b[2]], [b[1] * 0.6, b[2] * 0.97], [b[1] * 0.9, b[2] * 0.85], [b[1], 0]], null, { vgrad: [b[2], 0, '#d9895a', '#9e4f2c'] });
+        hlines(x, b[0] - b[1] * 0.8 * HS, b[0] + b[1] * 0.8 * HS, [b[2] * 0.6, b[2] * 0.35], '#a45430', 3);
+      });
+      trees(x, { seed: 93, base: 0, baseJitter: 1, count: 420, hMin: 0.4, hMax: 1, color: '#6a7a46', kind: 'round' });
+      cloud(x, -100, 33, 11, 0.8); cloud(x, 40, 32, 12, 0.8);
+    }
+  };
+
+  var cache = {};
+  function backdrop(key) {
+    if (cache[key]) return cache[key];
+    var c = document.createElement('canvas'); c.width = CW; c.height = CH;
+    var x = c.getContext('2d'); x.lineJoin = 'round';
+    PAINT[key](x);
+    cache[key] = { canvas: c, top: yTop, bot: yBot };
+    return cache[key];
+  }
+
+  // Small preview picture for the picker
+  var thumbs = {};
+  ECO.parkThumb = function (key) {
+    if (thumbs[key]) return thumbs[key];
+    var P = PARKS[key], b = backdrop(key), c = document.createElement('canvas'); c.width = 240; c.height = 120;
+    var x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 120);
+    g.addColorStop(0, P.sky[0]); g.addColorStop(0.75, P.sky[1]); x.fillStyle = g; x.fillRect(0, 0, 240, 120);
+    var span = 0.26, sx = (0.5 - span / 2) * CW, sw = span * CW, rowTop = (b.top - 34) / (b.top - b.bot) * CH, rowH = CH * 0.98 - rowTop;
+    if (P === PARKS.grandcanyon) { rowTop = 0.18 * CH; rowH = 0.8 * CH; }
+    var dh = 240 * rowH / sw;
+    x.drawImage(b.canvas, sx, rowTop, sw, rowH, 0, 120 - dh - 12, 240, dh);
+    x.fillStyle = P.ground; x.fillRect(0, 108, 240, 12);
+    thumbs[key] = c.toDataURL('image/jpeg', 0.85);
+    return thumbs[key];
+  };
+
+  function noRay() {}
+  function flat(g, geo, color, y, xz, opacity) {
+    var m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: color, transparent: opacity < 1, opacity: opacity == null ? 1 : opacity }));
+    m.rotation.x = -Math.PI / 2; m.position.set(xz[0], y, xz[1]); m.raycast = noRay; g.add(m); return m;
+  }
+  function springTexture() {
+    var c = document.createElement('canvas'); c.width = c.height = 512; var x = c.getContext('2d'), g = x.createRadialGradient(256, 256, 10, 256, 256, 256);
+    [[0, '#1f6fa8'], [0.35, '#2a93c4'], [0.5, '#6cc3c9'], [0.6, '#b9d77a'], [0.7, '#f1d348'], [0.8, '#f0952f'], [0.9, '#c55a24'], [1, 'rgba(180,120,70,0)']].forEach(function (s) { g.addColorStop(s[0], s[1]); });
+    x.fillStyle = g; x.beginPath(); x.arc(256, 256, 256, 0, Math.PI * 2); x.fill();
+    var rand = ECO.rng(5); x.strokeStyle = 'rgba(200,90,40,0.5)'; x.lineWidth = 3;
+    for (var i = 0; i < 80; i++) { var a = rand() * Math.PI * 2; x.beginPath(); x.moveTo(256 + Math.cos(a) * 200, 256 + Math.sin(a) * 200); x.lineTo(256 + Math.cos(a) * 254, 256 + Math.sin(a) * 254); x.stroke(); }
+    return ECO.canvasTex(c);
+  }
+  function rocks(g, color, count, minR, maxR, rMin, rMax, seed, avoidFront) {
+    var rand = ECO.rng(seed), base = new THREE.Color(color);
+    for (var i = 0; i < count; i++) {
+      var a = rand() * Math.PI * 2, d = minR + rand() * (maxR - minR);
+      if (avoidFront && Math.abs(Math.atan2(Math.sin(a), -Math.cos(a))) < 0.5 && d < 30) continue;
+      var r = rMin + rand() * (rMax - rMin), m = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 0),
+        new THREE.MeshLambertMaterial({ color: base.clone().offsetHSL(0, (rand() - 0.5) * 0.1, (rand() - 0.5) * 0.12), flatShading: true }));
+      if (g.userData.noRocksBeyond != null && -Math.cos(a) * d < g.userData.noRocksBeyond + r) continue;
+      m.position.set(Math.sin(a) * d, r * 0.35, -Math.cos(a) * d); m.rotation.set(rand() * 3, rand() * 3, rand() * 3); m.scale.y = 0.6 + rand() * 0.5; m.raycast = noRay; g.add(m);
+    }
+  }
+  function steamPuffs(g, cx, cz, spread, count) {
+    var c = document.createElement('canvas'); c.width = c.height = 128; var x = c.getContext('2d'), gr = x.createRadialGradient(64, 64, 4, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,255,255,0.75)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+    var tex = ECO.canvasTex(c), rand = ECO.rng(8), puffs = [];
+    for (var i = 0; i < count; i++) {
+      var s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0.6 }));
+      var p = { s: s, x: cx + (rand() - 0.5) * spread, z: cz + (rand() - 0.5) * spread, ph: rand(), sp: 0.6 + rand() * 0.6 };
+      s.raycast = noRay; g.add(s); puffs.push(p);
+    }
+    ECO._anim.push(function (t) {
+      puffs.forEach(function (p) {
+        var k = ((t / 1000) * 0.12 * p.sp + p.ph) % 1, size = 3 + k * 9;
+        p.s.position.set(p.x + Math.sin(k * 6 + p.ph * 9) * 1.5, 0.5 + k * 12, p.z); p.s.scale.set(size, size, 1); p.s.material.opacity = 0.55 * (1 - k) * Math.min(1, k * 6);
+      });
+    });
+  }
+
+  // Build the backdrop and foreground for a park (called from ECO.buildEnvironment)
+  ECO.buildPark = function (g, P, key) {
+    var b = backdrop(key), h = (b.top - b.bot) * HS;
+    var tex = ECO.canvasTex(b.canvas); tex.anisotropy = 8;
+    var geo = new THREE.CylinderGeometry(R, R, h, 160, 1, true); geo.scale(-1, 1, 1);
+    var wall = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.02, fog: false, side: THREE.FrontSide }));
+    wall.position.y = (b.top + b.bot) / 2 * HS; wall.raycast = noRay; wall.renderOrder = -1; g.add(wall);
+
+    if (key === 'yellowstone') {
+      flat(g, new THREE.CircleGeometry(15, 48), '#cdbf9f', 0.02, [0, -26], 0.75);
+      var spring = new THREE.Mesh(new THREE.CircleGeometry(12, 64), new THREE.MeshBasicMaterial({ map: springTexture(), transparent: true, depthWrite: false }));
+      spring.rotation.x = -Math.PI / 2; spring.position.set(0, 0.03, -26); spring.raycast = noRay; g.add(spring);
+      steamPuffs(g, 0, -26, 10, 22);
+      rocks(g, '#b9b39f', 14, 20, 60, 0.3, 1.2, 9, true);
+    }
+    if (key === 'grandteton') {
+      flat(g, new THREE.CircleGeometry(26, 64), '#4f86a8', 0.04, [0, -55], 0.95);
+      flat(g, new THREE.RingGeometry(26, 28, 64), '#b9b296', 0.035, [0, -55], 1);
+      rocks(g, '#9a9584', 12, 15, 60, 0.3, 1.0, 10, true);
+    }
+    if (key === 'yosemite') {
+      flat(g, new THREE.PlaneGeometry(6, 200), '#5b93a8', 0.04, [-30, 0], 0.9).rotation.z = 0.25;
+      rocks(g, '#bdb8ac', 16, 18, 65, 0.6, 2.2, 11, true);
+    }
+    if (key === 'grandcanyon') {
+      // you stand on the South Rim; the canyon drops away in front
+      var rimEdge = -5, floor = new THREE.Mesh(new THREE.CircleGeometry(R + 5, 64), new THREE.MeshBasicMaterial({ color: '#5b3a2c', fog: false }));
+      floor.rotation.x = -Math.PI / 2; floor.position.y = -30 * HS; floor.raycast = noRay; g.add(floor);
+      // the cliff face just below your feet, seen when you walk to the edge
+      var cliff = new THREE.Mesh(new THREE.PlaneGeometry(200, 30), new THREE.MeshLambertMaterial({ color: '#b5703f', side: THREE.BackSide }));
+      cliff.position.set(0, -15, rimEdge - 0.05); cliff.raycast = noRay; g.add(cliff);
+      g.userData.noRocksBeyond = rimEdge;
+      rocks(g, '#cbbd9f', 26, 6, 70, 0.4, 1.6, 12, false);
+      // a low wall of rocks along the rim
+      var rr = ECO.rng(21); for (var q = 0; q < 40; q++) { var rx = -60 + q * 3 + rr() * 2, rs = 0.25 + rr() * 0.45, rk = new THREE.Mesh(new THREE.DodecahedronGeometry(rs, 0), new THREE.MeshLambertMaterial({ color: '#c9b894', flatShading: true })); rk.position.set(rx, rs * 0.3, rimEdge + 0.4 + rr() * 0.6); rk.raycast = noRay; g.add(rk); }
+    }
+    if (key === 'bigbend') rocks(g, '#a98a68', 22, 10, 70, 0.3, 1.4, 13, true);
+    if (key === 'everglades') {
+      var rw = ECO.rng(14);
+      for (var i = 0; i < 9; i++) { var a = rw() * Math.PI * 2, d = 12 + rw() * 50; flat(g, new THREE.CircleGeometry(3 + rw() * 7, 32), '#5f8f8a', 0.04, [Math.sin(a) * d, -Math.cos(a) * d], 0.85).scale.x = 1.6; }
+    }
+    if (key === 'arches') rocks(g, '#c06a3c', 22, 12, 70, 0.5, 2.4, 15, true);
+    if (key === 'smokies') rocks(g, '#7d8277', 10, 15, 60, 0.3, 1.0, 16, true);
+  };
+
+  // In the Grand Canyon, the ground in front ends at the rim
+  ECO.groundFor = function (key) { return key === 'grandcanyon' ? { from: -5 } : null; };
+  // Picker tiles for the environment panel: the biomes, then the national parks
+  ECO.presetTiles = function (current, esc) {
+    function tile(k) {
+      var P = ECO.PRESETS[k], on = current === k;
+      var bg = P.park ? 'background:url(' + ECO.parkThumb(k) + ') center/cover' : 'background:linear-gradient(' + P.sky[0] + ',' + P.sky[1] + ' 55%,' + P.ground + ' 56%)';
+      return '<button class="preset" data-preset="' + k + '" aria-pressed="' + on + '" title="' + esc(P.park ? P.name + ' National Park, ' + P.state : P.name) + '"><div class="sw" style="' + bg + '"></div><span>' + esc(P.name) + '</span></button>';
+    }
+    var keys = Object.keys(ECO.PRESETS), biomes = keys.filter(function (k) { return !ECO.PRESETS[k].park; }), parks = keys.filter(function (k) { return ECO.PRESETS[k].park; });
+    return biomes.map(tile).join('') + '<h3 class="park-head">National parks</h3>' + parks.map(tile).join('');
+  };
+
+  // Adds a "Setting" line to a project's opening card when it uses a national park
+  ECO.showParkSetting = function (env, afterEl) {
+    var P = env && env.mode !== 'photo' && ECO.PRESETS[env.preset];
+    if (!P || !P.park || !afterEl) return;
+    var p = document.createElement('p'); p.className = 'park-line';
+    p.style.cssText = 'margin:8px 0;padding:8px 12px;background:#eef3ea;border-radius:10px;font-size:14px;line-height:1.45';
+    p.innerHTML = '<b>Setting:</b> ' + P.name + ' National Park, ' + P.state + '. ' + P.blurb;
+    afterEl.parentNode.insertBefore(p, afterEl.nextSibling);
+  };
+
+  // For a newly added organism: if it would land over the canyon, mirror it back onto the rim
+  ECO.placeXZ = function (env, x, z) {
+    var c = env && env.mode !== 'photo' && ECO.groundFor(env.preset), lim = c ? c.from + 0.6 : null;
+    if (c && z < lim) z = Math.min(lim + (lim - z), 70);
+    return [x, z];
+  };
+
+  // Keep a position on solid ground (no floating over the Grand Canyon)
+  ECO.clampXZ = function (env, x, z) {
+    var c = env && env.mode !== 'photo' && ECO.groundFor(env.preset);
+    if (c && z < c.from + 0.6) z = c.from + 0.6;
+    return [x, z];
+  };
 })();
 </script>
 <script id="eco-library">(function () {
@@ -1010,6 +1454,9 @@
     #left, #right { border: 0; border-top: 1px solid var(--line); }
     .hint { display: none; }
   }
+  @media (max-width: 1400px) { header .sub { display: none; } }
+
+  .presets .park-head { grid-column: 1 / -1; margin: 10px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); font-weight: 650; }
 </style>
 </head>
 <body>
@@ -1030,7 +1477,7 @@
       <button role="tab" aria-selected="false" data-tab="orgs">2 · Organisms</button>
     </div>
     <div class="pane on" id="pane-env">
-      <h2>Choose a biome</h2>
+      <h2>Choose a biome or national park</h2>
       <div class="presets" id="presets"></div>
       <h2>Or use your own 360° photo</h2>
       <div class="photo-card" id="photo-card"></div>
@@ -1314,6 +1761,7 @@ body.in-vr #hud,body.in-vr #guide,body.in-vr #hint{display:none}
     document.getElementById('v-title').textContent = data.title || 'Untitled ecosystem';
     document.getElementById('v-author').textContent = data.author ? 'Created by ' + data.author : '';
     document.getElementById('v-desc').textContent = data.description || '';
+    if (ECO.showParkSetting) ECO.showParkSetting(data.env, document.getElementById('v-desc'));
     if (data.showRoles) {
       var used = {}; orgs.forEach(function (o) { if (o.role) used[o.role] = 1; });
       document.getElementById('v-legend').innerHTML = ECO.ROLES.filter(function (r) { return used[r[0]] && r[2]; })
@@ -1443,6 +1891,7 @@ body.in-vr #hud,body.in-vr #guide,body.in-vr #hint{display:none}
     var dist = Math.max(3, Math.min(14, o.h * 1.3 + 2)) * (0.85 + Math.random() * 0.4);
     var org = { id: uid(), name: o.name, sci: '', role: o.role || '', note: '', img: o.key, aspect: o.aspect, h: o.h, elev: o.elev || 0, flip: false,
       x: +(p.x + d.x * dist).toFixed(2), z: +(p.z + d.z * dist).toFixed(2) };
+    var cl0 = ECO.placeXZ(state.env, org.x, org.z); org.x = cl0[0]; org.z = +cl0[1].toFixed(2);
     state.organisms.push(org); sel = org.id;
     state.organisms.forEach(sync); renderAll(); scheduleSave();
     return org;
@@ -1475,11 +1924,7 @@ body.in-vr #hud,body.in-vr #guide,body.in-vr #hint{display:none}
   function renderAll() { renderLibrary(); renderList(); renderPopup(); renderEnvPanel(); $('#empty').style.display = state.organisms.length ? 'none' : ''; }
 
   function renderEnvPanel() {
-    $('#presets').innerHTML = Object.keys(ECO.PRESETS).map(function (k) {
-      var P = ECO.PRESETS[k], on = state.env.mode === 'preset' && state.env.preset === k;
-      return '<button class="preset" data-preset="' + k + '" aria-pressed="' + on + '"><div class="sw" style="background:linear-gradient(' +
-        P.sky[0] + ',' + P.sky[1] + ' 55%,' + P.ground + ' 56%)"></div><span>' + esc(P.name) + '</span></button>';
-    }).join('');
+    $('#presets').innerHTML = ECO.presetTiles(state.env.mode === 'preset' ? state.env.preset : '', esc);
     var e = state.env, has = e.photoKey && state.images[e.photoKey], on = e.mode === 'photo' && has, pc = $('#photo-card');
     pc.classList.toggle('on', !!on);
     pc.innerHTML = has
@@ -1689,6 +2134,7 @@ body.in-vr #hud,body.in-vr #guide,body.in-vr #hint{display:none}
     if (ray.ray.intersectPlane(drag.plane, hitV)) {
       var x = hitV.x + drag.off.x, z = hitV.z + drag.off.z, r = Math.hypot(x, z);
       if (r > 75) { x *= 75 / r; z *= 75 / r; }
+      var cl = ECO.clampXZ(state.env, x, z); x = cl[0]; z = cl[1];
       drag.org.x = +x.toFixed(2); drag.org.z = +z.toFixed(2);
       ents.get(drag.org.id).setAttribute('position', { x: drag.org.x, y: 0, z: drag.org.z });
     }
@@ -1747,6 +2193,7 @@ body.in-vr #hud,body.in-vr #guide,body.in-vr #hint{display:none}
     if (!mapDrag) return;
     var w = fromMap.apply(null, mapPt(e)), r = Math.hypot(w[0], w[1]);
     if (r > 75) { w[0] *= 75 / r; w[1] *= 75 / r; }
+    var cl = ECO.clampXZ(state.env, w[0], w[1]); w[0] = cl[0]; w[1] = cl[1];
     mapDrag.x = +w[0].toFixed(2); mapDrag.z = +w[1].toFixed(2);
     ents.get(mapDrag.id).setAttribute('position', { x: mapDrag.x, y: 0, z: mapDrag.z });
   });
