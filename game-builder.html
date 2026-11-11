@@ -713,7 +713,201 @@
     return [x, z];
   };
 })();</script>
-<script id="eco-library">(function () {
+<script id="eco-library">// Extra full-body artwork for Size Up (side views unless noted)
+var SU_ART = (function () {
+  function svg(vb, body) { return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '">' + body + '</svg>'; }
+  var A = {};
+
+  A.sunflower = svg('0 0 120 300',
+    '<path d="M60 300 C58 230 62 160 60 70" stroke="#4f8a2b" stroke-width="7" fill="none"/>' +
+    '<path d="M60 240 C40 226 24 228 14 238 C28 248 46 250 60 240Z" fill="#5fa036"/>' +
+    '<path d="M60 200 C80 186 98 188 108 198 C94 208 76 210 60 200Z" fill="#5fa036"/>' +
+    '<path d="M60 160 C42 146 26 148 16 158 C30 168 46 170 60 160Z" fill="#6bb03c"/>' +
+    '<path d="M60 120 C78 108 94 110 102 118 C90 128 74 128 60 120Z" fill="#6bb03c"/>' +
+    (function () { var p = ''; for (var i = 0; i < 18; i++) { var a = i / 18 * Math.PI * 2, x = 60 + Math.cos(a) * 30, y = 48 + Math.sin(a) * 30;
+      p += '<ellipse cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" rx="13" ry="6" fill="' + (i % 2 ? '#f6c21c' : '#f2b10f') + '" transform="rotate(' + (a * 180 / Math.PI).toFixed(0) + ' ' + x.toFixed(1) + ' ' + y.toFixed(1) + ')"/>'; } return p; })() +
+    '<circle cx="60" cy="48" r="21" fill="#6b3e1d"/><circle cx="60" cy="48" r="14" fill="#7d4a24"/>');
+
+  A.corn = svg('0 0 120 300',
+    '<path d="M60 300 L60 40" stroke="#6a9a35" stroke-width="8"/>' +
+    '<path d="M60 40 L52 6 M60 40 L60 0 M60 40 L68 8 M60 40 L44 14 M60 40 L76 16" stroke="#d6b45a" stroke-width="3" stroke-linecap="round"/>' +
+    '<path d="M60 270 C30 250 12 220 6 190 C26 214 44 236 60 252Z" fill="#7aae3f"/>' +
+    '<path d="M60 230 C92 210 110 180 116 150 C96 176 76 198 60 212Z" fill="#6aa138"/>' +
+    '<path d="M60 180 C30 160 14 130 8 100 C28 124 46 146 60 162Z" fill="#7aae3f"/>' +
+    '<path d="M60 130 C88 112 104 86 110 60 C92 82 76 100 60 114Z" fill="#6aa138"/>' +
+    '<path d="M62 200 C74 182 80 168 78 150 C72 160 66 176 62 190Z" fill="#9fc768"/>' +
+    '<ellipse cx="70" cy="166" rx="7" ry="20" fill="#f1cf4a" transform="rotate(14 70 166)"/>' +
+    '<path d="M64 186 C70 176 72 166 70 150" stroke="#9fc768" stroke-width="5" fill="none"/>');
+
+  A.raccoon = svg('0 0 230 130',
+    '<path d="M160 70 C190 64 214 76 226 96 C214 92 200 90 186 92 C176 86 168 80 160 76Z" fill="#8b8a86"/>' +
+    '<path d="M180 72 L186 92 M196 74 L200 92 M210 80 L212 94" stroke="#2f2d2b" stroke-width="7" stroke-linecap="round"/>' +
+    '<rect x="62" y="80" width="13" height="40" rx="6" fill="#5f5d5a"/><rect x="150" y="78" width="13" height="42" rx="6" fill="#5f5d5a"/>' +
+    '<path d="M50 72 C56 46 100 38 130 40 C160 40 180 54 176 78 C172 98 150 100 126 100 L84 100 C62 100 46 92 50 72Z" fill="#8b8a86"/>' +
+    '<rect x="72" y="86" width="14" height="38" rx="6" fill="#77756f"/><rect x="160" y="84" width="14" height="40" rx="6" fill="#77756f"/>' +
+    '<ellipse cx="78" cy="123" rx="11" ry="5" fill="#2f2d2b"/><ellipse cx="168" cy="123" rx="11" ry="5" fill="#2f2d2b"/>' +
+    '<path d="M64 50 C56 36 40 32 26 38 C16 42 8 50 4 58 C8 64 18 66 30 66 C44 70 58 66 66 58Z" fill="#9d9b97"/>' +
+    '<path d="M48 40 L52 22 L62 38Z" fill="#9d9b97"/><path d="M52 36 L54 28 L58 37Z" fill="#2f2d2b"/>' +
+    '<path d="M18 46 C28 40 44 40 56 48 C46 54 30 56 18 52Z" fill="#2f2d2b"/>' +
+    '<path d="M6 58 C16 62 30 62 40 60" stroke="#f2f0ea" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+    '<circle cx="5" cy="57" r="4" fill="#1d1c1b"/><circle cx="38" cy="47" r="3.5" fill="#f5f2ea"/><circle cx="38" cy="47" r="2" fill="#111"/>');
+
+  A.zebra = (function () {
+    var stripes = '';
+    for (var i = 0; i < 9; i++) { var x = 82 + i * 15; stripes += '<path d="M' + x + ' 42 C' + (x - 6) + ' 60 ' + (x + 4) + ' 78 ' + (x - 2) + ' 104" stroke="#1d1d1f" stroke-width="7" fill="none"/>'; }
+    var legStr = function (x, y) { return '<path d="M' + x + ' ' + (y + 10) + ' h14 M' + x + ' ' + (y + 22) + ' h14 M' + x + ' ' + (y + 34) + ' h14" stroke="#1d1d1f" stroke-width="5"/>'; };
+    return svg('0 -12 250 202',
+      '<path d="M212 62 C226 72 232 92 230 116" stroke="#1d1d1f" stroke-width="5" fill="none"/><path d="M226 110 l4 18 l6 -16Z" fill="#1d1d1f"/>' +
+      '<rect x="84" y="100" width="14" height="72" rx="6" fill="#f4f2ec"/>' + legStr(84, 110) +
+      '<rect x="190" y="98" width="14" height="74" rx="6" fill="#f4f2ec"/>' + legStr(190, 108) +
+      '<path d="M70 70 C74 46 110 40 146 42 C182 40 214 50 216 72 C218 96 200 108 170 108 L104 108 C82 108 68 94 70 70Z" fill="#f4f2ec"/>' +
+      '<g clip-path="url(#zb)">' + stripes + '</g><clipPath id="zb"><path d="M70 70 C74 46 110 40 146 42 C182 40 214 50 216 72 C218 96 200 108 170 108 L104 108 C82 108 68 94 70 70Z"/></clipPath>' +
+      '<rect x="98" y="102" width="15" height="74" rx="6" fill="#f4f2ec"/>' + legStr(98, 116) +
+      '<rect x="200" y="100" width="15" height="76" rx="6" fill="#f4f2ec"/>' + legStr(200, 114) +
+      '<rect x="96" y="172" width="19" height="10" rx="3" fill="#1d1d1f"/><rect x="198" y="172" width="19" height="10" rx="3" fill="#1d1d1f"/>' +
+      '<rect x="82" y="168" width="18" height="9" rx="3" fill="#1d1d1f"/><rect x="188" y="168" width="18" height="9" rx="3" fill="#1d1d1f"/>' +
+      '<path d="M96 66 C86 46 70 22 56 10 L40 16 C46 34 56 54 74 76Z" fill="#f4f2ec"/>' +
+      '<path d="M60 18 l12 10 M66 30 l12 8 M72 42 l12 8 M78 54 l12 8" stroke="#1d1d1f" stroke-width="6"/>' +
+      '<path d="M54 8 C64 2 80 10 96 30 C92 44 98 56 100 66" stroke="#1d1d1f" stroke-width="7" fill="none"/>' +
+      '<path d="M56 10 C44 6 30 12 20 30 L6 60 C4 68 12 74 20 70 L42 46 C50 36 56 24 56 10Z" fill="#f4f2ec"/>' +
+      '<path d="M26 26 l14 8 M18 40 l14 8" stroke="#1d1d1f" stroke-width="5"/>' +
+      '<path d="M4 58 C8 70 16 74 24 68 L18 56Z" fill="#2b2b2d"/>' +
+      '<path d="M48 8 L54 -4 L60 8Z" fill="#f4f2ec" stroke="#1d1d1f" stroke-width="2"/>' +
+      '<circle cx="36" cy="26" r="3.2" fill="#111"/>');
+  })();
+
+  A.squirrel = svg('0 0 160 130',
+    '<path d="M98 100 C120 104 150 90 154 60 C158 30 140 8 116 10 C104 12 98 22 104 32 C114 28 126 32 126 48 C126 66 110 76 96 80Z" fill="#8f9195"/>' +
+    '<path d="M120 22 C134 22 144 36 142 54" stroke="#c5c7ca" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+    '<path d="M40 86 C38 64 54 52 74 52 C96 52 106 70 104 90 C102 108 86 116 66 116 C50 116 42 104 40 86Z" fill="#a1a3a7"/>' +
+    '<ellipse cx="62" cy="96" rx="14" ry="16" fill="#e9e6df"/>' +
+    '<path d="M86 108 C96 112 102 120 96 124 L74 124 C72 118 78 110 86 108Z" fill="#8f9195"/>' +
+    '<path d="M44 66 C30 58 20 50 14 40 C10 32 18 24 30 24 C44 24 56 34 60 50Z" fill="#a1a3a7"/>' +
+    '<path d="M38 26 L42 12 L50 28Z" fill="#a1a3a7"/><circle cx="28" cy="34" r="3.2" fill="#111"/><circle cx="12" cy="40" r="3" fill="#3a3330"/>' +
+    '<path d="M46 72 C40 78 36 84 38 88" stroke="#8f9195" stroke-width="6" stroke-linecap="round" fill="none"/>');
+
+  A.chimp = svg('0 0 120 260',
+    '<path d="M44 160 C40 196 38 222 40 248 L56 248 C56 222 58 196 60 170Z" fill="#2d2622"/>' +
+    '<path d="M76 160 C80 196 82 222 80 248 L64 248 C64 222 62 196 60 170Z" fill="#2d2622"/>' +
+    '<ellipse cx="46" cy="250" rx="14" ry="6" fill="#4a3d35"/><ellipse cx="74" cy="250" rx="14" ry="6" fill="#4a3d35"/>' +
+    '<path d="M60 64 C88 64 98 92 96 124 C94 156 82 172 60 172 C38 172 26 156 24 124 C22 92 32 64 60 64Z" fill="#2d2622"/>' +
+    '<path d="M28 82 C16 110 12 150 16 186 C18 196 28 196 28 186 C30 156 34 124 40 100Z" fill="#2d2622"/>' +
+    '<path d="M92 82 C104 110 108 150 104 186 C102 196 92 196 92 186 C90 156 86 124 80 100Z" fill="#2d2622"/>' +
+    '<ellipse cx="22" cy="190" rx="9" ry="10" fill="#5a4a40"/><ellipse cx="98" cy="190" rx="9" ry="10" fill="#5a4a40"/>' +
+    '<circle cx="60" cy="38" r="30" fill="#2d2622"/>' +
+    '<circle cx="28" cy="40" r="9" fill="#c9a88c"/><circle cx="92" cy="40" r="9" fill="#c9a88c"/>' +
+    '<path d="M42 28 C42 20 78 20 78 28 C84 40 82 62 60 64 C38 62 36 40 42 28Z" fill="#c9a88c"/>' +
+    '<path d="M42 30 C50 24 70 24 78 30" stroke="#8a6c56" stroke-width="3" fill="none"/>' +
+    '<circle cx="52" cy="36" r="3.4" fill="#1a1411"/><circle cx="68" cy="36" r="3.4" fill="#1a1411"/>' +
+    '<path d="M54 46 h12" stroke="#7a5c48" stroke-width="2.5"/><path d="M48 54 Q60 60 72 54" stroke="#7a5c48" stroke-width="3" fill="none" stroke-linecap="round"/>');
+
+  A.baldEagle = svg('0 0 300 120',
+    '<path d="M150 50 C120 40 90 30 60 34 C40 36 20 42 4 56 C24 54 40 56 52 60 C34 64 22 70 12 80 C34 74 52 74 66 76 C54 82 44 88 38 96 C66 86 98 78 132 74Z" fill="#4a3322"/>' +
+    '<path d="M150 50 C180 40 210 30 240 34 C260 36 280 42 296 56 C276 54 260 56 248 60 C266 64 278 70 288 80 C266 74 248 74 234 76 C246 82 256 88 262 96 C234 86 202 78 168 74Z" fill="#4a3322"/>' +
+    '<path d="M60 40 C80 38 100 40 120 44" stroke="#5e4330" stroke-width="3" fill="none"/><path d="M240 40 C220 38 200 40 180 44" stroke="#5e4330" stroke-width="3" fill="none"/>' +
+    '<path d="M134 46 C134 36 166 36 166 46 L170 86 C166 94 134 94 130 86Z" fill="#3e2a1c"/>' +
+    '<path d="M134 88 L128 112 L150 104 L172 112 L166 88Z" fill="#f7f5ef"/>' +
+    '<path d="M138 50 C130 34 134 16 150 14 C166 16 170 34 162 50 C156 56 144 56 138 50Z" fill="#f7f5ef"/>' +
+    '<path d="M144 34 C144 44 156 44 156 34 L150 48Z" fill="#f2b51b"/>' +
+    '<circle cx="143" cy="28" r="2.6" fill="#1a1a1a"/><circle cx="157" cy="28" r="2.6" fill="#1a1a1a"/>' +
+    '<path d="M140 92 l-4 10 M146 94 l-2 10 M154 94 l2 10 M160 92 l4 10" stroke="#f2b51b" stroke-width="3" stroke-linecap="round"/>');
+
+  A.macaw = svg('0 0 120 300',
+    '<path d="M56 150 C50 200 46 250 44 298 L56 298 C60 250 66 200 70 154Z" fill="#d6231c"/>' +
+    '<path d="M62 150 C66 200 72 250 78 296 L66 298 C62 250 58 200 56 154Z" fill="#2a63c8"/>' +
+    '<ellipse cx="60" cy="110" rx="32" ry="50" fill="#e02a20"/>' +
+    '<path d="M36 90 C60 86 82 98 90 122 C92 140 86 156 74 162 C60 150 44 130 36 90Z" fill="#f2c514"/>' +
+    '<path d="M44 114 C64 120 84 132 92 150 C86 160 76 166 68 166 C58 150 50 134 44 114Z" fill="#2a63c8"/>' +
+    '<path d="M50 112 C62 116 72 124 80 134" stroke="#3a9a46" stroke-width="5" fill="none"/>' +
+    '<circle cx="54" cy="46" r="26" fill="#e02a20"/>' +
+    '<ellipse cx="44" cy="44" rx="11" ry="10" fill="#f6f2ea"/><circle cx="42" cy="44" r="3.4" fill="#151515"/>' +
+    '<path d="M30 46 C16 44 8 54 10 68 C14 62 20 58 28 60 C30 56 30 50 30 46Z" fill="#f1ece0"/>' +
+    '<path d="M26 58 C20 62 18 68 22 72 C26 66 30 64 32 62Z" fill="#222"/>' +
+    '<path d="M70 158 l-4 12 M54 160 l-2 12" stroke="#7a7a7a" stroke-width="4" stroke-linecap="round"/>');
+
+  function snake(main, belly, pattern) {
+    var path = 'M8 60 C30 30 54 30 74 52 C94 74 118 76 138 54 C158 32 182 32 204 52 C222 68 240 70 256 58';
+    return svg('0 0 280 90',
+      '<path d="' + path + '" stroke="' + main + '" stroke-width="18" fill="none" stroke-linecap="round"/>' +
+      (pattern || '') +
+      '<path d="M256 58 C264 52 272 54 276 60 C272 66 264 68 256 64Z" fill="' + main + '"/>' +
+      '<circle cx="268" cy="57" r="2.4" fill="#111"/>' +
+      '<path d="M276 60 l6 -2 M276 60 l6 3" stroke="#c0392b" stroke-width="1.6"/>');
+  }
+  A.garter = snake('#2f3a2c', '#c9c37a', '<path d="M8 60 C30 30 54 30 74 52 C94 74 118 76 138 54 C158 32 182 32 204 52 C222 68 240 70 256 58" stroke="#e9d34a" stroke-width="4" fill="none" stroke-linecap="round"/>');
+  A.rattlesnake = snake('#a58a5e', '#d8c49a',
+    '<path d="M8 60 C30 30 54 30 74 52 C94 74 118 76 138 54 C158 32 182 32 204 52 C222 68 240 70 256 58" stroke="#5c4630" stroke-width="10" fill="none" stroke-dasharray="10 9"/>' +
+    '<path d="M2 62 l-0 0" /><path d="M10 58 L-2 50 M10 60 L-4 58 M10 62 L-2 68" stroke="#e8dcc0" stroke-width="5" stroke-linecap="round"/>');
+
+  A.alligator = svg('0 0 320 90',
+    '<path d="M110 52 C160 40 220 42 270 52 C290 56 306 62 318 70 C300 72 270 70 240 70 C200 72 150 72 110 72Z" fill="#3f4a2c"/>' +
+    '<path d="M120 46 l10 -8 l10 8 l10 -8 l10 8 l10 -8 l10 8 l10 -8 l10 8 l10 -8 l10 8 l10 -8 l10 8 l10 -6 l10 6 l10 -4 l10 4" stroke="#2f3820" stroke-width="4" fill="none"/>' +
+    '<path d="M30 54 C50 40 90 38 130 42 C150 44 160 56 160 66 C150 76 120 78 90 76 C60 76 40 72 30 66Z" fill="#46532f"/>' +
+    '<path d="M2 62 C2 54 14 50 32 50 L60 50 C64 56 64 64 60 68 L30 70 C14 70 2 68 2 62Z" fill="#46532f"/>' +
+    '<path d="M4 64 L58 64" stroke="#2a3119" stroke-width="2.4"/>' +
+    '<path d="M8 64 l3 -3 l3 3 l3 -3 l3 3 l3 -3 l3 3 l3 -3 l3 3 l3 -3 l3 3 l3 -3 l3 3" stroke="#efe9d5" stroke-width="1.6" fill="none"/>' +
+    '<ellipse cx="56" cy="47" rx="7" ry="5" fill="#46532f"/><circle cx="57" cy="46" r="2.6" fill="#e6c14a"/><rect x="56.4" y="44" width="1.2" height="4" fill="#111"/>' +
+    '<path d="M60 74 L52 88 L66 88 L70 76Z M130 74 L124 88 L138 88 L140 76Z" fill="#3a4527"/>' +
+    '<path d="M80 74 L76 86 L88 86 L90 76Z M150 72 L148 84 L160 84 L160 74Z" fill="#46532f"/>');
+
+  A.orca = svg('0 0 320 120',
+    '<path d="M10 70 C30 44 80 34 140 36 C200 38 250 50 284 66 C300 74 310 82 316 92 C300 90 286 86 270 82 C220 96 150 100 90 96 C50 94 20 86 10 70Z" fill="#141518"/>' +
+    '<path d="M150 38 C154 14 160 2 168 0 C170 14 174 28 180 40Z" fill="#141518"/>' +
+    '<path d="M280 68 L310 50 L318 58 L296 76Z M280 80 L312 100 L318 92 L296 76Z" fill="#141518"/>' +
+    '<path d="M20 80 C50 92 100 98 150 92 C130 84 100 82 80 80 C60 82 40 82 20 80Z" fill="#f4f6f6"/>' +
+    '<ellipse cx="62" cy="58" rx="14" ry="6" fill="#f4f6f6" transform="rotate(-8 62 58)"/>' +
+    '<path d="M180 44 C200 46 214 52 220 58 C200 58 186 54 180 50Z" fill="#8c9096"/>' +
+    '<path d="M110 92 C104 104 96 112 88 116 C100 112 112 104 122 96Z" fill="#141518"/>');
+
+  A.clownfish = svg('0 0 200 110',
+    '<path d="M150 56 L196 26 L190 56 L196 86Z" fill="#f26a1b" stroke="#111" stroke-width="3"/>' +
+    '<path d="M70 26 C80 4 112 4 122 26Z M80 86 C90 108 114 108 120 86Z" fill="#f26a1b" stroke="#111" stroke-width="3"/>' +
+    '<ellipse cx="88" cy="56" rx="72" ry="38" fill="#f26a1b" stroke="#111" stroke-width="3"/>' +
+    '<path d="M42 26 C54 40 54 72 42 86 L58 92 C68 74 68 38 58 22Z" fill="#fff" stroke="#111" stroke-width="3"/>' +
+    '<path d="M92 18 C104 38 104 74 92 94 L110 92 C120 72 120 40 110 20Z" fill="#fff" stroke="#111" stroke-width="3"/>' +
+    '<path d="M140 30 C148 44 148 68 140 82 L150 76 C154 64 154 48 150 36Z" fill="#fff" stroke="#111" stroke-width="3"/>' +
+    '<circle cx="30" cy="50" r="6" fill="#111"/><circle cx="31" cy="48" r="2" fill="#fff"/>');
+
+  function whale(body, belly, pec, dorsal) {
+    return svg('0 0 600 120',
+      '<path d="M540 56 L590 28 L598 36 L566 60 L598 84 L590 92 Z" fill="' + body + '"/>' +
+      '<path d="M8 62 C20 38 70 30 150 30 C260 30 400 40 500 50 C530 54 548 58 560 62 C548 68 530 72 500 74 C400 86 260 96 150 96 C80 96 24 88 8 62Z" fill="' + body + '"/>' +
+      '<path d="M10 66 C40 84 100 92 170 92 C120 84 70 80 10 66Z" fill="' + belly + '"/>' +
+      dorsal + pec +
+      '<path d="M20 62 C40 64 70 66 96 66" stroke="' + belly + '" stroke-width="2" fill="none"/>' +
+      '<circle cx="84" cy="54" r="3" fill="#0d1014"/>');
+  }
+  A.blueWhale = whale('#5d7f9e', '#9fb7c9',
+    '<path d="M150 80 C170 98 180 110 196 116 C190 100 182 88 172 78Z" fill="#4f6f8c"/>',
+    '<path d="M420 44 C428 36 436 32 444 32 C440 38 438 44 440 48Z" fill="#5d7f9e"/>');
+  A.humpback = whale('#2c3138', '#cfd3d6',
+    '<path d="M150 78 C180 100 230 112 290 114 C250 104 210 92 176 74Z" fill="#e7eaec" stroke="#2c3138" stroke-width="2"/>',
+    '<path d="M400 42 C410 30 420 26 430 28 C426 34 424 40 426 46Z" fill="#2c3138"/>');
+
+  function shark(body, belly, extra) {
+    return svg('0 0 400 140',
+      '<path d="M330 66 L384 14 L392 20 L368 70 L390 112 L382 116 Z" fill="' + body + '"/>' +
+      '<path d="M6 74 C20 54 60 44 120 42 C200 40 280 52 340 64 C352 66 360 70 364 74 C350 80 330 86 300 90 C220 102 120 104 60 98 C30 94 12 86 6 74Z" fill="' + body + '"/>' +
+      '<path d="M8 78 C30 92 80 100 150 100 C220 100 280 94 320 86 C260 88 180 88 120 84 C70 82 30 80 8 78Z" fill="' + belly + '"/>' +
+      '<path d="M150 46 C160 22 176 6 190 2 C188 18 192 34 206 46Z" fill="' + body + '"/>' +
+      '<path d="M120 92 C110 112 96 126 82 134 C104 130 128 118 146 98Z" fill="' + body + '"/>' +
+      '<path d="M270 86 L264 104 L284 90Z M290 58 L296 48 L302 60Z" fill="' + body + '"/>' +
+      (extra || '') +
+      '<path d="M70 70 v12 M78 69 v13 M86 68 v14 M94 68 v14 M102 68 v14" stroke="' + belly + '" stroke-width="1.6" opacity=".6"/>' +
+      '<circle cx="38" cy="68" r="3.4" fill="#111"/>' +
+      '<path d="M14 82 C26 88 40 88 52 84" stroke="#3b3b3b" stroke-width="2" fill="none"/>');
+  }
+  A.greatWhite = shark('#6f7b86', '#f2f2ee');
+  A.tigerShark = shark('#7d7a6c', '#ece7d8', '<path d="M140 50 l-6 16 M170 48 l-6 18 M200 50 l-6 18 M230 54 l-6 16 M260 58 l-6 14 M288 62 l-5 12" stroke="#55513f" stroke-width="5" stroke-linecap="round"/>');
+  A.reefShark = shark('#9a958a', '#f4f2ea', '<path d="M178 6 C184 4 190 2 190 2 C189 8 189 12 190 16 Z" fill="#141414"/><path d="M378 18 L392 20 L388 30Z" fill="#141414"/>');
+
+  A.person = svg('0 0 100 300',
+    '<circle cx="50" cy="22" r="20" fill="#2fc4f2"/>' +
+    '<path d="M24 52 C24 46 76 46 76 52 L84 150 C84 156 74 156 72 150 L66 92 L66 170 L64 292 C64 300 52 300 52 292 L50 184 L48 292 C48 300 36 300 36 292 L34 170 L34 92 L28 150 C26 156 16 156 16 150Z" fill="#2fc4f2"/>');
+
+  return A;
+})();
+(function () {
   var THREE = AFRAME.THREE;
   var LIB = [
     ['🌳','Deciduous tree','plant',6], ['🌲','Evergreen tree','plant',8], ['🌴','Palm tree','plant',7], ['🌵','Cactus','plant',2.5],
@@ -1016,6 +1210,262 @@
   window.ECOLIB = { LIB: LIB, CATS: CATS, ART: ART, STAGE_ART: STAGE_ART, svgUrl: svgUrl, trim: trim, encode: encode,
     bakeEmoji: bakeEmoji, bakeSvg: bakeSvg, removeBackground: removeBackground, loadImageFile: loadImageFile,
     libKey: libKey, bakeItem: bakeItem, findItem: findItem };
+})();
+// Native plants and animals for each biome and national park (shown in the builders' "Native here" tab).
+// Each entry: [kind, common name, scientific name, picture, height in metres, height above ground, recolor]
+//   kind: p plant, a animal, w water life, o other (fungi, microbes)
+//   picture: an emoji, 'a:<library art name>' or 'su:<Size Up art name>'
+// Heights are kept roughly true for animals; large trees are shortened to fit the scene like the main library.
+(function () {
+  if (!window.ECOLIB) return;
+  var EL = window.ECOLIB;
+
+  // Colour swaps that turn one drawing into a close relative
+  var RC = {
+    coyote:    { '#8d9198': '#b0916a', '#6b7078': '#8c7152', '#e3e1dc': '#efe4d2', '#4c5058': '#3a3128', '#5c6068': '#7a6248' },
+    arcticwolf:{ '#8d9198': '#e9e6df', '#6b7078': '#cfcac0', '#e3e1dc': '#ffffff', '#4c5058': '#bdb7ab', '#5c6068': '#d2ccc0' },
+    arcticfox: { '#e8742a': '#f1efea', '#b8541a': '#d6d2c9', '#3a2a22': '#cfc9bd' },
+    kitfox:    { '#e8742a': '#b9ad9a', '#b8541a': '#93877a', '#3a2a22': '#5a4d40' },
+    blackbear: { '#8a5a2e': '#2a2420', '#6e4521': '#1c1714', '#a06b39': '#3a322c', '#b98a5c': '#b08a62', '#5c3a1c': '#141110' },
+    cougar:    { '#d9a45b': '#c49a6c', '#b98440': '#a37b52', '#efcf94': '#eadcc4', '#9c5a22': '#4a3322', '#b86f2c': '#c49a6c' },
+    treefrog:  { '#5aa83a': '#3fbf3a', '#f3d34a': '#d6232a' },
+    dartfrog:  { '#5aa83a': '#2f6fd6', '#4a9230': '#24539f', '#3f8428': '#1c3f7a', '#b6d97a': '#6fa0ec', '#2f5f1d': '#0d1b33', '#f3d34a': '#0d1b33' },
+    yellowfrog:{ '#5aa83a': '#8fae3c', '#4a9230': '#6f8a2c', '#3f8428': '#5a7224', '#b6d97a': '#e3d27a', '#f3d34a': '#c9a227' },
+    toad:      { '#5aa83a': '#8a7a55', '#4a9230': '#6f6244', '#3f8428': '#5e5139', '#b6d97a': '#cfc1a0', '#2f5f1d': '#4a3f2c' },
+    redtoad:   { '#5aa83a': '#9a7a5e', '#4a9230': '#7d604a', '#3f8428': '#b2463a', '#b6d97a': '#d8c3a8', '#2f5f1d': '#5a4232' },
+    mtbluebird:{ '#e5853c': '#a9d2f2', '#6b4a2b': '#4a5868' },
+    palesnake: { '#a58a5e': '#d2b48c', '#5c4630': '#a4865f' },
+    timber:    { '#a58a5e': '#8d7d5e', '#5c4630': '#2e2620' },
+    pinksnake: { '#a58a5e': '#c48b7a', '#5c4630': '#7c4f43' }
+  };
+  // Drawings that need a shape change as well as new colours
+  var STRIP = { cougar: [/<path d="M58 30[^>]*\/>/, /<path d="M66 34[^>]*\/>/] };
+
+  var NATIVE = {
+    forest: [
+      ['p', 'Red oak', 'Quercus rubra', '🌳', 9], ['p', 'Sugar maple', 'Acer saccharum', '🌳', 8.5],
+      ['p', 'Eastern white pine', 'Pinus strobus', '🌲', 10], ['p', 'Christmas fern', 'Polystichum acrostichoides', '🌿', 0.6],
+      ['p', 'White trillium', 'Trillium grandiflorum', '🌸', 0.35], ['o', 'Honey mushroom', 'Armillaria mellea', '🍄', 0.2],
+      ['a', 'White-tailed deer', 'Odocoileus virginianus', '🦌', 1.7], ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'],
+      ['a', 'Red fox', 'Vulpes vulpes', 'a:Fox', 0.5], ['a', 'Eastern gray squirrel', 'Sciurus carolinensis', 'su:squirrel', 0.25],
+      ['a', 'Raccoon', 'Procyon lotor', 'su:raccoon', 0.35], ['a', 'Striped skunk', 'Mephitis mephitis', '🦨', 0.3],
+      ['a', 'Wild turkey', 'Meleagris gallopavo', '🦃', 1.0], ['a', 'Great horned owl', 'Bubo virginianus', '🦉', 0.55, 5],
+      ['a', 'Eastern bluebird', 'Sialia sialis', 'a:Songbird', 0.18, 2.5], ['a', 'Eastern box turtle', 'Terrapene carolina', '🐢', 0.15],
+      ['a', 'Monarch butterfly', 'Danaus plexippus', '🦋', 0.12, 1.2]
+    ],
+    rainforest: [
+      ['p', 'Kapok tree', 'Ceiba pentandra', '🌳', 14], ['p', 'Strangler fig', 'Ficus americana', '🌳', 9],
+      ['p', 'Açaí palm', 'Euterpe oleracea', '🌴', 9], ['p', 'Philodendron', 'Philodendron bipinnatifidum', '🌿', 1.4],
+      ['p', 'Cattleya orchid', 'Cattleya labiata', '🌸', 0.4, 3],
+      ['a', 'Jaguar', 'Panthera onca', '🐆', 0.8], ['a', 'Brown-throated three-toed sloth', 'Bradypus variegatus', '🦥', 0.6, 5],
+      ['a', 'Black spider monkey', 'Ateles paniscus', '🐒', 0.6, 6], ['a', 'Scarlet macaw', 'Ara macao', 'su:macaw', 0.85, 7],
+      ['a', 'Harpy eagle', 'Harpia harpyja', '🦅', 1.0, 12], ['a', 'Red-eyed tree frog', 'Agalychnis callidryas', 'a:Frog', 0.12, 1.5, 'treefrog'],
+      ['a', 'Dyeing poison dart frog', 'Dendrobates tinctorius', 'a:Frog', 0.1, 0, 'dartfrog'],
+      ['a', 'Green anaconda', 'Eunectes murinus', '🐍', 0.5], ['a', 'Leafcutter ant', 'Atta cephalotes', '🐜', 0.05],
+      ['a', 'Blue morpho butterfly', 'Morpho menelaus', '🦋', 0.15, 1.5]
+    ],
+    grassland: [
+      ['p', 'Big bluestem', 'Andropogon gerardii', '🌾', 2], ['p', 'Switchgrass', 'Panicum virgatum', '🌾', 1.5],
+      ['p', 'Purple coneflower', 'Echinacea purpurea', '🌸', 0.9], ['p', 'Common sunflower', 'Helianthus annuus', 'su:sunflower', 2],
+      ['p', 'Bur oak', 'Quercus macrocarpa', '🌳', 9],
+      ['a', 'American bison', 'Bison bison', '🦬', 1.9], ['a', 'Pronghorn', 'Antilocapra americana', '🦌', 1.2],
+      ['a', 'Black-tailed prairie dog', 'Cynomys ludovicianus', '🐿️', 0.35], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Swift fox', 'Vulpes velox', 'a:Fox', 0.4, 0, 'kitfox'], ['a', 'American badger', 'Taxidea taxus', '🦡', 0.3],
+      ['a', 'Red-tailed hawk', 'Buteo jamaicensis', '🦅', 0.55, 9], ['a', 'Prairie rattlesnake', 'Crotalus viridis', 'su:rattlesnake', 0.3],
+      ['a', 'Differential grasshopper', 'Melanoplus differentialis', '🦗', 0.06], ['a', 'Monarch butterfly', 'Danaus plexippus', '🦋', 0.12, 1.2]
+    ],
+    desert: [
+      ['p', 'Saguaro', 'Carnegiea gigantea', '🌵', 7], ['p', 'Engelmann prickly pear', 'Opuntia engelmannii', '🌵', 1.2],
+      ['p', 'Ocotillo', 'Fouquieria splendens', '🎋', 4], ['p', 'Creosote bush', 'Larrea tridentata', '🌿', 1.5],
+      ['p', 'Blue palo verde', 'Parkinsonia florida', '🌳', 6], ['p', 'Desert marigold', 'Baileya multiradiata', '🌼', 0.4],
+      ['a', 'Gila monster', 'Heloderma suspectum', '🦎', 0.12], ['a', 'Western diamondback rattlesnake', 'Crotalus atrox', 'su:rattlesnake', 0.3, 0, 'palesnake'],
+      ['a', 'Kit fox', 'Vulpes macrotis', 'a:Fox', 0.4, 0, 'kitfox'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Collared peccary (javelina)', 'Pecari tajacu', '🐗', 0.55], ['a', 'Black-tailed jackrabbit', 'Lepus californicus', '🐇', 0.5],
+      ['a', "Agassiz's desert tortoise", 'Gopherus agassizii', '🐢', 0.25], ['a', 'Elf owl', 'Micrathene whitneyi', '🦉', 0.15, 4],
+      ['a', 'Lesser long-nosed bat', 'Leptonycteris yerbabuenae', '🦇', 0.3, 4], ['a', 'Arizona bark scorpion', 'Centruroides sculpturatus', '🦂', 0.08],
+      ['a', 'Desert tarantula', 'Aphonopelma chalcodes', '🕷️', 0.08]
+    ],
+    tundra: [
+      ['p', 'Arctic willow', 'Salix arctica', '🌿', 0.2], ['p', 'Arctic cottongrass', 'Eriophorum scheuchzeri', '🌾', 0.3],
+      ['p', 'Purple saxifrage', 'Saxifraga oppositifolia', '🌸', 0.15], ['o', 'Reindeer lichen', 'Cladonia rangiferina', '🌱', 0.15],
+      ['a', 'Caribou', 'Rangifer tarandus', '🦌', 1.8], ['a', 'Muskox', 'Ovibos moschatus', '🦬', 1.4],
+      ['a', 'Polar bear', 'Ursus maritimus', 'a:Polar bear', 1.6], ['a', 'Arctic wolf', 'Canis lupus arctos', 'a:Wolf', 0.85, 0, 'arcticwolf'],
+      ['a', 'Arctic fox', 'Vulpes lagopus', 'a:Fox', 0.4, 0, 'arcticfox'], ['a', 'Arctic hare', 'Lepus arcticus', '🐇', 0.5],
+      ['a', 'Brown lemming', 'Lemmus trimucronatus', '🐁', 0.1], ['a', 'Snowy owl', 'Bubo scandiacus', '🦉', 0.6],
+      ['a', 'Snow goose', 'Anser caerulescens', '🦢', 0.7], ['a', 'Ringed seal', 'Pusa hispida', '🦭', 0.5],
+      ['w', 'Arctic char', 'Salvelinus alpinus', '🐟', 0.3, 0.3]
+    ],
+    wetland: [
+      ['p', 'Broadleaf cattail', 'Typha latifolia', '🌾', 2], ['p', 'Bald cypress', 'Taxodium distichum', '🌲', 9],
+      ['p', 'Pickerelweed', 'Pontederia cordata', '🪻', 0.8], ['p', 'American lotus', 'Nelumbo lutea', '🪷', 0.8],
+      ['p', 'Common duckweed', 'Lemna minor', '☘️', 0.12],
+      ['a', 'American bullfrog', 'Lithobates catesbeianus', 'a:Frog', 0.15], ['a', 'Mallard', 'Anas platyrhynchos', '🦆', 0.5],
+      ['a', 'Trumpeter swan', 'Cygnus buccinator', '🦢', 1.2], ['a', 'North American beaver', 'Castor canadensis', '🦫', 0.5],
+      ['a', 'North American river otter', 'Lontra canadensis', '🦦', 0.5], ['a', 'Common snapping turtle', 'Chelydra serpentina', '🐢', 0.25],
+      ['a', 'American alligator', 'Alligator mississippiensis', 'su:alligator', 0.9], ['a', 'Common garter snake', 'Thamnophis sirtalis', 'su:garter', 0.3],
+      ['a', 'Northern house mosquito', 'Culex pipiens', '🦟', 0.05, 1], ['w', 'Largemouth bass', 'Micropterus salmoides', '🐟', 0.35, 0.3]
+    ],
+    reef: [
+      ['w', 'Staghorn coral', 'Acropora cervicornis', '🪸', 0.9], ['w', 'Brain coral', 'Platygyra daedalea', '🪸', 0.6],
+      ['p', 'Paddle weed seagrass', 'Halophila ovalis', '🌿', 0.4],
+      ['w', 'Clown anemonefish', 'Amphiprion ocellaris', 'su:clownfish', 0.2, 1.5], ['w', 'Blue tang', 'Paracanthurus hepatus', '🐠', 0.25, 2],
+      ['w', 'Steephead parrotfish', 'Chlorurus microrhinos', '🐟', 0.4, 2], ['w', 'Stars-and-stripes pufferfish', 'Arothron hispidus', '🐡', 0.3, 2],
+      ['w', 'Blacktip reef shark', 'Carcharhinus melanopterus', 'su:reefShark', 0.5, 3], ['w', 'Green sea turtle', 'Chelonia mydas', '🐢', 0.6, 2.5],
+      ['w', 'Day octopus', 'Octopus cyanea', '🐙', 0.5], ['w', 'Bigfin reef squid', 'Sepioteuthis lessoniana', '🦑', 0.4, 3],
+      ['w', 'Moon jellyfish', 'Aurelia aurita', '🪼', 0.4, 4], ['w', 'Painted spiny lobster', 'Panulirus versicolor', '🦞', 0.3],
+      ['w', 'Pacific cleaner shrimp', 'Lysmata amboinensis', '🦐', 0.1, 0.5], ['w', 'Bottlenose dolphin', 'Tursiops truncatus', '🐬', 1.5, 4]
+    ],
+
+    yellowstone: [
+      ['p', 'Lodgepole pine', 'Pinus contorta', '🌲', 10], ['p', 'Quaking aspen', 'Populus tremuloides', '🌳', 8],
+      ['p', 'Big sagebrush', 'Artemisia tridentata', '🌿', 1], ['p', 'Fireweed', 'Chamerion angustifolium', '🪻', 1.2],
+      ['o', 'Heat-loving bacteria (thermophiles)', 'Thermus aquaticus', '🦠', 0.3],
+      ['a', 'American bison', 'Bison bison', '🦬', 1.9], ['a', 'Elk', 'Cervus canadensis', '🦌', 2.2],
+      ['a', 'Gray wolf', 'Canis lupus', 'a:Wolf', 0.85], ['a', 'Grizzly bear', 'Ursus arctos horribilis', 'a:Bear', 1.2],
+      ['a', 'Pronghorn', 'Antilocapra americana', '🦌', 1.2], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Bald eagle', 'Haliaeetus leucocephalus', 'su:baldEagle', 0.9, 8], ['a', 'Mountain bluebird', 'Sialia currucoides', 'a:Songbird', 0.18, 2.5, 'mtbluebird'],
+      ['a', 'North American beaver', 'Castor canadensis', '🦫', 0.5], ['w', 'Yellowstone cutthroat trout', 'Oncorhynchus clarkii bouvieri', '🐟', 0.3, 0.3]
+    ],
+    grandteton: [
+      ['p', 'Subalpine fir', 'Abies lasiocarpa', '🌲', 10], ['p', 'Engelmann spruce', 'Picea engelmannii', '🌲', 11],
+      ['p', 'Narrowleaf cottonwood', 'Populus angustifolia', '🌳', 9], ['p', 'Arrowleaf balsamroot', 'Balsamorhiza sagittata', '🌼', 0.5],
+      ['p', 'Silvery lupine', 'Lupinus argenteus', '🪻', 0.6],
+      ['a', 'Elk', 'Cervus canadensis', '🦌', 2.2], ['a', 'Pronghorn', 'Antilocapra americana', '🦌', 1.2],
+      ['a', 'American bison', 'Bison bison', '🦬', 1.9], ['a', 'Grizzly bear', 'Ursus arctos horribilis', 'a:Bear', 1.2],
+      ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Uinta ground squirrel', 'Urocitellus armatus', '🐿️', 0.25], ['a', 'American pika', 'Ochotona princeps', '🐁', 0.15],
+      ['a', 'Trumpeter swan', 'Cygnus buccinator', '🦢', 1.2], ['a', 'Osprey', 'Pandion haliaetus', '🦅', 0.6, 9],
+      ['a', 'Bald eagle', 'Haliaeetus leucocephalus', 'su:baldEagle', 0.9, 8], ['a', 'North American beaver', 'Castor canadensis', '🦫', 0.5],
+      ['w', 'Snake River cutthroat trout', 'Oncorhynchus clarkii behnkei', '🐟', 0.3, 0.3]
+    ],
+    yosemite: [
+      ['p', 'Giant sequoia', 'Sequoiadendron giganteum', '🌲', 14], ['p', 'Ponderosa pine', 'Pinus ponderosa', '🌲', 11],
+      ['p', 'California black oak', 'Quercus kelloggii', '🌳', 9], ['p', 'Pacific dogwood', 'Cornus nuttallii', '🌳', 5],
+      ['p', 'Greenleaf manzanita', 'Arctostaphylos patula', '🌿', 1.5], ['p', 'Leichtlin\'s mariposa lily', 'Calochortus leichtlinii', '🌷', 0.35],
+      ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'], ['a', 'Mule deer', 'Odocoileus hemionus', '🦌', 1.7],
+      ['a', 'Mountain lion', 'Puma concolor', 'a:Lion', 0.8, 0, 'cougar'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Western gray squirrel', 'Sciurus griseus', 'su:squirrel', 0.28], ['a', 'Peregrine falcon', 'Falco peregrinus', '🦅', 0.45, 10],
+      ['a', 'Great gray owl', 'Strix nebulosa', '🦉', 0.7, 5], ['a', 'Western bluebird', 'Sialia mexicana', 'a:Songbird', 0.18, 2.5],
+      ['a', 'Sierra Nevada yellow-legged frog', 'Rana sierrae', 'a:Frog', 0.1, 0, 'yellowfrog'], ['w', 'Rainbow trout', 'Oncorhynchus mykiss', '🐟', 0.3, 0.3]
+    ],
+    grandcanyon: [
+      ['p', 'Ponderosa pine', 'Pinus ponderosa', '🌲', 11], ['p', 'Two-needle pinyon', 'Pinus edulis', '🌲', 6],
+      ['p', 'Utah juniper', 'Juniperus osteosperma', '🌲', 5], ['p', 'Banana yucca', 'Yucca baccata', '🌿', 0.9],
+      ['p', 'Engelmann prickly pear', 'Opuntia engelmannii', '🌵', 1.2],
+      ['a', 'Desert bighorn sheep', 'Ovis canadensis nelsoni', '🐏', 1.0], ['a', 'Mule deer', 'Odocoileus hemionus', '🦌', 1.7],
+      ['a', 'Elk', 'Cervus canadensis', '🦌', 2.2], ['a', 'Mountain lion', 'Puma concolor', 'a:Lion', 0.8, 0, 'cougar'],
+      ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'], ["a", "Abert's squirrel", 'Sciurus aberti', '🐿️', 0.3],
+      ['a', 'Ringtail', 'Bassariscus astutus', '🦝', 0.3], ['a', 'Grand Canyon rattlesnake', 'Crotalus oreganus abyssus', 'su:rattlesnake', 0.3, 0, 'pinksnake'],
+      ['a', 'Common chuckwalla', 'Sauromalus ater', '🦎', 0.15], ['a', 'Canyon bat', 'Parastrellus hesperus', '🦇', 0.2, 4],
+      ['w', 'Humpback chub', 'Gila cypha', '🐟', 0.3, 0.3]
+    ],
+    bigbend: [
+      ['p', 'Lechuguilla', 'Agave lechuguilla', '🌿', 0.6], ['p', 'Ocotillo', 'Fouquieria splendens', '🎋', 4],
+      ['p', 'Engelmann prickly pear', 'Opuntia engelmannii', '🌵', 1.2], ['p', 'Creosote bush', 'Larrea tridentata', '🌿', 1.5],
+      ['p', 'Texas madrone', 'Arbutus xalapensis', '🌳', 6], ['p', 'Big Bend bluebonnet', 'Lupinus havardii', '🪻', 0.8],
+      ['a', 'Collared peccary (javelina)', 'Pecari tajacu', '🐗', 0.55], ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'],
+      ['a', 'Mountain lion', 'Puma concolor', 'a:Lion', 0.8, 0, 'cougar'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Mule deer', 'Odocoileus hemionus', '🦌', 1.7], ['a', 'Black-tailed jackrabbit', 'Lepus californicus', '🐇', 0.5],
+      ['a', 'Western diamondback rattlesnake', 'Crotalus atrox', 'su:rattlesnake', 0.3, 0, 'palesnake'], ['a', 'Texas brown tarantula', 'Aphonopelma hentzi', '🕷️', 0.08],
+      ['a', 'Striped bark scorpion', 'Centruroides vittatus', '🦂', 0.08], ['a', 'Mexican free-tailed bat', 'Tadarida brasiliensis', '🦇', 0.25, 4]
+    ],
+    everglades: [
+      ['p', 'Sawgrass', 'Cladium jamaicense', '🌾', 2], ['p', 'Bald cypress', 'Taxodium distichum', '🌲', 9],
+      ['p', 'Red mangrove', 'Rhizophora mangle', '🌳', 5], ['p', 'Cabbage palm', 'Sabal palmetto', '🌴', 8],
+      ['p', 'Fragrant water lily', 'Nymphaea odorata', '🪷', 0.3],
+      ['a', 'American alligator', 'Alligator mississippiensis', 'su:alligator', 0.95], ['a', 'American crocodile', 'Crocodylus acutus', '🐊', 0.8],
+      ['a', 'Florida panther', 'Puma concolor coryi', 'a:Lion', 0.75, 0, 'cougar'], ['a', 'American flamingo', 'Phoenicopterus ruber', '🦩', 1.3],
+      ['a', 'Raccoon', 'Procyon lotor', 'su:raccoon', 0.35], ['a', 'Green anole', 'Anolis carolinensis', '🦎', 0.12, 1],
+      ['a', 'Florida softshell turtle', 'Apalone ferox', '🐢', 0.2], ['a', 'Florida apple snail', 'Pomacea paludosa', '🐌', 0.08],
+      ['a', 'Saltmarsh mosquito', 'Aedes taeniorhynchus', '🦟', 0.05, 1], ['w', 'Florida largemouth bass', 'Micropterus floridanus', '🐟', 0.35, 0.3]
+    ],
+    smokies: [
+      ['p', 'Eastern hemlock', 'Tsuga canadensis', '🌲', 10], ['p', 'Tulip tree', 'Liriodendron tulipifera', '🌳', 11],
+      ['p', 'Rosebay rhododendron', 'Rhododendron maximum', '🌺', 3], ['p', 'Mountain laurel', 'Kalmia latifolia', '🌸', 2],
+      ['p', 'White trillium', 'Trillium grandiflorum', '🌸', 0.35], ['p', 'Pink lady\'s slipper', 'Cypripedium acaule', '🌷', 0.3],
+      ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'], ['a', 'White-tailed deer', 'Odocoileus virginianus', '🦌', 1.7],
+      ['a', 'Elk', 'Cervus canadensis', '🦌', 2.2], ['a', 'Wild turkey', 'Meleagris gallopavo', '🦃', 1.0],
+      ['a', 'Red fox', 'Vulpes vulpes', 'a:Fox', 0.5], ['a', 'Barred owl', 'Strix varia', '🦉', 0.5, 5],
+      ['a', 'Timber rattlesnake', 'Crotalus horridus', 'su:rattlesnake', 0.3, 0, 'timber'], ['a', 'Red-cheeked salamander', 'Plethodon jordani', '🦎', 0.12],
+      ['a', 'Synchronous firefly', 'Photinus carolinus', '🪲', 0.06, 1], ['a', 'Eastern box turtle', 'Terrapene carolina', '🐢', 0.15],
+      ['w', 'Brook trout', 'Salvelinus fontinalis', '🐟', 0.3, 0.3]
+    ],
+    arches: [
+      ['p', 'Utah juniper', 'Juniperus osteosperma', '🌲', 5], ['p', 'Two-needle pinyon', 'Pinus edulis', '🌲', 6],
+      ['p', 'Fremont cottonwood', 'Populus fremontii', '🌳', 10], ['p', 'Blackbrush', 'Coleogyne ramosissima', '🌿', 1],
+      ['p', 'Sacred datura', 'Datura wrightii', '🌸', 0.8], ['o', 'Biological soil crust', 'Microcoleus vaginatus', '🦠', 0.3],
+      ['a', 'Desert bighorn sheep', 'Ovis canadensis nelsoni', '🐏', 1.0], ['a', 'Mule deer', 'Odocoileus hemionus', '🦌', 1.7],
+      ['a', 'Kit fox', 'Vulpes macrotis', 'a:Fox', 0.4, 0, 'kitfox'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Mountain lion', 'Puma concolor', 'a:Lion', 0.8, 0, 'cougar'], ['a', 'Desert cottontail', 'Sylvilagus audubonii', '🐇', 0.3],
+      ['a', 'Midget faded rattlesnake', 'Crotalus oreganus concolor', 'su:rattlesnake', 0.25, 0, 'palesnake'],
+      ['a', 'Common collared lizard', 'Crotaphytus collaris', '🦎', 0.12], ['a', 'Golden eagle', 'Aquila chrysaetos', '🦅', 0.9, 10],
+      ['a', 'Red-spotted toad', 'Anaxyrus punctatus', 'a:Frog', 0.08, 0, 'redtoad']
+    ]
+  };
+  // The biome lists come from one real region each, so say which
+  var WHERE = { forest: 'an eastern North American forest', rainforest: 'the rainforests of Central and South America',
+    grassland: 'the North American prairie', desert: 'the Sonoran Desert', tundra: 'the Arctic tundra',
+    wetland: 'North American wetlands', reef: 'Indo-Pacific coral reefs' };
+  var KIND = { p: 'plant', a: 'animal', w: 'water', o: 'other' };
+  var GROUPS = [['plant', 'Plants'], ['animal', 'Animals'], ['water', 'Water life'], ['other', 'Fungi, lichens & microbes']];
+
+  function recolor(s, map) {
+    Object.keys(map).forEach(function (k) { s = s.split(k).join(map[k]).split(k.toUpperCase()).join(map[k]); });
+    return s;
+  }
+  function art(spec, rc) {
+    var s = null;
+    if (spec.indexOf('a:') === 0) s = EL.ART[spec.slice(2)];
+    else if (spec.indexOf('su:') === 0) s = window.SU_ART && window.SU_ART[spec.slice(3)];
+    if (!s) return null;
+    if (rc && STRIP[rc]) STRIP[rc].forEach(function (re) { s = s.replace(re, ''); });
+    if (rc && RC[rc]) s = recolor(s, RC[rc]);
+    return s;
+  }
+  var cache = {};
+  function nativeFor(env) {
+    var key = typeof env === 'string' ? env : env && env.mode !== 'photo' ? env.preset : '';
+    if (!key || !NATIVE[key]) return [];
+    if (cache[key]) return cache[key];
+    var list = NATIVE[key].map(function (r) {
+      var it = { n: r[1], sci: r[2], c: KIND[r[0]], h: r[4], elev: r[5] || 0, role: '', native: key };
+      if (/^(a|su):/.test(r[3])) {
+        it.svg = art(r[3], r[6]);
+        if (!it.svg) { it.e = '❓'; delete it.svg; }
+      } else it.e = r[3];
+      return it;
+    });
+    var order = GROUPS.map(function (g) { return g[0]; });
+    list.sort(function (a, b) { return order.indexOf(a.c) - order.indexOf(b.c); });
+    return (cache[key] = list);
+  }
+  function placeName(env) {
+    var key = env && env.mode !== 'photo' ? env.preset : '';
+    var P = key && window.ECO && ECO.PRESETS[key];
+    if (WHERE[key]) return WHERE[key];
+    return P ? P.name + (P.park ? ' National Park' : '') : '';
+  }
+  // Library grid helpers shared by the builders
+  function tile(i, idx, esc) {
+    return '<button data-i="' + idx + '" title="Add ' + esc(i.n) + (i.sci ? ' (' + esc(i.sci) + ')' : '') + '">' +
+      (i.svg ? '<img class="emo-img" alt="" src="' + EL.svgUrl(i.svg) + '">' : '<span class="emo" aria-hidden="true">' + i.e + '</span>') +
+      '<span>' + esc(i.n) + '</span></button>';
+  }
+  function nativeGrid(items, env, esc) {
+    var where = placeName(env), html = '<p class="native-note">Plants and animals that really live in <b>' + esc(where) + '</b>. ' +
+      'Find out what each one eats and what eats it, then set its role.</p>', idx = 0;
+    GROUPS.forEach(function (g) {
+      var group = items.filter(function (i) { return i.c === g[0]; });
+      if (!group.length) return;
+      html += '<h4 class="native-head">' + g[1] + '</h4>';
+      group.forEach(function (i) { html += tile(i, items.indexOf(i), esc); idx++; });
+    });
+    return html;
+  }
+  EL.NATIVE = NATIVE; EL.nativeFor = nativeFor; EL.nativeArt = art; EL.libTile = tile; EL.nativeGrid = nativeGrid;
+  // Item keys must be unique per drawing: recoloured art gets its own key from its name
+  var baseKey = EL.libKey;
+  EL.libKey = function (item) { return item.native && item.svg ? 'n:' + item.n.toLowerCase().replace(/[^a-z]+/g, '-') + ':1' : baseKey(item); };
 })();</script>
 <script id="eco-builder-common">(function () {
   var THREE = AFRAME.THREE;
@@ -1106,22 +1556,27 @@
 
   // Organism / stage picture library. opts: { cats: [[key,label]], pick: item => void, start: key }
   B.library = function (opts) {
-    var tab = opts.start || opts.cats[0][0], q = '';
+    var tab = opts.start || opts.cats[0][0], q = '', shown = [], lastEnv = null;
     var cats = $('#lib-cats'), grid = $('#lib-grid'), search = $('#lib-search');
     var keys = opts.cats.map(function (c) { return c[0]; });
     function render() {
-      cats.innerHTML = opts.cats.map(function (c) { return '<button data-cat="' + c[0] + '" aria-pressed="' + (!q && tab === c[0]) + '">' + c[1] + '</button>'; }).join('');
+      // opts.env() -> the project's environment; biomes and parks get a "Native here" tab first
+      var env = opts.env ? opts.env() : null, nat = env ? ECOLIB.nativeFor(env) : [];
+      var ek = env ? (env.mode === 'preset' ? env.preset : 'photo') : '';
+      if (ek !== lastEnv) { lastEnv = ek; if (nat.length) tab = 'native'; }
+      if (!nat.length && tab === 'native') tab = opts.cats[0][0];
+      var all = (nat.length ? [['native', '★ Native here']] : []).concat(opts.cats);
+      cats.innerHTML = all.map(function (c) { return '<button data-cat="' + c[0] + '" aria-pressed="' + (!q && tab === c[0]) + '"' + (c[0] === 'native' ? ' class="native-tab"' : '') + '>' + c[1] + '</button>'; }).join('');
       var s = q.trim().toLowerCase();
-      var items = ECOLIB.LIB.filter(function (i) { return s ? (keys.indexOf(i.c) >= 0 || opts.searchAll) && i.n.toLowerCase().indexOf(s) >= 0 : i.c === tab; });
-      grid.innerHTML = items.map(function (i) {
-        return '<button data-i="' + ECOLIB.LIB.indexOf(i) + '" title="Add ' + B.esc(i.n) + '">' +
-          (i.svg ? '<img class="emo-img" alt="" src="' + ECOLIB.svgUrl(i.svg) + '">' : '<span class="emo" aria-hidden="true">' + i.e + '</span>') +
-          '<span>' + B.esc(i.n) + '</span></button>';
-      }).join('') || '<p class="muted small" style="grid-column:1/-1">No matches. Try another word, or upload your own image below.</p>';
+      if (s) shown = nat.concat(ECOLIB.LIB.filter(function (i) { return keys.indexOf(i.c) >= 0 || opts.searchAll; }))
+        .filter(function (i) { return i.n.toLowerCase().indexOf(s) >= 0 || (i.sci && i.sci.toLowerCase().indexOf(s) >= 0); });
+      else shown = tab === 'native' ? nat : ECOLIB.LIB.filter(function (i) { return i.c === tab; });
+      grid.innerHTML = (!s && tab === 'native') ? ECOLIB.nativeGrid(nat, env, B.esc) : shown.map(function (i, k) { return ECOLIB.libTile(i, k, B.esc); }).join('') ||
+        '<p class="muted small" style="grid-column:1/-1">No matches. Try another word, or upload your own image below.</p>';
     }
     cats.addEventListener('click', function (e) { var b = e.target.closest('[data-cat]'); if (!b) return; tab = b.dataset.cat; q = ''; search.value = ''; render(); });
     search.addEventListener('input', function (e) { q = e.target.value; render(); });
-    grid.addEventListener('click', function (e) { var b = e.target.closest('[data-i]'); if (b) opts.pick(ECOLIB.LIB[+b.dataset.i]); });
+    grid.addEventListener('click', function (e) { var b = e.target.closest('[data-i]'); if (b) opts.pick(shown[+b.dataset.i]); });
     render();
     return { render: render };
   };
@@ -1652,6 +2107,10 @@
   @media (max-width: 1400px) { header .sub { display: none; } }
 
   .presets .park-head { grid-column: 1 / -1; margin: 10px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); font-weight: 650; }
+  .lib .native-note { grid-column: 1 / -1; margin: 0 0 2px; font-size: 12.5px; line-height: 1.4; color: var(--muted, #5b6470); }
+  .lib .native-head { grid-column: 1 / -1; margin: 6px 0 0; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted, #5b6470); }
+  .cats button.native-tab { border-color: #c99a2e; }
+  .cats button.native-tab[aria-pressed="true"] { background: #b9851c; border-color: #b9851c; color: #fff; }
   #stage .a-fullscreen, #stage .a-enter-vr, #stage .a-enter-ar, #stage .a-orientation-modal { display: none !important; }
   .addas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; }
   .addas button { padding: 7px 2px; font-size: 12.5px; font-weight: 600; border-radius: 8px; }
@@ -2644,8 +3103,9 @@ body.in-vr #stats,body.in-vr #joy,body.in-vr #msg,body.in-vr #hurt{display:none}
 
   // ---------- wiring ----------
   B.tabs();
-  var env = B.envPanel({ scene: sceneEl, get: function () { return state; }, changed: save });
-  B.library({ cats: ECOLIB.CATS, pick: function (item) {
+  var lib = null;
+  var env = B.envPanel({ scene: sceneEl, get: function () { return state; }, changed: function () { save(); if (lib) lib.render(); } });
+  lib = B.library({ cats: ECOLIB.CATS, env: function () { return state.env; }, pick: function (item) {
     libImage(item).then(function (im) {
       if (!im) { B.toast('That picture could not be drawn. Try uploading an image instead.'); return; }
       addChar(addAs, { name: item.n, key: im.key, aspect: im.aspect, h: item.h, elev: item.elev }, item);
