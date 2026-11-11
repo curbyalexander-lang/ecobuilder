@@ -1187,6 +1187,7 @@
 
   // Assemble a standalone viewer page. parts: { title, data, css: [ids], body: id, js: [ids] }
   B.viewerHTML = function (parts) {
+    if (/^https?:$/.test(location.protocol)) parts.data.home = new URL('./', location.href).href;
     var json = JSON.stringify(parts.data).replace(/</g, '\\u003c');
     function txt(id) { return document.getElementById(id).textContent; }
     return '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
@@ -1779,6 +1780,12 @@ body.in-vr #hud,body.in-vr #guide,body.in-vr #hint{display:none}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
 .chips span{display:inline-flex;align-items:center;gap:6px;background:#eef3ea;border-radius:999px;padding:3px 10px 3px 4px;font-size:13px}
 .chips img{width:26px;height:26px;object-fit:contain}
+#minimap{position:fixed;left:12px;bottom:12px;z-index:9;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+#minimap canvas{width:180px;height:180px;filter:drop-shadow(0 3px 10px rgba(0,0,0,.25))}
+#minimap button{font:inherit;font-size:13px;border-radius:999px;padding:4px 12px;border:1px solid #d5dad2;background:rgba(255,255,255,.94);cursor:pointer}
+#minimap.closed canvas{display:none}
+body.in-vr #minimap{display:none}
+@media (max-width:600px){#minimap canvas{width:120px;height:120px}}
 .you{display:flex;gap:12px;align-items:center;background:#eaf2fd;border-radius:12px;padding:10px 12px;margin:12px 0}
 .you img{width:64px;height:64px;object-fit:contain;flex:none}
 .you b{font-size:17px}
@@ -2008,10 +2015,99 @@ body.in-vr #stats,body.in-vr #joy,body.in-vr #msg,body.in-vr #hurt{display:none}
     scene.camera.updateMatrixWorld(true);
   };
 
-  // Show a "Back to EcoBuild" link when the file is opened from the class gallery on the web
-  ECOV.galleryLink = function () {
-    var a = document.getElementById('b-gallery'); if (!a) return;
-    if (/^https?:$/.test(location.protocol)) { a.href = '../'; a.hidden = false; }
+  // Where the EcoBuild home page is: next to the gallery folder, or the site the project was made on
+  ECOV.homeUrl = function (data) {
+    var web = /^https?:$/.test(location.protocol);
+    if (web && /\/(gallery|ecosystems|submissions)\/[^\/]*$/.test(location.pathname)) return '../';
+    if (data && data.home) return data.home;
+    return web ? './' : '';
+  };
+  ECOV.goHome = function (scene, url) {
+    if (!url) return;
+    var go = function () { location.href = url; };
+    if (scene && scene.is('vr-mode')) { try { scene.exitVR(); } catch (e) {} setTimeout(go, 400); } else go();
+  };
+  // Show the on-screen "← EcoBuild" link
+  ECOV.galleryLink = function (data) {
+    var a = document.getElementById('b-gallery'), u = ECOV.homeUrl(data); if (!a || !u) return;
+    a.href = u; a.hidden = false;
+  };
+
+  // Top-down map: organisms, plus where you are and which way you face
+  ECOV.drawMap = function (x, S, o) {
+    var cp = new THREE.Vector3(), cd = new THREE.Vector3(), cam = o.scene.camera;
+    if (cam) { cam.getWorldPosition(cp); cam.getWorldDirection(cd); }
+    var far = 12; o.items.forEach(function (it) { far = Math.max(far, Math.hypot(it.x, it.z)); });
+    far = Math.max(far, Math.hypot(cp.x, cp.z)) + 4;
+    var c = S / 2, k = (S / 2 - 16) / far;
+    function P(px, pz) { return [c + px * k, c + pz * k]; }
+    x.clearRect(0, 0, S, S);
+    x.fillStyle = 'rgba(255,255,255,0.92)'; x.beginPath(); x.arc(c, c, S / 2 - 2, 0, Math.PI * 2); x.fill();
+    x.save(); x.beginPath(); x.arc(c, c, S / 2 - 8, 0, Math.PI * 2); x.clip();
+    x.fillStyle = o.ground || '#9fb38a'; x.globalAlpha = 0.45; x.fillRect(0, 0, S, S); x.globalAlpha = 1;
+    x.strokeStyle = 'rgba(0,0,0,0.12)'; x.lineWidth = 2;
+    for (var r = 1; r <= 3; r++) { x.beginPath(); x.arc(c, c, (S / 2 - 16) * r / 3, 0, Math.PI * 2); x.stroke(); }
+    var sz = Math.max(18, S * 0.075);
+    o.items.forEach(function (it) {
+      var p = P(it.x, it.z), im = o.img(it.key);
+      if (it.color) { x.fillStyle = it.color; x.beginPath(); x.arc(p[0], p[1], sz * 0.55, 0, Math.PI * 2); x.fill(); }
+      if (im && im.complete && im.naturalWidth) { var a = im.naturalWidth / im.naturalHeight, w = a > 1 ? sz : sz * a, h = a > 1 ? sz / a : sz; x.drawImage(im, p[0] - w / 2, p[1] - h / 2, w, h); }
+      else { x.fillStyle = '#2e7d4f'; x.beginPath(); x.arc(p[0], p[1], sz * 0.25, 0, Math.PI * 2); x.fill(); }
+    });
+    var me = P(cp.x, cp.z), ang = Math.atan2(cd.z, cd.x), L = S * 0.07;
+    x.fillStyle = 'rgba(47,196,242,0.3)'; x.beginPath(); x.moveTo(me[0], me[1]); x.arc(me[0], me[1], L * 2.2, ang - 0.6, ang + 0.6); x.closePath(); x.fill();
+    x.save(); x.translate(me[0], me[1]); x.rotate(ang);
+    x.fillStyle = '#2fc4f2'; x.strokeStyle = '#123'; x.lineWidth = 3;
+    x.beginPath(); x.moveTo(L, 0); x.lineTo(-L * 0.6, -L * 0.6); x.lineTo(-L * 0.25, 0); x.lineTo(-L * 0.6, L * 0.6); x.closePath(); x.fill(); x.stroke();
+    x.restore(); x.restore();
+    x.fillStyle = '#1b2620'; x.font = '700 ' + Math.round(S * 0.05) + 'px ' + ECO.FONT; x.textAlign = 'center'; x.textBaseline = 'top';
+    x.fillText('You are here', c, S - Math.round(S * 0.11));
+  };
+
+  // A small panel fixed to the lower-left of your view inside the headset: optional map + Home button
+  ECOV.vrHud = function (scene, opts) {
+    var hasMap = !!opts.map, W = 440, MH = hasMap ? 440 : 0, H = MH + 110;
+    var c = document.createElement('canvas'); c.width = W; c.height = H;
+    var x = c.getContext('2d'), tex = ECO.canvasTex(c), hover = false;
+    var w = hasMap ? 0.2 : 0.13, h = w * H / W;
+    var mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false, fog: false }));
+    mesh.renderOrder = 1002;
+    var el = document.createElement('a-entity'); el.classList.add('clickable');
+    el.setAttribute('position', hasMap ? '-0.29 -0.2 -0.72' : '-0.27 -0.24 -0.72');
+    el.setAttribute('rotation', '8 18 0');
+    el.object3D.visible = false;
+    document.getElementById('cam').appendChild(el);
+    el.setObject3D('mesh', mesh);
+    function draw() {
+      x.clearRect(0, 0, W, H);
+      if (hasMap) opts.map(x, W);
+      var by = MH + 14, bw = W - 40, bh = 82;
+      x.fillStyle = hover ? '#f6cf6d' : '#f2c14e'; ECO.rr(x, 20, by, bw, bh, 40); x.fill();
+      if (hover) { x.lineWidth = 6; x.strokeStyle = '#ffffff'; x.stroke(); }
+      x.fillStyle = '#1e2a20'; x.font = '700 40px ' + ECO.FONT; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillText(opts.home ? '⌂  EcoBuild home' : '⨯  Exit VR', W / 2, by + bh / 2 + 2);
+      tex.needsUpdate = true;
+    }
+    function onButton(uv) { return uv && (1 - uv.y) * H > MH; }
+    el.addEventListener('click', function (e) {
+      var hit = e.detail && e.detail.intersection;
+      if (hit && onButton(hit.uv)) { if (opts.home) ECOV.goHome(scene, opts.home); else scene.exitVR(); }
+    });
+    var timer = null;
+    function tick() {
+      var now = false;
+      ['lh', 'rh'].forEach(function (id) {
+        var rc = document.getElementById(id); rc = rc && rc.components && rc.components.raycaster;
+        var hit = rc && rc.getIntersection(el); if (hit && onButton(hit.uv)) now = true;
+      });
+      hover = now; draw();
+    }
+    scene.addEventListener('enter-vr', function () {
+      el.object3D.visible = true; draw(); setTimeout(function () { ECOV.refreshRays(scene); }, 50);
+      clearInterval(timer); timer = setInterval(tick, hasMap ? 150 : 120);
+    });
+    scene.addEventListener('exit-vr', function () { el.object3D.visible = false; clearInterval(timer); setTimeout(function () { ECOV.refreshRays(scene); }, 50); });
+    return { el: el, draw: draw };
   };
 })();</script>
 <script type="text/plain" id="v-js">(function () {
@@ -2049,7 +2145,8 @@ body.in-vr #stats,body.in-vr #joy,body.in-vr #msg,body.in-vr #hurt{display:none}
     $('v-goal').textContent = goalText;
     $('v-food').innerHTML = foods.length ? '<b>Eat:</b>' + uniq(foods).map(function (o) { return '<img alt="' + esc(o.name) + '" title="' + esc(o.name) + '" src="' + img(o) + '">'; }).join('') : '';
     $('v-pred').innerHTML = preds.length ? '<b>Watch out for:</b>' + uniq(preds).map(function (o) { return '<img alt="' + esc(o.name) + '" title="' + esc(o.name) + '" src="' + img(o) + '">'; }).join('') : '';
-    ECOV.galleryLink();
+    ECOV.galleryLink(data);
+    ECOV.vrHud(scene, { home: ECOV.homeUrl(data) });
     var coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
     if (coarse) $('joy').hidden = false;
 
