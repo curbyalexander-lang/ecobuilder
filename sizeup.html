@@ -1359,7 +1359,7 @@ var SU_KEYS = ["e:\ud83c\udf32", "e:\ud83c\udf34", "e:\ud83c\udf35", "su:sunflow
     var x = p.x; bg(p, 1200, 1000);
     x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.fillStyle = '#14231a'; x.font = '700 50px ' + F; x.fillText('Size Up', 40, 76);
     x.font = '400 28px ' + F; x.fillStyle = '#4c5d52'; x.fillText('Choose a plant or animal to see it at real size', 236, 74);
-    button(p, 'home', '⌂ Home', 930, 34, 160, 56, { size: 28, bg: '#f2c14e' });
+    button(p, 'exit', 'Exit', 930, 34, 160, 56, { size: 28, bg: '#f2c14e' });
     if (current) button(p, 'close', '✕', 1110, 34, 56, 56, { size: 30 });
     var tw = 1120 / SU_CATS.length;
     SU_CATS.forEach(function (c, i) { button(p, 'cat:' + c[0], CAT_SHORT[c[0]], 40 + i * tw, 110, tw - 10, 64, { on: c[0] === cat, size: 22 }); });
@@ -1397,7 +1397,7 @@ var SU_KEYS = ["e:\ud83c\udf32", "e:\ud83c\udf34", "e:\ud83c\udf35", "su:sunflow
     else if (id === 'hup' || id === 'hdown') { userH = Math.max(0.9, Math.min(2.2, userH + (id === 'hup' ? 0.0254 : -0.0254))); saveH(); updatePerson(); menu.redraw(); card.redraw(); }
     else if (id === 'measure') measure();
     else if (id === 'close') { menu.hide(); showCard(); }
-    else if (id === 'home') { var go = function () { location.href = 'index.html'; }; if (scene.is('vr-mode')) { try { scene.exitVR(); } catch (e) {} setTimeout(go, 400); } else go(); }
+    else if (id === 'exit') { try { scene.exitVR(); } catch (e) {} }
     else if (id.indexOf('org:') === 0) choose(SU_DATA[+id.slice(4)]);
   };
 

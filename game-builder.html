@@ -2523,49 +2523,73 @@ body.in-vr #stats,body.in-vr #joy,body.in-vr #msg,body.in-vr #hurt{display:none}
     x.fillText('You are here', c, S - Math.round(S * 0.11));
   };
 
-  // A small panel fixed to the lower-left of your view inside the headset: optional map + Home button
+    // In-headset controls, fixed to your view: an "Exit VR" button in the lower-right corner (where the
+  // page's VR button sits) and, when opts.map is given, the flat map in the lower-left corner.
   ECOV.vrHud = function (scene, opts) {
-    var hasMap = !!opts.map, W = 440, MH = hasMap ? 440 : 0, H = MH + 110;
-    var c = document.createElement('canvas'); c.width = W; c.height = H;
-    var x = c.getContext('2d'), tex = ECO.canvasTex(c), hover = false;
-    var w = hasMap ? 0.2 : 0.13, h = w * H / W;
-    var mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false, fog: false }));
-    mesh.renderOrder = 1002;
-    var el = document.createElement('a-entity'); el.classList.add('clickable');
-    el.setAttribute('position', hasMap ? '-0.29 -0.2 -0.72' : '-0.27 -0.24 -0.72');
-    el.setAttribute('rotation', '8 18 0');
-    el.object3D.visible = false;
-    document.getElementById('cam').appendChild(el);
-    el.setObject3D('mesh', mesh);
-    function draw() {
-      x.clearRect(0, 0, W, H);
-      if (hasMap) opts.map(x, W);
-      var by = MH + 14, bw = W - 40, bh = 82;
-      x.fillStyle = hover ? '#f6cf6d' : '#f2c14e'; ECO.rr(x, 20, by, bw, bh, 40); x.fill();
-      if (hover) { x.lineWidth = 6; x.strokeStyle = '#ffffff'; x.stroke(); }
-      x.fillStyle = '#1e2a20'; x.font = '700 40px ' + ECO.FONT; x.textAlign = 'center'; x.textBaseline = 'middle';
-      x.fillText(opts.home ? '⌂  EcoBuild home' : '⨯  Exit VR', W / 2, by + bh / 2 + 2);
-      tex.needsUpdate = true;
+    var cam = document.getElementById('cam'), hover = false, timer = null, all = [];
+    function panel(W, H, w, pos) {
+      var c = document.createElement('canvas'); c.width = W; c.height = H;
+      var tex = ECO.canvasTex(c);
+      var mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, w * H / W), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false, fog: false }));
+      mesh.renderOrder = 1002;
+      var el = document.createElement('a-entity');
+      // turn the panel to face your eyes squarely
+      var P = new THREE.Vector3().fromArray(pos.split(' ').map(Number));
+      el.object3D.position.copy(P);
+      el.object3D.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(new THREE.Vector3(), P, new THREE.Vector3(0, 1, 0)));
+      el.object3D.visible = false; cam.appendChild(el); el.setObject3D('mesh', mesh); all.push(el);
+      return { el: el, x: c.getContext('2d'), tex: tex, W: W, H: H };
     }
-    function onButton(uv) { return uv && (1 - uv.y) * H > MH; }
-    el.addEventListener('click', function (e) {
-      var hit = e.detail && e.detail.intersection;
-      if (hit && onButton(hit.uv)) { if (opts.home) ECOV.goHome(scene, opts.home); else scene.exitVR(); }
-    });
-    var timer = null;
+    // head-locked: both stay in the same corner of your view wherever you look
+    var map = opts.map ? panel(440, 480, 0.17, '-0.36 -0.30 -0.6') : null, mc = null;
+    if (map) { mc = document.createElement('canvas'); mc.width = mc.height = 400; }
+    var btn = panel(340, 120, 0.11, '0.36 -0.34 -0.6');
+    btn.el.classList.add('clickable');
+    function drawBtn() {
+      var x = btn.x, W = btn.W, H = btn.H;
+      x.clearRect(0, 0, W, H);
+      x.fillStyle = hover ? 'rgba(40,40,40,0.92)' : 'rgba(0,0,0,0.6)'; ECO.rr(x, 6, 6, W - 12, H - 12, 22); x.fill();
+      x.lineWidth = hover ? 8 : 5; x.strokeStyle = '#ffffff'; x.stroke();
+      // the same corner-bracket icon as the page's VR button, with the corners pointing in (exit)
+      var cx = 64, cy = H / 2, r = 30, k = 14;
+      x.lineWidth = 7; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#ffffff';
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (d) {
+        var px = cx + d[0] * r * 0.45, py = cy + d[1] * r * 0.45;
+        x.beginPath(); x.moveTo(px + d[0] * k, py); x.lineTo(px, py); x.lineTo(px, py + d[1] * k); x.stroke();
+        x.beginPath(); x.moveTo(px, py); x.lineTo(px + d[0] * r * 0.55, py + d[1] * r * 0.55); x.stroke();
+      });
+      x.fillStyle = '#ffffff'; x.font = '700 46px ' + ECO.FONT; x.textAlign = 'left'; x.textBaseline = 'middle';
+      x.fillText('Exit VR', 118, H / 2 + 2);
+      btn.tex.needsUpdate = true;
+    }
+    function drawMap() {
+      if (!map) return;
+      var x = map.x, W = map.W, H = map.H;
+      opts.map(mc.getContext('2d'), mc.width);
+      x.clearRect(0, 0, W, H);
+      x.fillStyle = 'rgba(250,250,246,0.96)'; ECO.rr(x, 4, 4, W - 8, H - 8, 26); x.fill();
+      x.lineWidth = 5; x.strokeStyle = '#1b2620'; x.stroke();
+      x.fillStyle = '#1b2620'; x.font = '700 30px ' + ECO.FONT; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillText('Map', 24, 40);
+      x.drawImage(mc, 20, 66, 400, 400);
+      map.tex.needsUpdate = true;
+    }
+    function draw() { drawBtn(); drawMap(); }
+    btn.el.addEventListener('click', function () { try { scene.exitVR(); } catch (e) {} });
     function tick() {
       var now = false;
       ['lh', 'rh'].forEach(function (id) {
         var rc = document.getElementById(id); rc = rc && rc.components && rc.components.raycaster;
-        var hit = rc && rc.getIntersection(el); if (hit && onButton(hit.uv)) now = true;
+        if (rc && rc.getIntersection(btn.el)) now = true;
       });
-      hover = now; draw();
+      if (now !== hover) { hover = now; drawBtn(); }
+      drawMap();
     }
     scene.addEventListener('enter-vr', function () {
-      el.object3D.visible = true; draw(); setTimeout(function () { ECOV.refreshRays(scene); }, 50);
-      clearInterval(timer); timer = setInterval(tick, hasMap ? 150 : 120);
+      all.forEach(function (e) { e.object3D.visible = true; }); draw(); setTimeout(function () { ECOV.refreshRays(scene); }, 50);
+      clearInterval(timer); timer = setInterval(tick, 150);
     });
-    scene.addEventListener('exit-vr', function () { el.object3D.visible = false; clearInterval(timer); setTimeout(function () { ECOV.refreshRays(scene); }, 50); });
+    scene.addEventListener('exit-vr', function () { all.forEach(function (e) { e.object3D.visible = false; }); clearInterval(timer); setTimeout(function () { ECOV.refreshRays(scene); }, 50); });
+    var el = btn.el;
     return { el: el, draw: draw };
   };
 })();</script>
@@ -2605,7 +2629,7 @@ body.in-vr #stats,body.in-vr #joy,body.in-vr #msg,body.in-vr #hurt{display:none}
     $('v-food').innerHTML = foods.length ? '<b>Eat:</b>' + uniq(foods).map(function (o) { return '<img alt="' + esc(o.name) + '" title="' + esc(o.name) + '" src="' + img(o) + '">'; }).join('') : '';
     $('v-pred').innerHTML = preds.length ? '<b>Watch out for:</b>' + uniq(preds).map(function (o) { return '<img alt="' + esc(o.name) + '" title="' + esc(o.name) + '" src="' + img(o) + '">'; }).join('') : '';
     ECOV.galleryLink(data);
-    ECOV.vrHud(scene, { home: ECOV.homeUrl(data) });
+    ECOV.vrHud(scene, {});
     var coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
     if (coarse) $('joy').hidden = false;
 

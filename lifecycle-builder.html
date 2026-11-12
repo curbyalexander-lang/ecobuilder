@@ -3390,8 +3390,7 @@ body.in-vr #minimap{display:none}
     x.fillText('You are here', c, S - Math.round(S * 0.11));
   };
 
-  // A small panel fixed to the lower-left of your view inside the headset: optional map + Home button
-  // In-headset controls, fixed to your view: an "Exit VR" button in the lower-right corner (where the
+    // In-headset controls, fixed to your view: an "Exit VR" button in the lower-right corner (where the
   // page's VR button sits) and, when opts.map is given, the flat map in the lower-left corner.
   ECOV.vrHud = function (scene, opts) {
     var cam = document.getElementById('cam'), hover = false, timer = null, all = [];
@@ -3408,8 +3407,10 @@ body.in-vr #minimap{display:none}
       el.object3D.visible = false; cam.appendChild(el); el.setObject3D('mesh', mesh); all.push(el);
       return { el: el, x: c.getContext('2d'), tex: tex, W: W, H: H };
     }
-    var map = opts.map ? panel(440, 440, 0.21, '-0.5 -0.37 -0.72') : null;
-    var btn = panel(340, 120, 0.13, '0.47 -0.4 -0.72');
+    // head-locked: both stay in the same corner of your view wherever you look
+    var map = opts.map ? panel(440, 480, 0.17, '-0.36 -0.30 -0.6') : null, mc = null;
+    if (map) { mc = document.createElement('canvas'); mc.width = mc.height = 400; }
+    var btn = panel(340, 120, 0.11, '0.36 -0.34 -0.6');
     btn.el.classList.add('clickable');
     function drawBtn() {
       var x = btn.x, W = btn.W, H = btn.H;
@@ -3428,7 +3429,17 @@ body.in-vr #minimap{display:none}
       x.fillText('Exit VR', 118, H / 2 + 2);
       btn.tex.needsUpdate = true;
     }
-    function drawMap() { if (!map) return; map.x.clearRect(0, 0, map.W, map.H); opts.map(map.x, map.W); map.tex.needsUpdate = true; }
+    function drawMap() {
+      if (!map) return;
+      var x = map.x, W = map.W, H = map.H;
+      opts.map(mc.getContext('2d'), mc.width);
+      x.clearRect(0, 0, W, H);
+      x.fillStyle = 'rgba(250,250,246,0.96)'; ECO.rr(x, 4, 4, W - 8, H - 8, 26); x.fill();
+      x.lineWidth = 5; x.strokeStyle = '#1b2620'; x.stroke();
+      x.fillStyle = '#1b2620'; x.font = '700 30px ' + ECO.FONT; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillText('Map', 24, 40);
+      x.drawImage(mc, 20, 66, 400, 400);
+      map.tex.needsUpdate = true;
+    }
     function draw() { drawBtn(); drawMap(); }
     btn.el.addEventListener('click', function () { try { scene.exitVR(); } catch (e) {} });
     function tick() {
