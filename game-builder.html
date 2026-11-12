@@ -1238,6 +1238,10 @@ var SU_ART = (function () {
     timber:    { '#a58a5e': '#8d7d5e', '#5c4630': '#2e2620' },
     pinksnake: { '#a58a5e': '#c48b7a', '#5c4630': '#7c4f43' }
   };
+  // Full-body drawings made just for this list
+  var NART = {
+    javelina: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230 140"><rect x="150" y="84" width="13" height="44" rx="6" fill="#2e2924"/><rect x="70" y="86" width="13" height="42" rx="6" fill="#2e2924"/><path d="M190 70 C198 72 202 78 200 86" stroke="#3a332c" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M58 66 C62 40 96 30 132 32 C164 32 192 44 194 70 C196 92 176 102 150 102 L88 102 C68 102 56 88 58 66Z" fill="#4a423a"/><path d="M70 50 L74 40 L79 45 L84 35 L89 41 L95 31 L100 37 L107 29 L112 35 L119 28 L124 34 L131 28 L136 34 L143 29 L148 36 L155 32 L159 39 L166 36 L168 43 L175 42 C176 46 174 48 170 47 C140 40 104 40 70 54Z" fill="#2f2924"/><path d="M66 86 C90 100 140 102 176 92 C150 104 96 104 66 86Z" fill="#5c5349"/><g fill="none" stroke="#6b6157" stroke-width="2" stroke-linecap="round" opacity=".8"><path d="M110 52 l6 10"/><path d="M130 50 l5 10"/><path d="M150 54 l5 9"/><path d="M168 58 l4 9"/><path d="M120 70 l5 9"/><path d="M142 72 l5 9"/><path d="M162 76 l4 8"/><path d="M100 72 l5 9"/></g><rect x="82" y="88" width="14" height="42" rx="6" fill="#3e3731"/><rect x="164" y="86" width="14" height="44" rx="6" fill="#3e3731"/><path d="M80 126 h18 l-2 6 h-14z M162 126 h18 l-2 6 h-14z M68 124 h16 l-2 6 h-12z M148 124 h16 l-2 6 h-12z" fill="#1a1613"/><path d="M70 44 C80 54 84 74 80 96 L94 98 C98 76 94 54 84 40Z" fill="#d9d2c2"/><path d="M74 52 C66 44 52 44 40 50 C28 56 18 62 10 66 C4 70 6 78 12 80 L38 86 C54 90 68 88 76 78 Z" fill="#4a423a"/><ellipse cx="8" cy="72" rx="6" ry="8" fill="#6e5f55"/><ellipse cx="6" cy="71" rx="1.6" ry="2.4" fill="#1a1613"/><ellipse cx="9.5" cy="74" rx="1.6" ry="2.4" fill="#1a1613"/><path d="M16 80 Q28 86 40 84" stroke="#1a1613" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M22 81 l3 6 l2 -6z" fill="#efe9d8"/><path d="M60 48 L66 32 L74 46Z" fill="#3a332c"/><path d="M63 45 L66 36 L70 45Z" fill="#7a6a5e"/><circle cx="44" cy="60" r="3.2" fill="#140f0c"/><circle cx="45" cy="59" r="1" fill="#fff"/></svg>'
+  };
   // Drawings that need a shape change as well as new colours
   var STRIP = { cougar: [/<path d="M58 30[^>]*\/>/, /<path d="M66 34[^>]*\/>/] };
 
@@ -1280,7 +1284,7 @@ var SU_ART = (function () {
       ['p', 'Blue palo verde', 'Parkinsonia florida', '🌳', 6], ['p', 'Desert marigold', 'Baileya multiradiata', '🌼', 0.4],
       ['a', 'Gila monster', 'Heloderma suspectum', '🦎', 0.12], ['a', 'Western diamondback rattlesnake', 'Crotalus atrox', 'su:rattlesnake', 0.3, 0, 'palesnake'],
       ['a', 'Kit fox', 'Vulpes macrotis', 'a:Fox', 0.4, 0, 'kitfox'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
-      ['a', 'Collared peccary (javelina)', 'Pecari tajacu', '🐗', 0.55], ['a', 'Black-tailed jackrabbit', 'Lepus californicus', '🐇', 0.5],
+      ['a', 'Collared peccary (javelina)', 'Pecari tajacu', 'n:javelina', 0.55], ['a', 'Black-tailed jackrabbit', 'Lepus californicus', '🐇', 0.5],
       ['a', "Agassiz's desert tortoise", 'Gopherus agassizii', '🐢', 0.25], ['a', 'Elf owl', 'Micrathene whitneyi', '🦉', 0.15, 4],
       ['a', 'Lesser long-nosed bat', 'Leptonycteris yerbabuenae', '🦇', 0.3, 4], ['a', 'Arizona bark scorpion', 'Centruroides sculpturatus', '🦂', 0.08],
       ['a', 'Desert tarantula', 'Aphonopelma chalcodes', '🕷️', 0.08]
@@ -1363,7 +1367,7 @@ var SU_ART = (function () {
       ['p', 'Lechuguilla', 'Agave lechuguilla', '🌿', 0.6], ['p', 'Ocotillo', 'Fouquieria splendens', '🎋', 4],
       ['p', 'Engelmann prickly pear', 'Opuntia engelmannii', '🌵', 1.2], ['p', 'Creosote bush', 'Larrea tridentata', '🌿', 1.5],
       ['p', 'Texas madrone', 'Arbutus xalapensis', '🌳', 6], ['p', 'Big Bend bluebonnet', 'Lupinus havardii', '🪻', 0.8],
-      ['a', 'Collared peccary (javelina)', 'Pecari tajacu', '🐗', 0.55], ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'],
+      ['a', 'Collared peccary (javelina)', 'Pecari tajacu', 'n:javelina', 0.55], ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'],
       ['a', 'Mountain lion', 'Puma concolor', 'a:Lion', 0.8, 0, 'cougar'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
       ['a', 'Mule deer', 'Odocoileus hemionus', '🦌', 1.7], ['a', 'Black-tailed jackrabbit', 'Lepus californicus', '🐇', 0.5],
       ['a', 'Western diamondback rattlesnake', 'Crotalus atrox', 'su:rattlesnake', 0.3, 0, 'palesnake'], ['a', 'Texas brown tarantula', 'Aphonopelma hentzi', '🕷️', 0.08],
@@ -1416,6 +1420,7 @@ var SU_ART = (function () {
   function art(spec, rc) {
     var s = null;
     if (spec.indexOf('a:') === 0) s = EL.ART[spec.slice(2)];
+    else if (spec.indexOf('n:') === 0) s = NART[spec.slice(2)];
     else if (spec.indexOf('su:') === 0) s = window.SU_ART && window.SU_ART[spec.slice(3)];
     if (!s) return null;
     if (rc && STRIP[rc]) STRIP[rc].forEach(function (re) { s = s.replace(re, ''); });
@@ -1429,7 +1434,7 @@ var SU_ART = (function () {
     if (cache[key]) return cache[key];
     var list = NATIVE[key].map(function (r) {
       var it = { n: r[1], sci: r[2], c: KIND[r[0]], h: r[4], elev: r[5] || 0, role: '', native: key };
-      if (/^(a|su):/.test(r[3])) {
+      if (/^(a|su|n):/.test(r[3])) {
         it.svg = art(r[3], r[6]);
         if (!it.svg) { it.e = '❓'; delete it.svg; }
       } else it.e = r[3];
