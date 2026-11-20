@@ -1194,6 +1194,164 @@ var SU_DATA = [
     });
   };
 })();</script>
+<script>// Turns a cut-out photo into a flat, outlined illustration, keeping every shape from the photo.
+// ILLUS.render(imageOrCanvas, { detail: 'simple' | 'medium' | 'detailed', outline: true }) -> canvas
+(function () {
+  var I = window.ILLUS = {};
+  var LEVELS = {
+    simple:   { radius: 5, passes: 2, colors: 6,  modePasses: 2, minArea: 160, inner: 70 },
+    medium:   { radius: 4, passes: 2, colors: 9,  modePasses: 1, minArea: 70,  inner: 55 },
+    detailed: { radius: 3, passes: 1, colors: 14, modePasses: 1, minArea: 25,  inner: 45 }
+  };
+
+  I.render = function (src, opts) {
+    opts = opts || {};
+    var L = LEVELS[opts.detail] || LEVELS.medium, outline = opts.outline !== false;
+    var W = src.naturalWidth || src.width, H = src.naturalHeight || src.height;
+    var c0 = document.createElement('canvas'); c0.width = W; c0.height = H;
+    var x0 = c0.getContext('2d'); x0.drawImage(src, 0, 0, W, H);
+    var d = x0.getImageData(0, 0, W, H).data, N = W * H;
+
+    // 1. Smooth away grain and fur while keeping edges (Kuwahara filter, weighted by alpha)
+    var alpha = new Uint8Array(N), sm = new Float32Array(N * 3);
+    for (var i = 0; i < N; i++) { alpha[i] = d[i * 4 + 3]; sm[i * 3] = d[i * 4]; sm[i * 3 + 1] = d[i * 4 + 1]; sm[i * 3 + 2] = d[i * 4 + 2]; }
+    for (var kp = 0; kp < L.passes; kp++) sm = kuwahara(sm, alpha, W, H, L.radius);
+    var x, y, k;
+
+    // 2. A small set of flat colours (k-means on the organism's own pixels), a little richer than the photo
+    var K = L.colors, samp = [], step = Math.max(1, Math.floor(N / 6000));
+    for (i = 0; i < N; i += step) if (alpha[i] >= 128) samp.push(i);
+    if (!samp.length) return c0;
+    samp.sort(function (a, b) { return lum(sm, a) - lum(sm, b); });
+    var cen = [];
+    for (k = 0; k < K; k++) { var s0 = samp[Math.floor((k + 0.5) / K * samp.length)]; cen.push([sm[s0 * 3], sm[s0 * 3 + 1], sm[s0 * 3 + 2]]); }
+    for (var it = 0; it < 8; it++) {
+      var acc = cen.map(function () { return [0, 0, 0, 0]; });
+      samp.forEach(function (s) { var j = nearest(cen, sm[s * 3], sm[s * 3 + 1], sm[s * 3 + 2]), A = acc[j]; A[0] += sm[s * 3]; A[1] += sm[s * 3 + 1]; A[2] += sm[s * 3 + 2]; A[3]++; });
+      cen = cen.map(function (c, j) { var A = acc[j]; return A[3] ? [A[0] / A[3], A[1] / A[3], A[2] / A[3]] : c; });
+    }
+    cen = cen.map(function (c) { var m = (c[0] + c[1] + c[2]) / 3; return c.map(function (v) { return clamp(m + (v - m) * 1.18); }); });
+    var lab = new Int16Array(N).fill(-1);
+    for (i = 0; i < N; i++) if (alpha[i] >= 128) lab[i] = nearest(cen, sm[i * 3], sm[i * 3 + 1], sm[i * 3 + 2]);
+
+    // 3. Tidy speckles: each pixel takes the most common colour around it
+    for (var pass = 0; pass < L.modePasses; pass++) {
+      var nl = new Int16Array(lab), cnt = new Int16Array(K);
+      for (y = 1; y < H - 1; y++) for (x = 1; x < W - 1; x++) {
+        i = y * W + x; if (lab[i] < 0) continue;
+        cnt.fill(0); var top = lab[i], tc = 0;
+        for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) { var n = lab[i + dy * W + dx]; if (n >= 0 && ++cnt[n] > tc) { tc = cnt[n]; top = n; } }
+        nl[i] = top;
+      }
+      lab = nl;
+    }
+
+    mergeSmall(lab, W, H, K, L.minArea);
+
+    // 4. Paint, with fine lines where very different colours meet and a bold line round the outside
+    var pad = outline ? 3 : 0, OW = W + pad * 2, OH = H + pad * 2;
+    var out = document.createElement('canvas'); out.width = OW; out.height = OH;
+    var ox = out.getContext('2d'), od = ox.createImageData(OW, OH), o = od.data;
+    var darkest = cen.reduce(function (a, c) { return c[0] + c[1] + c[2] < a[0] + a[1] + a[2] ? c : a; });
+    var ink = [darkest[0] * 0.45, darkest[1] * 0.45, darkest[2] * 0.45].map(Math.round);
+    function dist(a, b) { var A = cen[a], B = cen[b]; return Math.sqrt((A[0] - B[0]) * (A[0] - B[0]) + (A[1] - B[1]) * (A[1] - B[1]) + (A[2] - B[2]) * (A[2] - B[2])); }
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      i = y * W + x; var lb = lab[i]; if (lb < 0) continue;
+      var c = cen[lb], col = c, edge = false;
+      if (outline) {
+        var rn = x + 1 < W ? lab[i + 1] : -1, dn = y + 1 < H ? lab[i + W] : -1;
+        if ((rn >= 0 && rn !== lb && dist(lb, rn) > L.inner) || (dn >= 0 && dn !== lb && dist(lb, dn) > L.inner)) edge = true;
+      }
+      if (edge) col = [c[0] * 0.4, c[1] * 0.4, c[2] * 0.4];
+      var op = ((y + pad) * OW + x + pad) * 4;
+      o[op] = col[0]; o[op + 1] = col[1]; o[op + 2] = col[2]; o[op + 3] = 255;
+    }
+    if (outline) {
+      // outline: every empty pixel within `pad` of the organism
+      var solid = new Uint8Array(OW * OH);
+      for (y = 0; y < H; y++) for (x = 0; x < W; x++) if (lab[y * W + x] >= 0) solid[(y + pad) * OW + x + pad] = 1;
+      for (y = 0; y < OH; y++) for (x = 0; x < OW; x++) {
+        var j2 = y * OW + x; if (solid[j2]) continue;
+        var near = false;
+        for (dy = -pad; dy <= pad && !near; dy++) for (dx = -pad; dx <= pad; dx++) {
+          if (dx * dx + dy * dy > pad * pad + 1) continue;
+          var yy = y + dy, xx = x + dx;
+          if (yy >= 0 && yy < OH && xx >= 0 && xx < OW && solid[yy * OW + xx]) { near = true; break; }
+        }
+        if (near) { o[j2 * 4] = ink[0]; o[j2 * 4 + 1] = ink[1]; o[j2 * 4 + 2] = ink[2]; o[j2 * 4 + 3] = 255; }
+      }
+    }
+    ox.putImageData(od, 0, 0);
+    return out;
+  };
+  function kuwahara(src, alpha, W, H, R) {
+    var S = (W + 1) * (H + 1), sA = new Float64Array(S), sR = new Float64Array(S), sG = new Float64Array(S), sB = new Float64Array(S), sL = new Float64Array(S), sL2 = new Float64Array(S);
+    for (var y = 0; y < H; y++) {
+      var rA = 0, rR = 0, rG = 0, rB = 0, rL = 0, rL2 = 0;
+      for (var x = 0; x < W; x++) {
+        var i = y * W + x, a = alpha[i] / 255, r = src[i * 3], g = src[i * 3 + 1], b = src[i * 3 + 2], l = 0.299 * r + 0.587 * g + 0.114 * b;
+        rA += a; rR += a * r; rG += a * g; rB += a * b; rL += a * l; rL2 += a * l * l;
+        var q = (y + 1) * (W + 1) + x + 1, u = q - (W + 1);
+        sA[q] = sA[u] + rA; sR[q] = sR[u] + rR; sG[q] = sG[u] + rG; sB[q] = sB[u] + rB; sL[q] = sL[u] + rL; sL2[q] = sL2[u] + rL2;
+      }
+    }
+    function box(arr, xa, ya, xb, yb) { var w = W + 1; return arr[(yb + 1) * w + xb + 1] - arr[ya * w + xb + 1] - arr[(yb + 1) * w + xa] + arr[ya * w + xa]; }
+    var out = new Float32Array(src.length);
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      var j = y * W + x; if (alpha[j] < 8) continue;
+      var best = Infinity, br = 0, bg = 0, bb = 0;
+      for (var k = 0; k < 4; k++) {
+        var xa = k & 1 ? x : Math.max(0, x - R), xb = k & 1 ? Math.min(W - 1, x + R) : x;
+        var ya = k & 2 ? y : Math.max(0, y - R), yb = k & 2 ? Math.min(H - 1, y + R) : y;
+        var wa = box(sA, xa, ya, xb, yb); if (wa < 1) continue;
+        var ml = box(sL, xa, ya, xb, yb) / wa, v = box(sL2, xa, ya, xb, yb) / wa - ml * ml;
+        if (v < best) { best = v; br = box(sR, xa, ya, xb, yb) / wa; bg = box(sG, xa, ya, xb, yb) / wa; bb = box(sB, xa, ya, xb, yb) / wa; }
+      }
+      out[j * 3] = br; out[j * 3 + 1] = bg; out[j * 3 + 2] = bb;
+    }
+    return out;
+  }
+  // Merge patches smaller than minArea into the neighbouring colour they touch most
+  function mergeSmall(lab, W, H, K, minArea) {
+    var N = W * H, comp = new Int32Array(N).fill(-1), stack = new Int32Array(N), nc = 0;
+    for (var s = 0; s < N; s++) {
+      if (lab[s] < 0 || comp[s] >= 0) continue;
+      var L0 = lab[s], top = 0, members = [s], touch = new Int32Array(K); comp[s] = nc; stack[top++] = s;
+      while (top) {
+        var i = stack[--top], x = i % W, y = (i / W) | 0;
+        var nb = [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, y > 0 ? i - W : -1, y < H - 1 ? i + W : -1];
+        for (var t = 0; t < 4; t++) {
+          var n = nb[t]; if (n < 0 || lab[n] < 0) continue;
+          if (lab[n] === L0) { if (comp[n] < 0) { comp[n] = nc; stack[top++] = n; members.push(n); } }
+          else touch[lab[n]]++;
+        }
+      }
+      if (members.length < minArea) {
+        var bi = -1, bc = 0; for (var k = 0; k < K; k++) if (touch[k] > bc) { bc = touch[k]; bi = k; }
+        if (bi >= 0) for (var m = 0; m < members.length; m++) lab[members[m]] = bi;
+      }
+      nc++;
+    }
+  }
+  function lum(a, i) { return 0.299 * a[i * 3] + 0.587 * a[i * 3 + 1] + 0.114 * a[i * 3 + 2]; }
+  function clamp(v) { return v < 0 ? 0 : v > 255 ? 255 : v; }
+  function nearest(cen, r, g, b) {
+    var bi = 0, bd = Infinity;
+    for (var k = 0; k < cen.length; k++) { var c = cen[k], dd = (c[0] - r) * (c[0] - r) + (c[1] - g) * (c[1] - g) + (c[2] - b) * (c[2] - b); if (dd < bd) { bd = dd; bi = k; } }
+    return bi;
+  }
+  // Promise version from a data URL; resolves with a data URL (WebP where supported)
+  I.fromURL = function (url, opts) {
+    return new Promise(function (res, rej) {
+      var img = new Image();
+      img.onload = function () {
+        var c = I.render(img, opts), w = c.toDataURL('image/webp', 0.9);
+        res(w.indexOf('data:image/webp') === 0 ? w : c.toDataURL('image/png'));
+      };
+      img.onerror = rej; img.src = url;
+    });
+  };
+})();</script>
 <style>
   :root { --ink: #1b2620; --muted: #5d6a62; --line: #dfe3dc; --paper: #f7f6f1; --card: #fff; --forest: #1e3a2c; --accent: #2e7d4f; --gold: #f2c14e; --danger: #b3382c; }
   * { box-sizing: border-box; }
@@ -1213,6 +1371,9 @@ var SU_DATA = [
   header .bar i { display: block; height: 100%; background: var(--gold); width: 0; }
   header .sp { flex: 1; }
   header button { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.25); }
+  header .sty { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #dfeae2; }
+  header .sty select { padding: 4px 6px; font-size: 13px; }
+  .pic.chosen { outline: 3px solid var(--gold); outline-offset: 2px; }
   header button.gold { background: var(--gold); color: #1e2a20; border-color: var(--gold); font-weight: 650; }
   main { display: grid; grid-template-columns: 320px minmax(0, 1fr); min-height: 0; }
   #side { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
@@ -1274,6 +1435,9 @@ var SU_DATA = [
   <h1>Picture Picker</h1>
   <div class="prog"><div class="bar"><i id="bar"></i></div><span id="count"></span></div>
   <span class="sp"></span>
+  <label class="sty">Style <select id="s-style"><option value="illus">Illustration</option><option value="photo">Photo</option></select></label>
+  <label class="sty" id="l-detail">Detail <select id="s-detail"><option value="simple">Simple</option><option value="medium">Medium</option><option value="detailed">Detailed</option></select></label>
+  <label class="sty" id="l-outline"><input type="checkbox" id="s-outline" checked> Outlines</label>
   <button id="b-load" title="Continue on this computer from a pictures file you downloaded before">Open saved pictures…</button>
   <button id="b-down" class="gold">Download pictures</button>
   <input type="file" id="f-load" accept=".zip" hidden>
@@ -1402,12 +1566,49 @@ var SU_DATA = [
     try { var st = db.transaction('picks', 'readwrite').objectStore('picks'); if (v) st.put(v, s); else st.delete(s); } catch (e) {}
   }
 
+  // ---------- 2b. picture style: every saved photo can be shown as an illustration ----------
+  var STY = { style: 'illus', detail: 'medium', outline: true };
+  try { var saved = JSON.parse(localStorage.getItem('ecobuild-picker-style') || 'null'); if (saved) STY = saved; } catch (e) {}
+  $('#s-style').value = STY.style; $('#s-detail').value = STY.detail; $('#s-outline').checked = STY.outline !== false;
+  function styKey() { return STY.detail + (STY.outline ? '+o' : ''); }
+  function showStyleCtl() { $('#l-detail').style.display = $('#l-outline').style.display = STY.style === 'illus' ? '' : 'none'; }
+  showStyleCtl();
+  ['#s-style', '#s-detail', '#s-outline'].forEach(function (id) {
+    $(id).addEventListener('change', function () {
+      STY = { style: $('#s-style').value, detail: $('#s-detail').value, outline: $('#s-outline').checked };
+      try { localStorage.setItem('ecobuild-picker-style', JSON.stringify(STY)); } catch (e) {}
+      showStyleCtl(); renderList(); renderWork();
+    });
+  });
+  var illCache = {}, queue = [], busyQ = false;
+  // the illustration of a saved photo, made once per detail setting and kept in memory
+  function illus(slug) {
+    var p = picks[slug], k = slug + '|' + styKey();
+    if (!p || !p.url) return Promise.resolve(null);
+    if (!illCache[k]) illCache[k] = ILLUS.fromURL(p.url, { detail: STY.detail, outline: STY.outline });
+    return illCache[k];
+  }
+  function final(slug) { return STY.style === 'illus' ? illus(slug) : Promise.resolve(picks[slug] && picks[slug].url); }
+  // fill <img data-ill="slug"> elements with illustrations, one at a time so the page stays responsive
+  function fillIllus() {
+    if (STY.style !== 'illus') return;
+    document.querySelectorAll('img[data-ill]').forEach(function (im) { queue.push(im); });
+    if (!busyQ) next();
+    function next() {
+      var im = queue.shift(); if (!im) { busyQ = false; return; }
+      busyQ = true;
+      if (!im.isConnected) return next();
+      illus(im.dataset.ill).then(function (u) { if (u) im.src = u; im.removeAttribute('data-ill'); setTimeout(next, 0); }, function () { setTimeout(next, 0); });
+    }
+  }
+  function clearIll(slug) { Object.keys(illCache).forEach(function (k) { if (k.indexOf(slug + '|') === 0) delete illCache[k]; }); }
+
   // ---------- 3. the list ----------
   var cur = 0;
   function status(r) { var p = picks[r.slug]; return p ? p.status : 'todo'; }
   function thumbHTML(r) {
     var p = picks[r.slug];
-    if (p && p.status === 'done') return '<img alt="" src="' + p.url + '">';
+    if (p && p.status === 'done') return '<img alt="" src="' + p.url + '"' + (STY.style === 'illus' ? ' data-ill="' + r.slug + '"' : '') + '>';
     if (r.thumb && r.thumb.img) return '<img alt="" src="' + r.thumb.img + '">';
     return r.thumb && r.thumb.e ? r.thumb.e : '';
   }
@@ -1431,6 +1632,7 @@ var SU_DATA = [
     var done = items.filter(function (r) { return status(r) !== 'todo'; }).length;
     $('#count').textContent = done + ' of ' + items.length + ' done';
     $('#bar').style.width = (100 * done / items.length) + '%';
+    queue = []; fillIllus();
     var a = $('#list .it[aria-current="true"]'); if (a && a.scrollIntoViewIfNeeded) a.scrollIntoViewIfNeeded(false); else if (a) a.scrollIntoView({ block: 'nearest' });
   }
   $('#list').addEventListener('click', function (e) { var b = e.target.closest('[data-i]'); if (b) show(+b.dataset.i); });
@@ -1467,14 +1669,16 @@ var SU_DATA = [
     var r = view.r, p = picks[r.slug], s = status(r);
     var curPic = r.thumb && r.thumb.img ? '<img alt="" src="' + r.thumb.img + '">' : (r.thumb && r.thumb.e) || '';
     var html = '<div class="top"><div class="now"><div><div class="pic">' + curPic + '</div><div class="lab">Now</div></div>' +
-      (p && p.status === 'done' ? '<div><div class="pic"><img alt="" src="' + p.url + '"></div><div class="lab">New</div></div>' : '') +
+      (p && p.status === 'done' ? '<div><div class="pic' + (STY.style === 'photo' ? ' chosen' : '') + '"><img alt="" src="' + p.url + '"></div><div class="lab">Photo</div></div>' +
+        '<div><div class="pic' + (STY.style === 'illus' ? ' chosen' : '') + '"><img alt="" src="' + p.url + '" data-ill="' + r.slug + '" data-force="1"></div><div class="lab">Illustration</div></div>' : '') +
       '<div><h2>' + esc(r.name) + '</h2>' + (r.sci ? '<div class="sci">' + esc(r.sci) + '</div>' : '') +
       '<div class="where">' + esc(r.cat) + ' · ' + esc(r.where.join(' · ')) + '</div>' +
       '<div class="file">pictures/' + esc(r.slug) + (p && p.status === 'done' ? (p.url.indexOf('image/png') > 0 ? '.png' : '.webp') : '.webp') + '</div></div></div>' +
       '<div class="acts"><button id="b-prev">‹ Back</button><button id="b-own">Upload my own picture</button>' +
       '<button id="b-skip">' + (s === 'skip' ? 'Kept as is ✓' : 'Keep current picture') + '</button>' +
       (s !== 'todo' ? '<button id="b-undo" class="danger">Start over</button>' : '') + '<button id="b-next" class="primary">Next ›</button></div></div>';
-    if (p && p.status === 'done') html += '<div class="note ok"><b>Done.</b> <span class="credit">' + creditHTML(p.credit) + '</span><br>Pick another photo below to replace it.</div>';
+    if (p && p.status === 'done') html += '<div class="note ok"><b>Done.</b> <span class="credit">' + creditHTML(p.credit) + '</span><br>' +
+      'The picture outlined in gold is the style that will be downloaded. Change it with <b>Style</b> at the top: it applies to every picture. Pick another photo below to replace this one.</div>';
     if (r.noInat) html += '<div class="note">iNaturalist only has photos of wild living things, so there is nothing to look up for <b>' + esc(r.name) + '</b>. Use <b>Upload my own picture</b> (a photo you took, or one with a licence that allows reuse), or keep the current picture.</div>';
     else html += '<div class="search"><input type="text" id="sq" value="' + esc(view.query) + '" aria-label="Look up on iNaturalist"><button id="b-sq">Look up</button></div>' +
       '<div class="taxa" id="taxa"></div><div class="grid" id="grid"><p class="muted">Looking up photos…</p></div><div class="more" id="more"></div>';
@@ -1485,8 +1689,13 @@ var SU_DATA = [
       '“NC” licences mean non-commercial use only, which fits a free classroom site.</li>' +
       '<li>Your picks stay in this browser on this computer. Press <b>Download pictures</b> any time to get a .zip of everything so far, ' +
       'and use <b>Open saved pictures…</b> to pick up where you left off on another computer.</li>' +
+      '<li><b>Style</b> at the top turns every saved photo into a flat, outlined illustration (or keeps it a photo). It changes all the pictures at once, ' +
+      'so they match. The original photos are kept, so you can change the style any time, even after downloading.</li>' +
       '<li>Life stages (eggs, tadpoles, chrysalis) are looked up with iNaturalist\'s life-stage labels, so the photos should already show that stage.</li></ol></details>';
     $('#work').innerHTML = html; $('#work').scrollTop = 0;
+    // the before/after preview always shows the illustration, whichever style is chosen
+    var fi = $('#work img[data-force]');
+    if (fi) illus(r.slug).then(function (u) { if (u && fi.isConnected) fi.src = u; });
     $('#b-prev').onclick = function () { step(-1); };
     $('#b-next').onclick = function () { step(1); };
     $('#b-own').onclick = function () { $('#f-own').click(); };
@@ -1611,6 +1820,7 @@ var SU_DATA = [
     });
   });
   function save(r, out, credit) {
+    clearIll(r.slug);
     savePick(r.slug, { status: 'done', url: out.url, aspect: out.aspect, credit: credit, name: r.name, sci: r.sci, at: Date.now() });
     toast('Saved ' + r.name + '.');
     step(1);
@@ -1656,23 +1866,36 @@ var SU_DATA = [
   function csvCell(s) { s = String(s == null ? '' : s); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   $('#b-down').addEventListener('click', function () {
     var files = [], credits = [], rows = [['File', 'Name', 'Scientific name', 'Status', 'Source', 'Credit', 'Licence', 'Photo page', 'iNaturalist species']];
-    items.forEach(function (r) {
-      var p = picks[r.slug]; if (!p) return;
-      var file = '';
-      if (p.status === 'done') {
-        file = 'pictures/' + r.slug + (p.url.indexOf('image/png') > 0 ? '.png' : '.webp');
-        files.push({ name: file, data: dataToBytes(p.url) });
-      }
-      var c = p.credit || {};
-      credits.push({ slug: r.slug, name: r.name, sci: r.sci, status: p.status, file: file, aspect: p.aspect || null, credit: c });
-      rows.push([file, r.name, r.sci, p.status === 'done' ? 'New picture' : 'Keep current', c.source || '', c.attribution || '', c.license || '', c.page || '', c.taxon || '']);
-    });
-    if (!credits.length) { toast('Nothing to download yet. Pick a photo first.'); return; }
-    files.push({ name: 'credits.json', data: utf8(JSON.stringify({ made: new Date().toISOString(), items: credits }, null, 1)) });
-    files.push({ name: 'credits.csv', data: utf8('﻿' + rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n')) });
-    var a = document.createElement('a'); a.href = URL.createObjectURL(zip(files)); a.download = 'ecobuild-pictures.zip';
-    document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
-    toast('Downloaded ' + (files.length - 2) + ' pictures and the credits list.');
+    var todo = items.filter(function (r) { return picks[r.slug]; });
+    if (!todo.length) { toast('Nothing to download yet. Pick a photo first.'); return; }
+    var btn = this; btn.disabled = true;
+    var k = 0;
+    (function next() {
+      var r = todo[k++];
+      if (!r) return finish();
+      var p = picks[r.slug], c = p.credit || {}, file = '', photo = '';
+      btn.textContent = 'Preparing ' + k + ' of ' + todo.length + '…';
+      var work = p.status === 'done' ? final(r.slug).then(function (u) {
+        var ext = function (x) { return x.indexOf('image/png') > 0 ? '.png' : '.webp'; };
+        file = 'pictures/' + r.slug + ext(u); photo = 'photos/' + r.slug + ext(p.url);
+        files.push({ name: file, data: dataToBytes(u) });
+        files.push({ name: photo, data: dataToBytes(p.url) });
+      }) : Promise.resolve();
+      work.then(function () {
+        credits.push({ slug: r.slug, name: r.name, sci: r.sci, status: p.status, file: file, photo: photo, aspect: p.aspect || null, credit: c });
+        rows.push([file, r.name, r.sci, p.status === 'done' ? 'New picture' : 'Keep current', c.source || '', c.attribution || '', c.license || '', c.page || '', c.taxon || '']);
+        setTimeout(next, 0);
+      }, function () { setTimeout(next, 0); });
+    })();
+    function finish() {
+      var n = files.length / 2;
+      files.push({ name: 'credits.json', data: utf8(JSON.stringify({ made: new Date().toISOString(), style: STY, items: credits }, null, 1)) });
+      files.push({ name: 'credits.csv', data: utf8('\ufeff' + rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n')) });
+      var a = document.createElement('a'); a.href = URL.createObjectURL(zip(files)); a.download = 'ecobuild-pictures.zip';
+      document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      btn.disabled = false; btn.textContent = 'Download pictures';
+      toast('Downloaded ' + n + ' pictures (' + (STY.style === 'illus' ? 'illustrations' : 'photos') + '), the original photos and the credits list.');
+    }
   });
   $('#b-load').addEventListener('click', function () { $('#f-load').click(); });
   $('#f-load').addEventListener('change', function () {
@@ -1683,13 +1906,13 @@ var SU_DATA = [
       var list = JSON.parse(new TextDecoder().decode(meta)).items || [], n = 0;
       list.forEach(function (it) {
         if (it.status === 'skip') { savePick(it.slug, { status: 'skip' }); n++; return; }
-        var bytes = it.file && z[it.file]; if (!bytes) return;
-        var type = /\.png$/.test(it.file) ? 'image/png' : 'image/webp', s = '';
+        var src = it.photo && z[it.photo] ? it.photo : it.file, bytes = src && z[src]; if (!bytes) return;
+        var type = /\.png$/.test(src) ? 'image/png' : 'image/webp', s = '';
         for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
         savePick(it.slug, { status: 'done', url: 'data:' + type + ';base64,' + btoa(s), aspect: it.aspect, credit: it.credit, name: it.name, sci: it.sci, at: Date.now() });
         n++;
       });
-      toast('Opened ' + n + ' saved items.'); renderList(); renderWork();
+      illCache = {}; toast('Opened ' + n + ' saved items.'); renderList(); renderWork();
     }).catch(function () { toast('Could not open that file.'); });
   });
 
