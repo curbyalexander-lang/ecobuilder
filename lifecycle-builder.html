@@ -1313,6 +1313,10 @@ var SU_ART = (function () {
     timber:    { '#a58a5e': '#8d7d5e', '#5c4630': '#2e2620' },
     pinksnake: { '#a58a5e': '#c48b7a', '#5c4630': '#7c4f43' }
   };
+  // Full-body drawings made just for this list
+  var NART = {
+    javelina: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230 140"><rect x="150" y="84" width="13" height="44" rx="6" fill="#2e2924"/><rect x="70" y="86" width="13" height="42" rx="6" fill="#2e2924"/><path d="M190 70 C198 72 202 78 200 86" stroke="#3a332c" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M58 66 C62 40 96 30 132 32 C164 32 192 44 194 70 C196 92 176 102 150 102 L88 102 C68 102 56 88 58 66Z" fill="#4a423a"/><path d="M70 50 L74 40 L79 45 L84 35 L89 41 L95 31 L100 37 L107 29 L112 35 L119 28 L124 34 L131 28 L136 34 L143 29 L148 36 L155 32 L159 39 L166 36 L168 43 L175 42 C176 46 174 48 170 47 C140 40 104 40 70 54Z" fill="#2f2924"/><path d="M66 86 C90 100 140 102 176 92 C150 104 96 104 66 86Z" fill="#5c5349"/><g fill="none" stroke="#6b6157" stroke-width="2" stroke-linecap="round" opacity=".8"><path d="M110 52 l6 10"/><path d="M130 50 l5 10"/><path d="M150 54 l5 9"/><path d="M168 58 l4 9"/><path d="M120 70 l5 9"/><path d="M142 72 l5 9"/><path d="M162 76 l4 8"/><path d="M100 72 l5 9"/></g><rect x="82" y="88" width="14" height="42" rx="6" fill="#3e3731"/><rect x="164" y="86" width="14" height="44" rx="6" fill="#3e3731"/><path d="M80 126 h18 l-2 6 h-14z M162 126 h18 l-2 6 h-14z M68 124 h16 l-2 6 h-12z M148 124 h16 l-2 6 h-12z" fill="#1a1613"/><path d="M70 44 C80 54 84 74 80 96 L94 98 C98 76 94 54 84 40Z" fill="#d9d2c2"/><path d="M74 52 C66 44 52 44 40 50 C28 56 18 62 10 66 C4 70 6 78 12 80 L38 86 C54 90 68 88 76 78 Z" fill="#4a423a"/><ellipse cx="8" cy="72" rx="6" ry="8" fill="#6e5f55"/><ellipse cx="6" cy="71" rx="1.6" ry="2.4" fill="#1a1613"/><ellipse cx="9.5" cy="74" rx="1.6" ry="2.4" fill="#1a1613"/><path d="M16 80 Q28 86 40 84" stroke="#1a1613" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M22 81 l3 6 l2 -6z" fill="#efe9d8"/><path d="M60 48 L66 32 L74 46Z" fill="#3a332c"/><path d="M63 45 L66 36 L70 45Z" fill="#7a6a5e"/><circle cx="44" cy="60" r="3.2" fill="#140f0c"/><circle cx="45" cy="59" r="1" fill="#fff"/></svg>'
+  };
   // Drawings that need a shape change as well as new colours
   var STRIP = { cougar: [/<path d="M58 30[^>]*\/>/, /<path d="M66 34[^>]*\/>/] };
 
@@ -1355,7 +1359,7 @@ var SU_ART = (function () {
       ['p', 'Blue palo verde', 'Parkinsonia florida', '🌳', 6], ['p', 'Desert marigold', 'Baileya multiradiata', '🌼', 0.4],
       ['a', 'Gila monster', 'Heloderma suspectum', '🦎', 0.12], ['a', 'Western diamondback rattlesnake', 'Crotalus atrox', 'su:rattlesnake', 0.3, 0, 'palesnake'],
       ['a', 'Kit fox', 'Vulpes macrotis', 'a:Fox', 0.4, 0, 'kitfox'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
-      ['a', 'Collared peccary (javelina)', 'Pecari tajacu', '🐗', 0.55], ['a', 'Black-tailed jackrabbit', 'Lepus californicus', '🐇', 0.5],
+      ['a', 'Collared peccary (javelina)', 'Pecari tajacu', 'n:javelina', 0.55], ['a', 'Black-tailed jackrabbit', 'Lepus californicus', '🐇', 0.5],
       ['a', "Agassiz's desert tortoise", 'Gopherus agassizii', '🐢', 0.25], ['a', 'Elf owl', 'Micrathene whitneyi', '🦉', 0.15, 4],
       ['a', 'Lesser long-nosed bat', 'Leptonycteris yerbabuenae', '🦇', 0.3, 4], ['a', 'Arizona bark scorpion', 'Centruroides sculpturatus', '🦂', 0.08],
       ['a', 'Desert tarantula', 'Aphonopelma chalcodes', '🕷️', 0.08]
@@ -1438,7 +1442,7 @@ var SU_ART = (function () {
       ['p', 'Lechuguilla', 'Agave lechuguilla', '🌿', 0.6], ['p', 'Ocotillo', 'Fouquieria splendens', '🎋', 4],
       ['p', 'Engelmann prickly pear', 'Opuntia engelmannii', '🌵', 1.2], ['p', 'Creosote bush', 'Larrea tridentata', '🌿', 1.5],
       ['p', 'Texas madrone', 'Arbutus xalapensis', '🌳', 6], ['p', 'Big Bend bluebonnet', 'Lupinus havardii', '🪻', 0.8],
-      ['a', 'Collared peccary (javelina)', 'Pecari tajacu', '🐗', 0.55], ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'],
+      ['a', 'Collared peccary (javelina)', 'Pecari tajacu', 'n:javelina', 0.55], ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'],
       ['a', 'Mountain lion', 'Puma concolor', 'a:Lion', 0.8, 0, 'cougar'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
       ['a', 'Mule deer', 'Odocoileus hemionus', '🦌', 1.7], ['a', 'Black-tailed jackrabbit', 'Lepus californicus', '🐇', 0.5],
       ['a', 'Western diamondback rattlesnake', 'Crotalus atrox', 'su:rattlesnake', 0.3, 0, 'palesnake'], ['a', 'Texas brown tarantula', 'Aphonopelma hentzi', '🕷️', 0.08],
@@ -1491,6 +1495,7 @@ var SU_ART = (function () {
   function art(spec, rc) {
     var s = null;
     if (spec.indexOf('a:') === 0) s = EL.ART[spec.slice(2)];
+    else if (spec.indexOf('n:') === 0) s = NART[spec.slice(2)];
     else if (spec.indexOf('su:') === 0) s = window.SU_ART && window.SU_ART[spec.slice(3)];
     if (!s) return null;
     if (rc && STRIP[rc]) STRIP[rc].forEach(function (re) { s = s.replace(re, ''); });
@@ -1504,7 +1509,7 @@ var SU_ART = (function () {
     if (cache[key]) return cache[key];
     var list = NATIVE[key].map(function (r) {
       var it = { n: r[1], sci: r[2], c: KIND[r[0]], h: r[4], elev: r[5] || 0, role: '', native: key };
-      if (/^(a|su):/.test(r[3])) {
+      if (/^(a|su|n):/.test(r[3])) {
         it.svg = art(r[3], r[6]);
         if (!it.svg) { it.e = '❓'; delete it.svg; }
       } else it.e = r[3];
@@ -1748,7 +1753,8 @@ var SU_ART = (function () {
 })();</script>
 <script>// CUTOUT: turns an uploaded photo or drawing into a cut-out with a transparent background.
 // 1) Plain backgrounds (a drawing on paper) are removed instantly by color.
-// 2) Busy backgrounds use a small AI model (U-2-Net-p, Apache-2.0) that runs in the browser.
+// 2) Busy backgrounds use an AI model that runs in the browser: IS-Net, through IMG.LY's open-source
+//    background-removal library (AGPL-3.0, loaded from a CDN), with the smaller U-2-Net-p (Apache-2.0) as a backup.
 // 3) Students can touch up the result with Erase / Bring back brushes before saving.
 (function () {
   var C = window.CUTOUT = {};
@@ -1757,6 +1763,8 @@ var SU_ART = (function () {
     ortWasm: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/',
     // The site's own copy is tried first; the public copy is the backup.
     models: ['models/u2netp.onnx', 'https://cdn.jsdelivr.net/npm/@planby-tech/rmbg-webgpu@0.2.1/models/u2netp.onnx'],
+    // The better remover. model: 'small' (44 MB download, once) or 'medium' (88 MB, a little more accurate).
+    isnet: { lib: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm', publicPath: null, model: 'small' },
     workSize: 768,   // largest side while editing
     outSize: 512     // largest side of the saved cut-out
   };
@@ -1789,8 +1797,44 @@ var SU_ART = (function () {
     return sessionP;
   };
 
-  // Returns a Uint8Array mask (0 = background, 255 = keep) for a canvas
+  // ---------- IS-Net (better quality), loaded only when first needed ----------
+  var isnetP = null, isnetReady = false, isnetFailed = false;
+  C.onProgress = null;
+  function isnetLib() {
+    if (!isnetP) { isnetP = import(C.config.isnet.lib); isnetP.catch(function () { isnetP = null; }); }
+    return isnetP;
+  }
+  C.isnetMask = function (canvas) {
+    var W = canvas.width, H = canvas.height;
+    return isnetLib().then(function (lib) {
+      return new Promise(function (res) { canvas.toBlob(res, 'image/png'); }).then(function (blob) {
+        var cfg = { model: C.config.isnet.model, output: { format: 'image/png' },
+          progress: function (key, cur, tot) { if (C.onProgress) C.onProgress(key, cur, tot); } };
+        if (C.config.isnet.publicPath) cfg.publicPath = C.config.isnet.publicPath;
+        return lib.segmentForeground(blob, cfg);
+      });
+    }).then(function (out) {
+      isnetReady = true;
+      return new Promise(function (res, rej) {
+        var img = new Image(), u = URL.createObjectURL(out);
+        img.onload = function () { URL.revokeObjectURL(u); res(img); }; img.onerror = rej; img.src = u;
+      });
+    }).then(function (img) {
+      var c = document.createElement('canvas'); c.width = W; c.height = H;
+      var x = c.getContext('2d'); x.drawImage(img, 0, 0, W, H);
+      var d = x.getImageData(0, 0, W, H).data, mask = new Uint8Array(W * H);
+      for (var i = 0; i < mask.length; i++) mask[i] = d[i * 4 + 3];
+      return mask;
+    });
+  };
+  C.aiReady = function () { return isnetReady || (isnetFailed && !!sessionP); };
+
+  // Returns a Uint8Array mask (0 = background, 255 = keep) for a canvas: IS-Net first, U-2-Net-p if that can't load
   C.aiMask = function (canvas) {
+    if (C.config.isnet && !isnetFailed) return C.isnetMask(canvas).catch(function () { isnetFailed = true; return C.u2Mask(canvas); });
+    return C.u2Mask(canvas);
+  };
+  C.u2Mask = function (canvas) {
     return C.session().then(function (session) {
       var S = 320, t = document.createElement('canvas'); t.width = t.height = S;
       var tx = t.getContext('2d'); tx.drawImage(canvas, 0, 0, S, S);
@@ -1944,6 +1988,7 @@ var SU_ART = (function () {
     '.co-stage{position:relative;flex:1;min-height:200px;margin:0 20px;border-radius:12px;overflow:hidden;display:grid;place-items:center;',
     'background:#fff conic-gradient(#e6e9e4 25%,#fff 0 50%,#e6e9e4 0 75%,#fff 0) 0 0/22px 22px}',
     '.co-stage canvas{max-width:100%;max-height:56vh;display:block;touch-action:none;cursor:none}',
+    '.co-box{position:absolute;pointer-events:none;border:2px dashed #fff;outline:2px solid #2e7d4f;display:none;box-shadow:0 0 0 9999px rgba(0,0,0,.25)}',
     '.co-ring{position:absolute;pointer-events:none;border:2px solid #fff;outline:2px solid #1b2620;border-radius:50%;display:none}',
     '.co-busy{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.75);font-weight:600;font-size:16px;text-align:center;padding:20px}',
     '.co-busy[hidden]{display:none}.co-spin{width:38px;height:38px;border:4px solid #cfd8d2;border-top-color:#2e7d4f;border-radius:50%;animation:cospin 1s linear infinite;margin:0 auto 10px}',
@@ -1972,8 +2017,9 @@ var SU_ART = (function () {
         var modal = el('div', 'co-modal'); modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true');
         modal.innerHTML =
           '<div class="co-sheet"><div class="co-head"><h2>Clean up your picture</h2><p class="co-status"></p></div>' +
-          '<div class="co-stage"><canvas></canvas><div class="co-ring"></div><div class="co-busy"><div><div class="co-spin"></div><span>Removing the background…</span></div></div></div>' +
+          '<div class="co-stage"><canvas></canvas><div class="co-ring"></div><div class="co-box"></div><div class="co-busy"><div><div class="co-spin"></div><span>Removing the background…</span></div></div></div>' +
           '<div class="co-tools">' +
+            '<button data-tool="box" aria-pressed="false" title="Drag a box around the plant or animal. Only what is inside is looked at, which helps with busy photos.">⬚ Draw a box</button>' +
             '<button data-tool="erase" aria-pressed="true">🧽 Erase</button>' +
             '<button data-tool="restore" aria-pressed="false">🖌️ Bring back</button>' +
             '<span class="sz">Brush <button data-size="1" aria-label="Small brush"><i style="width:8px;height:8px"></i></button><button data-size="2" aria-label="Medium brush"><i style="width:14px;height:14px"></i></button><button data-size="3" aria-label="Large brush"><i style="width:22px;height:22px"></i></button></span>' +
@@ -1997,13 +2043,18 @@ var SU_ART = (function () {
         function run(mode) {
           busy.hidden = false; modal.querySelector('[data-act="done"]').disabled = true;
           var needsAI = mode === 'ai' || (mode === 'auto' && !C.border(pic).transparent && C.border(pic).plain < 0.85);
-          busy.querySelector('span').textContent = needsAI && !sessionP ? 'Getting the background remover ready… (only the first time)' : 'Removing the background…';
+          var label = busy.querySelector('span');
+          label.textContent = needsAI && !C.aiReady() ? 'Getting the background remover ready… (only the first time, this can take a minute)' : 'Removing the background…';
+          C.onProgress = function (key, cur, tot) {
+            if (/fetch/.test(key) && tot > 0) label.textContent = 'Downloading the background remover… ' + Math.min(100, Math.round(100 * cur / tot)) + '% (only the first time)';
+            else if (/compute/.test(key)) label.textContent = 'Removing the background…';
+          };
           var job = mode === 'ai' ? C.aiMask(pic).then(function (m) { return { mask: m, method: 'ai' }; })
             : mode === 'color' ? Promise.resolve({ mask: C.colorMask(pic, 80), method: 'color' }) : C.autoMask(pic);
           job.then(function (r) {
             undo.push(mask.slice()); mask = r.mask; method = r.method;
             setStatus(r.method === 'already' ? 'This picture already has a see-through background. Touch it up if you like, then press Done.'
-              : 'Use Erase to rub out any background that is left. Use Bring back to paint back anything removed by mistake.');
+              : 'Use Erase to rub out any background that is left, and Bring back to paint back anything removed by mistake. Too much left over? Use Draw a box around the plant or animal.');
           }).catch(function () {
             // AI not available (offline?), so fall back to the color method
             undo.push(mask.slice()); mask = C.colorMask(pic, 80); method = 'color';
@@ -2011,6 +2062,42 @@ var SU_ART = (function () {
           }).then(function () { busy.hidden = true; modal.querySelector('[data-act="done"]').disabled = false; modal.querySelector('[data-act="undo"]').disabled = undo.length < 2; redraw(); });
         }
         draw(); run('auto');
+
+        // box: look only inside a box the student drags around the organism
+        var boxEl = modal.querySelector('.co-box'), boxStart = null;
+        function boxShow(a, b) {
+          var sr = stage.getBoundingClientRect(), r = cv.getBoundingClientRect(), k = r.width / W;
+          var x0 = Math.min(a.x, b.x), y0 = Math.min(a.y, b.y), x1 = Math.max(a.x, b.x), y1 = Math.max(a.y, b.y);
+          boxEl.style.display = 'block';
+          boxEl.style.left = (r.left - sr.left + x0 * k) + 'px'; boxEl.style.top = (r.top - sr.top + y0 * k) + 'px';
+          boxEl.style.width = ((x1 - x0) * k) + 'px'; boxEl.style.height = ((y1 - y0) * k) + 'px';
+        }
+        function runBox(a, b) {
+          var x0 = Math.max(0, Math.floor(Math.min(a.x, b.x))), y0 = Math.max(0, Math.floor(Math.min(a.y, b.y)));
+          var x1 = Math.min(W, Math.ceil(Math.max(a.x, b.x))), y1 = Math.min(H, Math.ceil(Math.max(a.y, b.y)));
+          boxEl.style.display = 'none';
+          if (x1 - x0 < 12 || y1 - y0 < 12) { setStatus('Drag to draw a box around the whole plant or animal.'); return; }
+          // a little room around the box helps the remover see the edges
+          var px = Math.round((x1 - x0) * 0.06), py = Math.round((y1 - y0) * 0.06);
+          var cx0 = Math.max(0, x0 - px), cy0 = Math.max(0, y0 - py), cx1 = Math.min(W, x1 + px), cy1 = Math.min(H, y1 + py);
+          var cw = cx1 - cx0, ch = cy1 - cy0, crop = document.createElement('canvas'); crop.width = cw; crop.height = ch;
+          crop.getContext('2d').drawImage(pic, cx0, cy0, cw, ch, 0, 0, cw, ch);
+          busy.hidden = false; modal.querySelector('[data-act="done"]').disabled = true;
+          busy.querySelector('span').textContent = C.aiReady() ? 'Looking inside your box…' : 'Getting the background remover ready… (only the first time, this can take a minute)';
+          C.aiMask(crop).then(function (m) {
+            undo.push(mask.slice()); if (undo.length > 30) undo.shift();
+            var nm = new Uint8Array(W * H);
+            for (var y = y0; y < y1; y++) for (var x = x0; x < x1; x++) nm[y * W + x] = m[(y - cy0) * cw + (x - cx0)];
+            mask = nm; method = 'ai';
+            setStatus('Only what was inside your box was kept. Touch it up with Erase and Bring back, or draw a new box.');
+          }).catch(function () {
+            setStatus('The smart background remover could not load. Use Erase to rub out the background.');
+          }).then(function () {
+            busy.hidden = true; modal.querySelector('[data-act="done"]').disabled = false; modal.querySelector('[data-act="undo"]').disabled = !undo.length;
+            tool = 'erase'; cv.style.cursor = ''; modal.querySelectorAll('[data-tool]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.tool === 'erase'); });
+            redraw();
+          });
+        }
 
         // brush painting
         var painting = false, last = null;
@@ -2030,6 +2117,7 @@ var SU_ART = (function () {
           last = p; redraw();
         }
         function showRing(e) {
+          if (tool === 'box') { ring.style.display = 'none'; return; }
           var r = stage.getBoundingClientRect(), d = [0, 7, 16, 32][size] * 2;
           ring.style.display = 'block'; ring.style.width = ring.style.height = d + 'px';
           ring.style.left = (e.clientX - r.left - d / 2) + 'px'; ring.style.top = (e.clientY - r.top - d / 2) + 'px';
@@ -2037,14 +2125,15 @@ var SU_ART = (function () {
         }
         cv.addEventListener('pointerdown', function (e) {
           if (!busy.hidden) return;
+          if (tool === 'box') { boxStart = toImg(e); cv.setPointerCapture(e.pointerId); boxShow(boxStart, boxStart); e.preventDefault(); return; }
           painting = true; last = null; cv.setPointerCapture(e.pointerId);
           undo.push(mask.slice()); if (undo.length > 30) undo.shift();
           modal.querySelector('[data-act="undo"]').disabled = false;
           stroke(toImg(e)); showRing(e); e.preventDefault();
         });
-        cv.addEventListener('pointermove', function (e) { showRing(e); if (painting) stroke(toImg(e)); });
-        cv.addEventListener('pointerup', function () { painting = false; last = null; });
-        cv.addEventListener('pointercancel', function () { painting = false; last = null; });
+        cv.addEventListener('pointermove', function (e) { if (boxStart) { boxShow(boxStart, toImg(e)); return; } showRing(e); if (painting) stroke(toImg(e)); });
+        cv.addEventListener('pointerup', function (e) { if (boxStart) { var a = boxStart; boxStart = null; runBox(a, toImg(e)); return; } painting = false; last = null; });
+        cv.addEventListener('pointercancel', function () { painting = false; last = null; boxStart = null; boxEl.style.display = 'none'; });
         cv.addEventListener('pointerleave', function () { if (!painting) ring.style.display = 'none'; });
 
         function close(result) { modal.remove(); document.removeEventListener('keydown', onKey); resolve(result); }
@@ -2055,7 +2144,7 @@ var SU_ART = (function () {
         document.addEventListener('keydown', onKey);
         modal.addEventListener('click', function (e) {
           var b = e.target.closest('button'); if (!b || b.disabled) return;
-          if (b.dataset.tool) { tool = b.dataset.tool; modal.querySelectorAll('[data-tool]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
+          if (b.dataset.tool) { tool = b.dataset.tool; modal.querySelectorAll('[data-tool]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); cv.style.cursor = tool === 'box' ? 'crosshair' : ''; if (tool === 'box') setStatus('Drag a box around the whole plant or animal.'); }
           if (b.dataset.size) { size = +b.dataset.size; sizes(); }
           var a = b.dataset.act;
           if (a === 'undo' && undo.length) { mask = undo.pop(); b.disabled = !undo.length; redraw(); }
