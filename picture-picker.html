@@ -1,0 +1,1708 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Picture Picker · EcoBuild</title>
+<script>window.AFRAME = window.AFRAME || { THREE: {} };</script>
+<script id="eco-library">// Extra full-body artwork for Size Up (side views unless noted)
+var SU_ART = (function () {
+  function svg(vb, body) { return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '">' + body + '</svg>'; }
+  var A = {};
+
+  A.sunflower = svg('0 0 120 300',
+    '<path d="M60 300 C58 230 62 160 60 70" stroke="#4f8a2b" stroke-width="7" fill="none"/>' +
+    '<path d="M60 240 C40 226 24 228 14 238 C28 248 46 250 60 240Z" fill="#5fa036"/>' +
+    '<path d="M60 200 C80 186 98 188 108 198 C94 208 76 210 60 200Z" fill="#5fa036"/>' +
+    '<path d="M60 160 C42 146 26 148 16 158 C30 168 46 170 60 160Z" fill="#6bb03c"/>' +
+    '<path d="M60 120 C78 108 94 110 102 118 C90 128 74 128 60 120Z" fill="#6bb03c"/>' +
+    (function () { var p = ''; for (var i = 0; i < 18; i++) { var a = i / 18 * Math.PI * 2, x = 60 + Math.cos(a) * 30, y = 48 + Math.sin(a) * 30;
+      p += '<ellipse cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" rx="13" ry="6" fill="' + (i % 2 ? '#f6c21c' : '#f2b10f') + '" transform="rotate(' + (a * 180 / Math.PI).toFixed(0) + ' ' + x.toFixed(1) + ' ' + y.toFixed(1) + ')"/>'; } return p; })() +
+    '<circle cx="60" cy="48" r="21" fill="#6b3e1d"/><circle cx="60" cy="48" r="14" fill="#7d4a24"/>');
+
+  A.corn = svg('0 0 120 300',
+    '<path d="M60 300 L60 40" stroke="#6a9a35" stroke-width="8"/>' +
+    '<path d="M60 40 L52 6 M60 40 L60 0 M60 40 L68 8 M60 40 L44 14 M60 40 L76 16" stroke="#d6b45a" stroke-width="3" stroke-linecap="round"/>' +
+    '<path d="M60 270 C30 250 12 220 6 190 C26 214 44 236 60 252Z" fill="#7aae3f"/>' +
+    '<path d="M60 230 C92 210 110 180 116 150 C96 176 76 198 60 212Z" fill="#6aa138"/>' +
+    '<path d="M60 180 C30 160 14 130 8 100 C28 124 46 146 60 162Z" fill="#7aae3f"/>' +
+    '<path d="M60 130 C88 112 104 86 110 60 C92 82 76 100 60 114Z" fill="#6aa138"/>' +
+    '<path d="M62 200 C74 182 80 168 78 150 C72 160 66 176 62 190Z" fill="#9fc768"/>' +
+    '<ellipse cx="70" cy="166" rx="7" ry="20" fill="#f1cf4a" transform="rotate(14 70 166)"/>' +
+    '<path d="M64 186 C70 176 72 166 70 150" stroke="#9fc768" stroke-width="5" fill="none"/>');
+
+  A.raccoon = svg('0 0 230 130',
+    '<path d="M160 70 C190 64 214 76 226 96 C214 92 200 90 186 92 C176 86 168 80 160 76Z" fill="#8b8a86"/>' +
+    '<path d="M180 72 L186 92 M196 74 L200 92 M210 80 L212 94" stroke="#2f2d2b" stroke-width="7" stroke-linecap="round"/>' +
+    '<rect x="62" y="80" width="13" height="40" rx="6" fill="#5f5d5a"/><rect x="150" y="78" width="13" height="42" rx="6" fill="#5f5d5a"/>' +
+    '<path d="M50 72 C56 46 100 38 130 40 C160 40 180 54 176 78 C172 98 150 100 126 100 L84 100 C62 100 46 92 50 72Z" fill="#8b8a86"/>' +
+    '<rect x="72" y="86" width="14" height="38" rx="6" fill="#77756f"/><rect x="160" y="84" width="14" height="40" rx="6" fill="#77756f"/>' +
+    '<ellipse cx="78" cy="123" rx="11" ry="5" fill="#2f2d2b"/><ellipse cx="168" cy="123" rx="11" ry="5" fill="#2f2d2b"/>' +
+    '<path d="M64 50 C56 36 40 32 26 38 C16 42 8 50 4 58 C8 64 18 66 30 66 C44 70 58 66 66 58Z" fill="#9d9b97"/>' +
+    '<path d="M48 40 L52 22 L62 38Z" fill="#9d9b97"/><path d="M52 36 L54 28 L58 37Z" fill="#2f2d2b"/>' +
+    '<path d="M18 46 C28 40 44 40 56 48 C46 54 30 56 18 52Z" fill="#2f2d2b"/>' +
+    '<path d="M6 58 C16 62 30 62 40 60" stroke="#f2f0ea" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+    '<circle cx="5" cy="57" r="4" fill="#1d1c1b"/><circle cx="38" cy="47" r="3.5" fill="#f5f2ea"/><circle cx="38" cy="47" r="2" fill="#111"/>');
+
+  A.zebra = (function () {
+    var stripes = '';
+    for (var i = 0; i < 9; i++) { var x = 82 + i * 15; stripes += '<path d="M' + x + ' 42 C' + (x - 6) + ' 60 ' + (x + 4) + ' 78 ' + (x - 2) + ' 104" stroke="#1d1d1f" stroke-width="7" fill="none"/>'; }
+    var legStr = function (x, y) { return '<path d="M' + x + ' ' + (y + 10) + ' h14 M' + x + ' ' + (y + 22) + ' h14 M' + x + ' ' + (y + 34) + ' h14" stroke="#1d1d1f" stroke-width="5"/>'; };
+    return svg('0 -12 250 202',
+      '<path d="M212 62 C226 72 232 92 230 116" stroke="#1d1d1f" stroke-width="5" fill="none"/><path d="M226 110 l4 18 l6 -16Z" fill="#1d1d1f"/>' +
+      '<rect x="84" y="100" width="14" height="72" rx="6" fill="#f4f2ec"/>' + legStr(84, 110) +
+      '<rect x="190" y="98" width="14" height="74" rx="6" fill="#f4f2ec"/>' + legStr(190, 108) +
+      '<path d="M70 70 C74 46 110 40 146 42 C182 40 214 50 216 72 C218 96 200 108 170 108 L104 108 C82 108 68 94 70 70Z" fill="#f4f2ec"/>' +
+      '<g clip-path="url(#zb)">' + stripes + '</g><clipPath id="zb"><path d="M70 70 C74 46 110 40 146 42 C182 40 214 50 216 72 C218 96 200 108 170 108 L104 108 C82 108 68 94 70 70Z"/></clipPath>' +
+      '<rect x="98" y="102" width="15" height="74" rx="6" fill="#f4f2ec"/>' + legStr(98, 116) +
+      '<rect x="200" y="100" width="15" height="76" rx="6" fill="#f4f2ec"/>' + legStr(200, 114) +
+      '<rect x="96" y="172" width="19" height="10" rx="3" fill="#1d1d1f"/><rect x="198" y="172" width="19" height="10" rx="3" fill="#1d1d1f"/>' +
+      '<rect x="82" y="168" width="18" height="9" rx="3" fill="#1d1d1f"/><rect x="188" y="168" width="18" height="9" rx="3" fill="#1d1d1f"/>' +
+      '<path d="M96 66 C86 46 70 22 56 10 L40 16 C46 34 56 54 74 76Z" fill="#f4f2ec"/>' +
+      '<path d="M60 18 l12 10 M66 30 l12 8 M72 42 l12 8 M78 54 l12 8" stroke="#1d1d1f" stroke-width="6"/>' +
+      '<path d="M54 8 C64 2 80 10 96 30 C92 44 98 56 100 66" stroke="#1d1d1f" stroke-width="7" fill="none"/>' +
+      '<path d="M56 10 C44 6 30 12 20 30 L6 60 C4 68 12 74 20 70 L42 46 C50 36 56 24 56 10Z" fill="#f4f2ec"/>' +
+      '<path d="M26 26 l14 8 M18 40 l14 8" stroke="#1d1d1f" stroke-width="5"/>' +
+      '<path d="M4 58 C8 70 16 74 24 68 L18 56Z" fill="#2b2b2d"/>' +
+      '<path d="M48 8 L54 -4 L60 8Z" fill="#f4f2ec" stroke="#1d1d1f" stroke-width="2"/>' +
+      '<circle cx="36" cy="26" r="3.2" fill="#111"/>');
+  })();
+
+  A.squirrel = svg('0 0 160 130',
+    '<path d="M98 100 C120 104 150 90 154 60 C158 30 140 8 116 10 C104 12 98 22 104 32 C114 28 126 32 126 48 C126 66 110 76 96 80Z" fill="#8f9195"/>' +
+    '<path d="M120 22 C134 22 144 36 142 54" stroke="#c5c7ca" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+    '<path d="M40 86 C38 64 54 52 74 52 C96 52 106 70 104 90 C102 108 86 116 66 116 C50 116 42 104 40 86Z" fill="#a1a3a7"/>' +
+    '<ellipse cx="62" cy="96" rx="14" ry="16" fill="#e9e6df"/>' +
+    '<path d="M86 108 C96 112 102 120 96 124 L74 124 C72 118 78 110 86 108Z" fill="#8f9195"/>' +
+    '<path d="M44 66 C30 58 20 50 14 40 C10 32 18 24 30 24 C44 24 56 34 60 50Z" fill="#a1a3a7"/>' +
+    '<path d="M38 26 L42 12 L50 28Z" fill="#a1a3a7"/><circle cx="28" cy="34" r="3.2" fill="#111"/><circle cx="12" cy="40" r="3" fill="#3a3330"/>' +
+    '<path d="M46 72 C40 78 36 84 38 88" stroke="#8f9195" stroke-width="6" stroke-linecap="round" fill="none"/>');
+
+  A.chimp = svg('0 0 120 260',
+    '<path d="M44 160 C40 196 38 222 40 248 L56 248 C56 222 58 196 60 170Z" fill="#2d2622"/>' +
+    '<path d="M76 160 C80 196 82 222 80 248 L64 248 C64 222 62 196 60 170Z" fill="#2d2622"/>' +
+    '<ellipse cx="46" cy="250" rx="14" ry="6" fill="#4a3d35"/><ellipse cx="74" cy="250" rx="14" ry="6" fill="#4a3d35"/>' +
+    '<path d="M60 64 C88 64 98 92 96 124 C94 156 82 172 60 172 C38 172 26 156 24 124 C22 92 32 64 60 64Z" fill="#2d2622"/>' +
+    '<path d="M28 82 C16 110 12 150 16 186 C18 196 28 196 28 186 C30 156 34 124 40 100Z" fill="#2d2622"/>' +
+    '<path d="M92 82 C104 110 108 150 104 186 C102 196 92 196 92 186 C90 156 86 124 80 100Z" fill="#2d2622"/>' +
+    '<ellipse cx="22" cy="190" rx="9" ry="10" fill="#5a4a40"/><ellipse cx="98" cy="190" rx="9" ry="10" fill="#5a4a40"/>' +
+    '<circle cx="60" cy="38" r="30" fill="#2d2622"/>' +
+    '<circle cx="28" cy="40" r="9" fill="#c9a88c"/><circle cx="92" cy="40" r="9" fill="#c9a88c"/>' +
+    '<path d="M42 28 C42 20 78 20 78 28 C84 40 82 62 60 64 C38 62 36 40 42 28Z" fill="#c9a88c"/>' +
+    '<path d="M42 30 C50 24 70 24 78 30" stroke="#8a6c56" stroke-width="3" fill="none"/>' +
+    '<circle cx="52" cy="36" r="3.4" fill="#1a1411"/><circle cx="68" cy="36" r="3.4" fill="#1a1411"/>' +
+    '<path d="M54 46 h12" stroke="#7a5c48" stroke-width="2.5"/><path d="M48 54 Q60 60 72 54" stroke="#7a5c48" stroke-width="3" fill="none" stroke-linecap="round"/>');
+
+  A.baldEagle = svg('0 0 300 120',
+    '<path d="M150 50 C120 40 90 30 60 34 C40 36 20 42 4 56 C24 54 40 56 52 60 C34 64 22 70 12 80 C34 74 52 74 66 76 C54 82 44 88 38 96 C66 86 98 78 132 74Z" fill="#4a3322"/>' +
+    '<path d="M150 50 C180 40 210 30 240 34 C260 36 280 42 296 56 C276 54 260 56 248 60 C266 64 278 70 288 80 C266 74 248 74 234 76 C246 82 256 88 262 96 C234 86 202 78 168 74Z" fill="#4a3322"/>' +
+    '<path d="M60 40 C80 38 100 40 120 44" stroke="#5e4330" stroke-width="3" fill="none"/><path d="M240 40 C220 38 200 40 180 44" stroke="#5e4330" stroke-width="3" fill="none"/>' +
+    '<path d="M134 46 C134 36 166 36 166 46 L170 86 C166 94 134 94 130 86Z" fill="#3e2a1c"/>' +
+    '<path d="M134 88 L128 112 L150 104 L172 112 L166 88Z" fill="#f7f5ef"/>' +
+    '<path d="M138 50 C130 34 134 16 150 14 C166 16 170 34 162 50 C156 56 144 56 138 50Z" fill="#f7f5ef"/>' +
+    '<path d="M144 34 C144 44 156 44 156 34 L150 48Z" fill="#f2b51b"/>' +
+    '<circle cx="143" cy="28" r="2.6" fill="#1a1a1a"/><circle cx="157" cy="28" r="2.6" fill="#1a1a1a"/>' +
+    '<path d="M140 92 l-4 10 M146 94 l-2 10 M154 94 l2 10 M160 92 l4 10" stroke="#f2b51b" stroke-width="3" stroke-linecap="round"/>');
+
+  A.macaw = svg('0 0 120 300',
+    '<path d="M56 150 C50 200 46 250 44 298 L56 298 C60 250 66 200 70 154Z" fill="#d6231c"/>' +
+    '<path d="M62 150 C66 200 72 250 78 296 L66 298 C62 250 58 200 56 154Z" fill="#2a63c8"/>' +
+    '<ellipse cx="60" cy="110" rx="32" ry="50" fill="#e02a20"/>' +
+    '<path d="M36 90 C60 86 82 98 90 122 C92 140 86 156 74 162 C60 150 44 130 36 90Z" fill="#f2c514"/>' +
+    '<path d="M44 114 C64 120 84 132 92 150 C86 160 76 166 68 166 C58 150 50 134 44 114Z" fill="#2a63c8"/>' +
+    '<path d="M50 112 C62 116 72 124 80 134" stroke="#3a9a46" stroke-width="5" fill="none"/>' +
+    '<circle cx="54" cy="46" r="26" fill="#e02a20"/>' +
+    '<ellipse cx="44" cy="44" rx="11" ry="10" fill="#f6f2ea"/><circle cx="42" cy="44" r="3.4" fill="#151515"/>' +
+    '<path d="M30 46 C16 44 8 54 10 68 C14 62 20 58 28 60 C30 56 30 50 30 46Z" fill="#f1ece0"/>' +
+    '<path d="M26 58 C20 62 18 68 22 72 C26 66 30 64 32 62Z" fill="#222"/>' +
+    '<path d="M70 158 l-4 12 M54 160 l-2 12" stroke="#7a7a7a" stroke-width="4" stroke-linecap="round"/>');
+
+  function snake(main, belly, pattern) {
+    var path = 'M8 60 C30 30 54 30 74 52 C94 74 118 76 138 54 C158 32 182 32 204 52 C222 68 240 70 256 58';
+    return svg('0 0 280 90',
+      '<path d="' + path + '" stroke="' + main + '" stroke-width="18" fill="none" stroke-linecap="round"/>' +
+      (pattern || '') +
+      '<path d="M256 58 C264 52 272 54 276 60 C272 66 264 68 256 64Z" fill="' + main + '"/>' +
+      '<circle cx="268" cy="57" r="2.4" fill="#111"/>' +
+      '<path d="M276 60 l6 -2 M276 60 l6 3" stroke="#c0392b" stroke-width="1.6"/>');
+  }
+  A.garter = snake('#2f3a2c', '#c9c37a', '<path d="M8 60 C30 30 54 30 74 52 C94 74 118 76 138 54 C158 32 182 32 204 52 C222 68 240 70 256 58" stroke="#e9d34a" stroke-width="4" fill="none" stroke-linecap="round"/>');
+  A.rattlesnake = snake('#a58a5e', '#d8c49a',
+    '<path d="M8 60 C30 30 54 30 74 52 C94 74 118 76 138 54 C158 32 182 32 204 52 C222 68 240 70 256 58" stroke="#5c4630" stroke-width="10" fill="none" stroke-dasharray="10 9"/>' +
+    '<path d="M2 62 l-0 0" /><path d="M10 58 L-2 50 M10 60 L-4 58 M10 62 L-2 68" stroke="#e8dcc0" stroke-width="5" stroke-linecap="round"/>');
+
+  A.alligator = svg('0 0 320 90',
+    '<path d="M110 52 C160 40 220 42 270 52 C290 56 306 62 318 70 C300 72 270 70 240 70 C200 72 150 72 110 72Z" fill="#3f4a2c"/>' +
+    '<path d="M120 46 l10 -8 l10 8 l10 -8 l10 8 l10 -8 l10 8 l10 -8 l10 8 l10 -8 l10 8 l10 -8 l10 8 l10 -6 l10 6 l10 -4 l10 4" stroke="#2f3820" stroke-width="4" fill="none"/>' +
+    '<path d="M30 54 C50 40 90 38 130 42 C150 44 160 56 160 66 C150 76 120 78 90 76 C60 76 40 72 30 66Z" fill="#46532f"/>' +
+    '<path d="M2 62 C2 54 14 50 32 50 L60 50 C64 56 64 64 60 68 L30 70 C14 70 2 68 2 62Z" fill="#46532f"/>' +
+    '<path d="M4 64 L58 64" stroke="#2a3119" stroke-width="2.4"/>' +
+    '<path d="M8 64 l3 -3 l3 3 l3 -3 l3 3 l3 -3 l3 3 l3 -3 l3 3 l3 -3 l3 3 l3 -3 l3 3" stroke="#efe9d5" stroke-width="1.6" fill="none"/>' +
+    '<ellipse cx="56" cy="47" rx="7" ry="5" fill="#46532f"/><circle cx="57" cy="46" r="2.6" fill="#e6c14a"/><rect x="56.4" y="44" width="1.2" height="4" fill="#111"/>' +
+    '<path d="M60 74 L52 88 L66 88 L70 76Z M130 74 L124 88 L138 88 L140 76Z" fill="#3a4527"/>' +
+    '<path d="M80 74 L76 86 L88 86 L90 76Z M150 72 L148 84 L160 84 L160 74Z" fill="#46532f"/>');
+
+  A.orca = svg('0 0 320 120',
+    '<path d="M10 70 C30 44 80 34 140 36 C200 38 250 50 284 66 C300 74 310 82 316 92 C300 90 286 86 270 82 C220 96 150 100 90 96 C50 94 20 86 10 70Z" fill="#141518"/>' +
+    '<path d="M150 38 C154 14 160 2 168 0 C170 14 174 28 180 40Z" fill="#141518"/>' +
+    '<path d="M280 68 L310 50 L318 58 L296 76Z M280 80 L312 100 L318 92 L296 76Z" fill="#141518"/>' +
+    '<path d="M20 80 C50 92 100 98 150 92 C130 84 100 82 80 80 C60 82 40 82 20 80Z" fill="#f4f6f6"/>' +
+    '<ellipse cx="62" cy="58" rx="14" ry="6" fill="#f4f6f6" transform="rotate(-8 62 58)"/>' +
+    '<path d="M180 44 C200 46 214 52 220 58 C200 58 186 54 180 50Z" fill="#8c9096"/>' +
+    '<path d="M110 92 C104 104 96 112 88 116 C100 112 112 104 122 96Z" fill="#141518"/>');
+
+  A.clownfish = svg('0 0 200 110',
+    '<path d="M150 56 L196 26 L190 56 L196 86Z" fill="#f26a1b" stroke="#111" stroke-width="3"/>' +
+    '<path d="M70 26 C80 4 112 4 122 26Z M80 86 C90 108 114 108 120 86Z" fill="#f26a1b" stroke="#111" stroke-width="3"/>' +
+    '<ellipse cx="88" cy="56" rx="72" ry="38" fill="#f26a1b" stroke="#111" stroke-width="3"/>' +
+    '<path d="M42 26 C54 40 54 72 42 86 L58 92 C68 74 68 38 58 22Z" fill="#fff" stroke="#111" stroke-width="3"/>' +
+    '<path d="M92 18 C104 38 104 74 92 94 L110 92 C120 72 120 40 110 20Z" fill="#fff" stroke="#111" stroke-width="3"/>' +
+    '<path d="M140 30 C148 44 148 68 140 82 L150 76 C154 64 154 48 150 36Z" fill="#fff" stroke="#111" stroke-width="3"/>' +
+    '<circle cx="30" cy="50" r="6" fill="#111"/><circle cx="31" cy="48" r="2" fill="#fff"/>');
+
+  function whale(body, belly, pec, dorsal) {
+    return svg('0 0 600 120',
+      '<path d="M540 56 L590 28 L598 36 L566 60 L598 84 L590 92 Z" fill="' + body + '"/>' +
+      '<path d="M8 62 C20 38 70 30 150 30 C260 30 400 40 500 50 C530 54 548 58 560 62 C548 68 530 72 500 74 C400 86 260 96 150 96 C80 96 24 88 8 62Z" fill="' + body + '"/>' +
+      '<path d="M10 66 C40 84 100 92 170 92 C120 84 70 80 10 66Z" fill="' + belly + '"/>' +
+      dorsal + pec +
+      '<path d="M20 62 C40 64 70 66 96 66" stroke="' + belly + '" stroke-width="2" fill="none"/>' +
+      '<circle cx="84" cy="54" r="3" fill="#0d1014"/>');
+  }
+  A.blueWhale = whale('#5d7f9e', '#9fb7c9',
+    '<path d="M150 80 C170 98 180 110 196 116 C190 100 182 88 172 78Z" fill="#4f6f8c"/>',
+    '<path d="M420 44 C428 36 436 32 444 32 C440 38 438 44 440 48Z" fill="#5d7f9e"/>');
+  A.humpback = whale('#2c3138', '#cfd3d6',
+    '<path d="M150 78 C180 100 230 112 290 114 C250 104 210 92 176 74Z" fill="#e7eaec" stroke="#2c3138" stroke-width="2"/>',
+    '<path d="M400 42 C410 30 420 26 430 28 C426 34 424 40 426 46Z" fill="#2c3138"/>');
+
+  function shark(body, belly, extra) {
+    return svg('0 0 400 140',
+      '<path d="M330 66 L384 14 L392 20 L368 70 L390 112 L382 116 Z" fill="' + body + '"/>' +
+      '<path d="M6 74 C20 54 60 44 120 42 C200 40 280 52 340 64 C352 66 360 70 364 74 C350 80 330 86 300 90 C220 102 120 104 60 98 C30 94 12 86 6 74Z" fill="' + body + '"/>' +
+      '<path d="M8 78 C30 92 80 100 150 100 C220 100 280 94 320 86 C260 88 180 88 120 84 C70 82 30 80 8 78Z" fill="' + belly + '"/>' +
+      '<path d="M150 46 C160 22 176 6 190 2 C188 18 192 34 206 46Z" fill="' + body + '"/>' +
+      '<path d="M120 92 C110 112 96 126 82 134 C104 130 128 118 146 98Z" fill="' + body + '"/>' +
+      '<path d="M270 86 L264 104 L284 90Z M290 58 L296 48 L302 60Z" fill="' + body + '"/>' +
+      (extra || '') +
+      '<path d="M70 70 v12 M78 69 v13 M86 68 v14 M94 68 v14 M102 68 v14" stroke="' + belly + '" stroke-width="1.6" opacity=".6"/>' +
+      '<circle cx="38" cy="68" r="3.4" fill="#111"/>' +
+      '<path d="M14 82 C26 88 40 88 52 84" stroke="#3b3b3b" stroke-width="2" fill="none"/>');
+  }
+  A.greatWhite = shark('#6f7b86', '#f2f2ee');
+  A.tigerShark = shark('#7d7a6c', '#ece7d8', '<path d="M140 50 l-6 16 M170 48 l-6 18 M200 50 l-6 18 M230 54 l-6 16 M260 58 l-6 14 M288 62 l-5 12" stroke="#55513f" stroke-width="5" stroke-linecap="round"/>');
+  A.reefShark = shark('#9a958a', '#f4f2ea', '<path d="M178 6 C184 4 190 2 190 2 C189 8 189 12 190 16 Z" fill="#141414"/><path d="M378 18 L392 20 L388 30Z" fill="#141414"/>');
+
+  A.person = svg('0 0 100 300',
+    '<circle cx="50" cy="22" r="20" fill="#2fc4f2"/>' +
+    '<path d="M24 52 C24 46 76 46 76 52 L84 150 C84 156 74 156 72 150 L66 92 L66 170 L64 292 C64 300 52 300 52 292 L50 184 L48 292 C48 300 36 300 36 292 L34 170 L34 92 L28 150 C26 156 16 156 16 150Z" fill="#2fc4f2"/>');
+
+  return A;
+})();
+(function () {
+  var THREE = AFRAME.THREE;
+  var LIB = [
+    ['🌳','Deciduous tree','plant',6], ['🌲','Evergreen tree','plant',8], ['🌴','Palm tree','plant',7], ['🌵','Cactus','plant',2.5],
+    ['🎋','Bamboo','plant',4], ['🌾','Grass','plant',0.7], ['🌿','Fern','plant',0.8], ['☘️','Clover','plant',0.25],
+    ['🌱','Seedling','plant',0.3], ['🌻','Sunflower','plant',1.6], ['🌼','Wildflower','plant',0.4], ['🌸','Blossom','plant',0.5],
+    ['🌺','Hibiscus','plant',1.2], ['🌷','Tulip','plant',0.4], ['🪻','Hyacinth','plant',0.45], ['🪷','Lotus','plant',0.5],
+    ['🌽','Corn','plant',2.2],
+    ['🦌','Deer','animal',1.6], ['🐻','Bear','animal',1.5], ['🐺','Wolf','animal',1.0], ['🦊','Fox','animal',0.6],
+    ['🐇','Rabbit','animal',0.35], ['🐿️','Squirrel','animal',0.3], ['🦔','Hedgehog','animal',0.25], ['🦝','Raccoon','animal',0.5],
+    ['🦨','Skunk','animal',0.4], ['🦫','Beaver','animal',0.5], ['🦡','Badger','animal',0.4], ['🐁','Mouse','animal',0.12],
+    ['🦬','Bison','animal',1.8], ['🐪','Camel','animal',2.1], ['🦁','Lion','animal',1.2], ['🐅','Tiger','animal',1.1],
+    ['🐆','Leopard','animal',0.9], ['🦓','Zebra','animal',1.5], ['🦒','Giraffe','animal',5], ['🐘','Elephant','animal',3.2],
+    ['🦏','Rhinoceros','animal',1.7], ['🦛','Hippopotamus','animal',1.5], ['🦘','Kangaroo','animal',1.5], ['🐒','Monkey','animal',0.6,3],
+    ['🦍','Gorilla','animal',1.6], ['🦥','Sloth','animal',0.6,4], ['🐻‍❄️','Polar bear','animal',1.6], ['🐧','Penguin','animal',0.8],
+    ['🦭','Seal','animal',0.6], ['🦉','Owl','animal',0.5,4], ['🦅','Eagle','animal',0.9,9], ['🐦','Songbird','animal',0.25,3],
+    ['🦜','Parrot','animal',0.5,5], ['🦆','Duck','animal',0.5], ['🦢','Swan','animal',0.9], ['🦩','Flamingo','animal',1.3],
+    ['🦇','Bat','animal',0.35,4], ['🐸','Frog','animal',0.15], ['🐍','Snake','animal',0.4], ['🦎','Lizard','animal',0.25],
+    ['🐢','Turtle','animal',0.3], ['🐊','Alligator','animal',0.8], ['🐝','Bee','animal',0.12,1], ['🦋','Butterfly','animal',0.15,1.2],
+    ['🐛','Caterpillar','animal',0.08], ['🐞','Ladybug','animal',0.06], ['🐜','Ant','animal',0.05], ['🪲','Beetle','animal',0.08],
+    ['🦗','Cricket','animal',0.08], ['🕷️','Spider','animal',0.08], ['🦂','Scorpion','animal',0.12], ['🐌','Snail','animal',0.08],
+    ['🪱','Earthworm','animal',0.06],
+    ['🐟','Fish','water',0.4,2], ['🐠','Tropical fish','water',0.3,2], ['🐡','Pufferfish','water',0.3,2], ['🦈','Shark','water',2.5,4],
+    ['🐋','Whale','water',6,6], ['🐬','Dolphin','water',2,3], ['🐙','Octopus','water',0.6], ['🦑','Squid','water',0.6,3],
+    ['🪼','Jellyfish','water',0.5,4], ['🦀','Crab','water',0.2], ['🦞','Lobster','water',0.3], ['🦐','Shrimp','water',0.1,0.5],
+    ['🪸','Coral','water',0.8], ['🦦','Otter','water',0.6],
+    ['🍄','Mushroom','other',0.3], ['🦠','Bacteria','other',0.3], ['🪨','Rock','other',0.8,0,'abiotic'],
+    ['🪵','Log','other',0.6,0,'abiotic'], ['💧','Water source','other',0.5,0,'abiotic'], ['☀️','Sunlight','other',2,12,'abiotic'],
+    ['🪺','Nest','other',0.3],
+    ['🥚','Egg','stage',0.6], ['','Frog eggs','stage',0.6], ['','Butterfly egg','stage',0.6], ['','Tadpole','stage',0.6],
+    ['','Tadpole with legs','stage',0.6], ['','Froglet','stage',0.7], ['','Chrysalis','stage',1], ['','Larva (grub)','stage',0.7],
+    ['','Pupa','stage',0.9], ['🐣','Hatching chick','stage',0.8], ['🐥','Chick','stage',0.8], ['🐔','Hen','stage',1.2],
+    ['🐓','Rooster','stage',1.3], ['','Seed','stage',0.5], ['','Sprouting seed','stage',0.9], ['🌰','Acorn','stage',0.5],
+    ['🍎','Fruit','stage',0.6], ['🪺','Nest with eggs','stage',0.7]
+  ].map(function (a) { return { e: a[0], n: a[1], c: a[2], h: a[3], elev: a[4] || 0, role: a[5] || '' }; });
+  // Full-body artwork for animals whose emoji show only a head
+  var ART = (function () {
+    function svg(vb, body) { return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '">' + body + '</svg>'; }
+  
+    function bear(c, polar) {
+      var head = polar
+        ? '<path d="M82 64 C70 52 52 52 38 60 C28 64 18 70 12 76 C8 80 10 86 16 88 L40 92 C54 96 70 94 82 86 Z" fill="' + c.main + '"/>' +
+          '<circle cx="66" cy="58" r="8" fill="' + c.main + '"/><circle cx="66" cy="58" r="4" fill="' + c.dark + '"/>' +
+          '<ellipse cx="13" cy="79" rx="6" ry="5" fill="#1d1d1f"/><circle cx="44" cy="70" r="3.4" fill="#1d1d1f"/>' +
+          '<path d="M14 88 Q26 92 36 89" stroke="#1d1d1f" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+        : '<circle cx="56" cy="70" r="28" fill="' + c.main + '"/>' +
+          '<circle cx="62" cy="44" r="10" fill="' + c.main + '"/><circle cx="62" cy="44" r="5" fill="' + c.paw + '"/>' +
+          '<ellipse cx="32" cy="80" rx="18" ry="13" fill="' + c.muzzle + '"/>' +
+          '<ellipse cx="18" cy="75" rx="7" ry="5.5" fill="#24170e"/><circle cx="48" cy="63" r="3.6" fill="#24170e"/>' +
+          '<path d="M22 88 Q30 92 38 88" stroke="#24170e" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+      return svg('0 0 240 160',
+        '<rect x="80" y="92" width="22" height="52" rx="10" fill="' + c.dark + '"/>' +
+        '<rect x="170" y="92" width="22" height="52" rx="10" fill="' + c.dark + '"/>' +
+        '<circle cx="212" cy="72" r="9" fill="' + c.dark + '"/>' +
+        '<path d="M62 80 C62 46 100 28 140 32 C176 28 212 46 212 84 C212 110 190 120 150 120 L100 120 C74 120 62 106 62 80Z" fill="' + c.main + '"/>' +
+        '<path d="M100 42 C126 28 160 30 180 42 C152 38 126 40 100 48Z" fill="' + c.hi + '"/>' +
+        '<rect x="64" y="96" width="24" height="54" rx="11" fill="' + c.main + '"/>' +
+        '<rect x="150" y="96" width="24" height="54" rx="11" fill="' + c.main + '"/>' +
+        '<rect x="60" y="141" width="32" height="12" rx="6" fill="' + c.paw + '"/>' +
+        '<rect x="146" y="141" width="32" height="12" rx="6" fill="' + c.paw + '"/>' +
+        '<rect x="77" y="136" width="28" height="10" rx="5" fill="' + c.paw + '"/>' +
+        '<rect x="167" y="136" width="28" height="10" rx="5" fill="' + c.paw + '"/>' +
+        head);
+    }
+  
+    function canine(c) {
+      var legs = function (x, y, h, fill) {
+        return '<rect x="' + x + '" y="' + y + '" width="13" height="' + h + '" rx="6" fill="' + fill + '"/>' +
+          (c.sock ? '<rect x="' + x + '" y="' + (y + h - 20) + '" width="13" height="20" rx="6" fill="' + c.sock + '"/>' : '') +
+          '<ellipse cx="' + (x + 5) + '" cy="' + (y + h - 2) + '" rx="10" ry="5" fill="' + (c.sock || c.dark) + '"/>';
+      };
+      return svg('0 0 250 160',
+        legs(86, 90, 54, c.dark) + legs(178, 88, 56, c.dark) +
+        '<path d="M196 66 C222 62 244 80 244 108 C236 100 224 98 212 94 C204 86 198 78 190 76Z" fill="' + c.main + '"/>' +
+        '<path d="M244 108 C238 98 230 96 222 96 C230 100 238 104 244 108Z" fill="' + c.tip + '"/>' +
+        '<path d="M226 90 C234 92 242 98 244 108 C236 104 228 100 220 98Z" fill="' + c.tip + '"/>' +
+        '<path d="M72 70 C80 52 112 48 142 50 C172 48 198 54 202 74 C204 92 188 102 162 104 L106 104 C86 104 70 92 72 70Z" fill="' + c.main + '"/>' +
+        '<path d="M98 98 C122 108 152 108 180 98 C162 104 122 106 98 98Z" fill="' + c.light + '"/>' +
+        legs(96, 94, 58, c.main) + legs(186, 92, 60, c.main) +
+        '<path d="M62 58 C66 74 76 86 92 92 L104 64 C94 54 80 48 68 46Z" fill="' + c.main + '"/>' +
+        '<path d="M64 62 C68 76 76 84 88 90 C80 80 74 70 70 60Z" fill="' + c.light + '"/>' +
+        '<path d="M90 48 C86 34 74 28 62 30 C48 32 36 38 28 44 L12 50 C8 53 10 58 16 59 L40 62 C52 68 68 70 80 66 Z" fill="' + c.main + '"/>' +
+        '<path d="M14 58 L40 62 C50 66 62 68 72 66 C58 70 42 70 30 66 Z" fill="' + c.light + '"/>' +
+        '<path d="M58 34 L62 12 L76 32Z" fill="' + c.main + '"/><path d="M62 30 L64 18 L71 31Z" fill="' + c.ear + '"/>' +
+        '<path d="M70 34 L78 14 L88 36Z" fill="' + c.dark + '"/>' +
+        '<ellipse cx="11" cy="52" rx="5" ry="4" fill="#1e1a18"/>' +
+        '<path d="M40 41 Q46 37 52 41" stroke="#1e1a18" stroke-width="3.2" fill="none" stroke-linecap="round"/>');
+    }
+  
+    function lion() {
+      var c = { main: '#d9a45b', dark: '#b98440', light: '#efcf94', mane: '#9c5a22', maneHi: '#b86f2c' };
+      return svg('0 0 250 160',
+        '<rect x="84" y="92" width="16" height="52" rx="7" fill="' + c.dark + '"/>' +
+        '<rect x="180" y="90" width="16" height="54" rx="7" fill="' + c.dark + '"/>' +
+        '<path d="M200 72 C226 76 232 100 238 118" stroke="' + c.main + '" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+        '<ellipse cx="238" cy="122" rx="7" ry="10" fill="' + c.mane + '"/>' +
+        '<path d="M70 72 C76 52 110 48 142 50 C174 48 202 54 204 76 C206 94 190 104 164 106 L104 106 C84 106 68 94 70 72Z" fill="' + c.main + '"/>' +
+        '<path d="M98 100 C124 110 154 110 182 100 C162 106 122 108 98 100Z" fill="' + c.light + '"/>' +
+        '<rect x="96" y="96" width="17" height="56" rx="8" fill="' + c.main + '"/>' +
+        '<rect x="186" y="94" width="17" height="58" rx="8" fill="' + c.main + '"/>' +
+        '<ellipse cx="102" cy="150" rx="12" ry="5" fill="' + c.dark + '"/><ellipse cx="192" cy="150" rx="12" ry="5" fill="' + c.dark + '"/>' +
+        '<ellipse cx="92" cy="142" rx="11" ry="5" fill="' + c.dark + '"/><ellipse cx="186" cy="142" rx="11" ry="5" fill="' + c.dark + '"/>' +
+        '<path d="M58 30 C80 14 108 24 112 50 C116 72 108 92 90 100 C72 106 50 100 40 84 C30 66 38 42 58 30Z" fill="' + c.mane + '"/>' +
+        '<path d="M66 34 C84 26 102 34 104 52 C92 42 78 38 66 34Z" fill="' + c.maneHi + '"/>' +
+        '<path d="M76 50 C70 40 56 38 44 44 C34 50 26 56 18 62 C14 66 16 72 22 74 L44 78 C58 82 72 78 80 68 Z" fill="' + c.main + '"/>' +
+        '<path d="M20 72 L44 78 C54 80 64 78 70 74 C58 84 40 84 26 80Z" fill="' + c.light + '"/>' +
+        '<ellipse cx="19" cy="64" rx="5.5" ry="4.5" fill="#4a2c1a"/>' +
+        '<path d="M40 56 Q46 52 52 56" stroke="#2a1a10" stroke-width="3.2" fill="none" stroke-linecap="round"/>' +
+        '<circle cx="64" cy="42" r="7" fill="' + c.main + '"/><circle cx="64" cy="42" r="3.5" fill="' + c.dark + '"/>');
+    }
+  
+    function penguin() {
+      return svg('0 0 130 170',
+        '<ellipse cx="44" cy="160" rx="16" ry="7" fill="#f2a12e"/><ellipse cx="86" cy="160" rx="16" ry="7" fill="#f2a12e"/>' +
+        '<path d="M22 70 C8 92 6 118 14 132 C22 120 28 100 30 82Z" fill="#20262f"/>' +
+        '<path d="M108 70 C122 92 124 118 116 132 C108 120 102 100 100 82Z" fill="#20262f"/>' +
+        '<path d="M65 6 C96 6 108 36 108 70 C110 112 102 156 65 156 C28 156 20 112 22 70 C22 36 34 6 65 6Z" fill="#20262f"/>' +
+        '<path d="M65 52 C88 52 96 80 96 104 C96 134 86 150 65 150 C44 150 34 134 34 104 C34 80 42 52 65 52Z" fill="#f8f8f4"/>' +
+        '<path d="M40 34 C44 24 54 22 58 30 C56 38 48 42 40 34Z" fill="#f8f8f4"/>' +
+        '<path d="M90 34 C86 24 76 22 72 30 C74 38 82 42 90 34Z" fill="#f8f8f4"/>' +
+        '<circle cx="51" cy="31" r="4" fill="#111"/><circle cx="79" cy="31" r="4" fill="#111"/>' +
+        '<path d="M56 42 L74 42 L65 56Z" fill="#f2a12e"/>' +
+        '<path d="M50 56 C56 62 74 62 80 56 C76 66 54 66 50 56Z" fill="#f5c84c" opacity=".7"/>');
+    }
+  
+    function songbird() {
+      return svg('0 0 170 140',
+        '<path d="M76 104 L72 126 M90 104 L94 126" stroke="#6b4a2b" stroke-width="3.5" stroke-linecap="round"/>' +
+        '<path d="M64 126 L80 126 M86 126 L102 126" stroke="#6b4a2b" stroke-width="3" stroke-linecap="round"/>' +
+        '<path d="M118 72 L162 56 L160 72 L122 88Z" fill="#2d64ad"/>' +
+        '<ellipse cx="84" cy="74" rx="44" ry="32" fill="#3f7fd0"/>' +
+        '<ellipse cx="68" cy="84" rx="28" ry="22" fill="#e5853c"/>' +
+        '<path d="M80 58 C104 50 128 62 134 82 C112 84 92 78 78 68Z" fill="#2d64ad"/>' +
+        '<path d="M92 70 C108 70 120 76 126 82 M96 76 C110 77 118 80 124 84" stroke="#244f8a" stroke-width="2" fill="none"/>' +
+        '<circle cx="52" cy="46" r="22" fill="#3f7fd0"/>' +
+        '<path d="M32 42 L14 48 L32 54Z" fill="#e3b23c"/>' +
+        '<circle cx="46" cy="42" r="4.2" fill="#111"/><circle cx="47.5" cy="40.5" r="1.4" fill="#fff"/>');
+    }
+  
+    function frog() {
+      return svg('0 0 180 125',
+        '<path d="M110 104 L160 108 C166 110 166 116 160 118 L104 116Z" fill="#3f8428"/>' +
+        '<path d="M30 72 C30 46 60 32 92 36 C124 38 150 54 152 78 C154 98 132 106 102 106 L62 106 C42 106 30 92 30 72Z" fill="#5aa83a"/>' +
+        '<path d="M44 96 C70 108 110 108 138 96 C122 106 70 108 44 96Z" fill="#b6d97a"/>' +
+        '<path d="M108 66 C138 58 162 80 154 100 C146 112 124 110 104 104 C98 90 100 76 108 66Z" fill="#4a9230"/>' +
+        '<circle cx="96" cy="52" r="6" fill="#3f8428"/><circle cx="120" cy="60" r="5" fill="#3f8428"/><circle cx="78" cy="44" r="4" fill="#3f8428"/>' +
+        '<path d="M52 86 L42 112 C40 116 46 118 50 116 L62 92Z" fill="#4a9230"/>' +
+        '<path d="M36 116 L58 116" stroke="#3f8428" stroke-width="5" stroke-linecap="round"/>' +
+        '<circle cx="56" cy="38" r="15" fill="#5aa83a"/>' +
+        '<circle cx="56" cy="37" r="10" fill="#f3d34a"/><ellipse cx="56" cy="37" rx="6" ry="4" fill="#111"/>' +
+        '<path d="M26 66 Q52 78 86 68" stroke="#2f5f1d" stroke-width="2.6" fill="none" stroke-linecap="round"/>' +
+        '<circle cx="34" cy="58" r="2" fill="#2f5f1d"/>');
+    }
+  
+    return {
+      'Bear': bear({ main: '#8a5a2e', dark: '#6e4521', hi: '#a06b39', muzzle: '#b98a5c', paw: '#5c3a1c' }),
+      'Polar bear': bear({ main: '#f3efe4', dark: '#d9d2c0', hi: '#ffffff', muzzle: '#e9e3d3', paw: '#cfc7b3' }, true),
+      'Wolf': canine({ main: '#8d9198', dark: '#6b7078', light: '#e3e1dc', tip: '#4c5058', ear: '#5c6068' }),
+      'Fox': canine({ main: '#e8742a', dark: '#b8541a', light: '#fbf3e8', tip: '#fbf3e8', ear: '#3a2a22', sock: '#3a2a22' }),
+      'Lion': lion(),
+      'Penguin': penguin(),
+      'Songbird': songbird(),
+      'Frog': frog()
+    };
+  })();
+  // ---- Life cycle stage artwork ----
+  var STAGE_ART = (function () {
+    function svg(vb, body) { return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '">' + body + '</svg>'; }
+    var eggs = '';
+    [[30, 30], [56, 24], [82, 30], [108, 36], [42, 54], [68, 50], [94, 56], [56, 76], [82, 74], [118, 60], [24, 74]].forEach(function (p) {
+      eggs += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="13" fill="#dcefd4" fill-opacity=".9" stroke="#a9cc9a" stroke-width="2"/>' +
+        '<circle cx="' + (p[0] + 1) + '" cy="' + (p[1] + 1) + '" r="5" fill="#1d1f1a"/>';
+    });
+    var tadBody = '<ellipse cx="42" cy="40" rx="27" ry="20" fill="#3e4330"/>' +
+      '<path d="M62 33 C92 18 124 28 154 40 C124 52 92 62 62 47Z" fill="#666d50"/>' +
+      '<path d="M66 37 C96 30 124 34 150 40 C124 44 96 48 66 43Z" fill="#7e866a"/>' +
+      '<ellipse cx="36" cy="32" rx="9" ry="5" fill="#575d45"/>' +
+      '<circle cx="28" cy="35" r="4.5" fill="#f2f0e4"/><circle cx="27" cy="35" r="2.4" fill="#111"/>';
+    var frogBody =
+      '<path d="M110 104 L160 108 C166 110 166 116 160 118 L104 116Z" fill="#3f8428"/>' +
+      '<path d="M30 72 C30 46 60 32 92 36 C124 38 150 54 152 78 C154 98 132 106 102 106 L62 106 C42 106 30 92 30 72Z" fill="#5aa83a"/>' +
+      '<path d="M44 96 C70 108 110 108 138 96 C122 106 70 108 44 96Z" fill="#b6d97a"/>' +
+      '<path d="M108 66 C138 58 162 80 154 100 C146 112 124 110 104 104 C98 90 100 76 108 66Z" fill="#4a9230"/>' +
+      '<path d="M52 86 L42 112 C40 116 46 118 50 116 L62 92Z" fill="#4a9230"/>' +
+      '<path d="M36 116 L58 116" stroke="#3f8428" stroke-width="5" stroke-linecap="round"/>' +
+      '<circle cx="56" cy="38" r="15" fill="#5aa83a"/><circle cx="56" cy="37" r="10" fill="#f3d34a"/><ellipse cx="56" cy="37" rx="6" ry="4" fill="#111"/>' +
+      '<path d="M26 66 Q52 78 86 68" stroke="#2f5f1d" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
+    return {
+      'Frog eggs': svg('0 0 140 96', eggs),
+      'Tadpole': svg('0 0 160 80', tadBody),
+      'Tadpole with legs': svg('0 0 160 90',
+        '<path d="M56 50 C62 62 66 72 78 76 M78 76 L88 74 M78 76 L84 84" stroke="#3e4330" stroke-width="5" fill="none" stroke-linecap="round"/>' + tadBody),
+      'Froglet': svg('0 0 200 125', '<path d="M146 84 C172 82 194 90 196 98 C180 96 162 98 146 100Z" fill="#4a9230"/>' + frogBody),
+      'Butterfly egg': svg('0 0 160 100',
+        '<path d="M10 70 C40 10 120 0 150 30 C120 80 60 100 10 70Z" fill="#4f9a3c"/>' +
+        '<path d="M14 68 C60 50 110 32 148 30" stroke="#3b7b2c" stroke-width="3" fill="none"/>' +
+        '<ellipse cx="82" cy="40" rx="10" ry="14" fill="#f6f1da" stroke="#d6cba0" stroke-width="2"/>' +
+        '<path d="M76 30 L76 50 M82 27 L82 53 M88 30 L88 50" stroke="#e2d8b2" stroke-width="1.5"/>'),
+      'Chrysalis': svg('0 0 80 160',
+        '<path d="M40 0 L40 18" stroke="#4a3a2a" stroke-width="4" stroke-linecap="round"/>' +
+        '<path d="M40 16 C62 22 66 60 60 96 C56 126 48 146 40 150 C32 146 24 126 20 96 C14 60 18 22 40 16Z" fill="#6fbf73"/>' +
+        '<path d="M30 30 C26 60 28 100 36 136" stroke="#8fd493" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+        '<path d="M22 48 C34 55 46 55 58 48" stroke="#1d2b1d" stroke-width="3" fill="none"/>' +
+        '<circle cx="28" cy="44" r="2.6" fill="#e8c547"/><circle cx="40" cy="47" r="2.6" fill="#e8c547"/><circle cx="52" cy="44" r="2.6" fill="#e8c547"/>' +
+        '<circle cx="30" cy="110" r="2.2" fill="#e8c547"/><circle cx="50" cy="110" r="2.2" fill="#e8c547"/>'),
+      'Larva (grub)': svg('0 0 140 120',
+        '<path d="M100 32 C70 2 20 22 24 62 C28 98 80 106 100 82" stroke="#f1e6c8" stroke-width="36" fill="none" stroke-linecap="round"/>' +
+        '<path d="M100 32 C70 2 20 22 24 62 C28 98 80 106 100 82" stroke="#ddcca2" stroke-width="36" fill="none" stroke-dasharray="3 13"/>' +
+        '<circle cx="104" cy="30" r="17" fill="#c47a3a"/><circle cx="110" cy="26" r="3" fill="#3a2414"/>' +
+        '<path d="M80 52 L74 62 M70 50 L62 58 M60 52 L52 58" stroke="#c47a3a" stroke-width="4" stroke-linecap="round"/>'),
+      'Pupa': svg('0 0 90 150',
+        '<ellipse cx="45" cy="80" rx="30" ry="62" fill="#ece0c4"/>' +
+        '<ellipse cx="45" cy="38" rx="20" ry="18" fill="#e2d4b2"/>' +
+        '<path d="M28 56 C30 80 34 96 40 104 M62 56 C60 80 56 96 50 104" stroke="#d3c39c" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+        '<path d="M20 110 C35 116 55 116 70 110 M22 122 C36 128 54 128 68 122 M27 133 C38 138 52 138 63 133" stroke="#d3c39c" stroke-width="3" fill="none"/>'),
+      'Seed': svg('0 0 100 70',
+        '<path d="M10 40 C10 14 40 6 60 10 C86 14 94 34 90 48 C84 66 56 66 44 58 C34 52 26 62 18 58 C12 54 10 48 10 40Z" fill="#b9814a"/>' +
+        '<path d="M22 30 C34 18 54 16 70 20" stroke="#d29c63" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+        '<ellipse cx="38" cy="54" rx="6" ry="3" fill="#7a5130"/>'),
+      'Sprouting seed': svg('0 0 120 150',
+        '<path d="M60 94 C56 112 64 126 58 146 M58 120 C50 126 46 132 44 140 M60 110 C68 116 72 124 74 132" stroke="#e8dcc0" stroke-width="3.5" fill="none" stroke-linecap="round"/>' +
+        '<path d="M60 84 C60 60 56 42 52 30" stroke="#6db54a" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+        '<path d="M52 32 C40 18 24 20 18 26 C28 36 42 38 52 32Z" fill="#7cc657"/>' +
+        '<path d="M53 30 C62 14 80 12 88 18 C80 30 64 34 53 30Z" fill="#6db54a"/>' +
+        '<path d="M30 86 C30 68 50 62 64 66 C84 70 90 84 86 94 C80 106 58 104 48 100 C38 96 30 96 30 86Z" fill="#b9814a"/>')
+    };
+  })();
+  LIB.forEach(function (i) { if (ART[i.n]) i.svg = ART[i.n]; else if (STAGE_ART[i.n]) i.svg = STAGE_ART[i.n]; });
+  function svgUrl(s) { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s); }
+  var CATS = [['plant', 'Plants'], ['animal', 'Animals'], ['water', 'Water life'], ['other', 'Fungi & nonliving']];
+  var WEBP = (function () { try { return document.createElement('canvas').toDataURL('image/webp').indexOf('data:image/webp') === 0; } catch (e) { return false; } })();
+  function encode(c) { return WEBP ? c.toDataURL('image/webp', 0.9) : c.toDataURL('image/png'); }
+  function trim(c) {
+    var x = c.getContext('2d'), d = x.getImageData(0, 0, c.width, c.height).data, W = c.width, H = c.height;
+    var x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (var y = 0; y < H; y++) for (var i = 0; i < W; i++) if (d[(y * W + i) * 4 + 3] > 16) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    x0 = Math.max(0, x0 - 2); y0 = Math.max(0, y0 - 2); x1 = Math.min(W - 1, x1 + 2); y1 = Math.min(H - 1, y1 + 2);
+    var o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+    o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+    return { canvas: o, aspect: o.width / o.height };
+  }
+  function bakeEmoji(e) {
+    var S = 256, c = document.createElement('canvas'); c.width = c.height = S;
+    var x = c.getContext('2d'); x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.font = Math.round(S * 0.8) + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif';
+    x.fillText(e, S / 2, S / 2 + S * 0.04);
+    var t = trim(c); if (!t) return null;
+    return { url: encode(t.canvas), aspect: t.aspect };
+  }
+  function bakeSvg(s) {
+    return new Promise(function (res) {
+      var img = new Image();
+      img.onload = function () {
+        var S = 512, k = S / Math.max(img.naturalWidth || S, img.naturalHeight || S);
+        var c = document.createElement('canvas'); c.width = Math.round((img.naturalWidth || S) * k); c.height = Math.round((img.naturalHeight || S) * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        var t = trim(c); res(t ? { url: encode(t.canvas), aspect: t.aspect } : null);
+      };
+      img.onerror = function () { res(null); };
+      img.src = svgUrl(s);
+    });
+  }
+  function removeBackground(c) {
+    var x = c.getContext('2d'), img = x.getImageData(0, 0, c.width, c.height), d = img.data, W = c.width, H = c.height;
+    var sr = d[0], sg = d[1], sb = d[2], tol = 70, seen = new Uint8Array(W * H), stack = [];
+    for (var i = 0; i < W; i++) { stack.push(i, (H - 1) * W + i); }
+    for (var j = 0; j < H; j++) { stack.push(j * W, j * W + W - 1); }
+    while (stack.length) {
+      var p = stack.pop(); if (seen[p]) continue; seen[p] = 1;
+      var k = p * 4;
+      if (d[k + 3] < 10 || Math.abs(d[k] - sr) + Math.abs(d[k + 1] - sg) + Math.abs(d[k + 2] - sb) < tol) {
+        d[k + 3] = 0;
+        var px = p % W, py = (p - px) / W;
+        if (px > 0) stack.push(p - 1); if (px < W - 1) stack.push(p + 1);
+        if (py > 0) stack.push(p - W); if (py < H - 1) stack.push(p + W);
+      }
+    }
+    x.putImageData(img, 0, 0);
+  }
+  function loadImageFile(file) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () { res(img); setTimeout(function () { URL.revokeObjectURL(url); }, 1000); };
+      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error('bad image')); };
+      img.src = url;
+    });
+  }
+  function libKey(item) {
+    return item.svg ? 'a:' + item.n.toLowerCase().replace(/[^a-z]+/g, '-') + ':1'
+      : 'e:' + Array.from(item.e).map(function (c) { return c.codePointAt(0).toString(16); }).join('-');
+  }
+  // Draw a library item once and return { key, url, aspect }
+  function bakeItem(item) {
+    var key = libKey(item);
+    if (item.svg) return bakeSvg(item.svg).then(function (b) { return b ? { key: key, url: b.url, aspect: b.aspect } : null; });
+    var b = bakeEmoji(item.e);
+    return Promise.resolve(b ? { key: key, url: b.url, aspect: b.aspect } : null);
+  }
+  function findItem(name) { for (var i = 0; i < LIB.length; i++) if (LIB[i].n === name) return LIB[i]; return null; }
+  window.ECOLIB = { LIB: LIB, CATS: CATS, ART: ART, STAGE_ART: STAGE_ART, svgUrl: svgUrl, trim: trim, encode: encode,
+    bakeEmoji: bakeEmoji, bakeSvg: bakeSvg, removeBackground: removeBackground, loadImageFile: loadImageFile,
+    libKey: libKey, bakeItem: bakeItem, findItem: findItem };
+})();
+// Native plants and animals for each biome and national park (shown in the builders' "Native here" tab).
+// Each entry: [kind, common name, scientific name, picture, height in metres, height above ground, recolor]
+//   kind: p plant, a animal, w water life, o other (fungi, microbes)
+//   picture: an emoji, 'a:<library art name>' or 'su:<Size Up art name>'
+// Heights are kept roughly true for animals; large trees are shortened to fit the scene like the main library.
+(function () {
+  if (!window.ECOLIB) return;
+  var EL = window.ECOLIB;
+
+  // Colour swaps that turn one drawing into a close relative
+  var RC = {
+    coyote:    { '#8d9198': '#b0916a', '#6b7078': '#8c7152', '#e3e1dc': '#efe4d2', '#4c5058': '#3a3128', '#5c6068': '#7a6248' },
+    arcticwolf:{ '#8d9198': '#e9e6df', '#6b7078': '#cfcac0', '#e3e1dc': '#ffffff', '#4c5058': '#bdb7ab', '#5c6068': '#d2ccc0' },
+    arcticfox: { '#e8742a': '#f1efea', '#b8541a': '#d6d2c9', '#3a2a22': '#cfc9bd' },
+    kitfox:    { '#e8742a': '#b9ad9a', '#b8541a': '#93877a', '#3a2a22': '#5a4d40' },
+    blackbear: { '#8a5a2e': '#2a2420', '#6e4521': '#1c1714', '#a06b39': '#3a322c', '#b98a5c': '#b08a62', '#5c3a1c': '#141110' },
+    cougar:    { '#d9a45b': '#c49a6c', '#b98440': '#a37b52', '#efcf94': '#eadcc4', '#9c5a22': '#4a3322', '#b86f2c': '#c49a6c' },
+    treefrog:  { '#5aa83a': '#3fbf3a', '#f3d34a': '#d6232a' },
+    dartfrog:  { '#5aa83a': '#2f6fd6', '#4a9230': '#24539f', '#3f8428': '#1c3f7a', '#b6d97a': '#6fa0ec', '#2f5f1d': '#0d1b33', '#f3d34a': '#0d1b33' },
+    yellowfrog:{ '#5aa83a': '#8fae3c', '#4a9230': '#6f8a2c', '#3f8428': '#5a7224', '#b6d97a': '#e3d27a', '#f3d34a': '#c9a227' },
+    toad:      { '#5aa83a': '#8a7a55', '#4a9230': '#6f6244', '#3f8428': '#5e5139', '#b6d97a': '#cfc1a0', '#2f5f1d': '#4a3f2c' },
+    redtoad:   { '#5aa83a': '#9a7a5e', '#4a9230': '#7d604a', '#3f8428': '#b2463a', '#b6d97a': '#d8c3a8', '#2f5f1d': '#5a4232' },
+    mtbluebird:{ '#e5853c': '#a9d2f2', '#6b4a2b': '#4a5868' },
+    palesnake: { '#a58a5e': '#d2b48c', '#5c4630': '#a4865f' },
+    timber:    { '#a58a5e': '#8d7d5e', '#5c4630': '#2e2620' },
+    pinksnake: { '#a58a5e': '#c48b7a', '#5c4630': '#7c4f43' }
+  };
+  // Full-body drawings made just for this list
+  var NART = {
+    javelina: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230 140"><rect x="150" y="84" width="13" height="44" rx="6" fill="#2e2924"/><rect x="70" y="86" width="13" height="42" rx="6" fill="#2e2924"/><path d="M190 70 C198 72 202 78 200 86" stroke="#3a332c" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M58 66 C62 40 96 30 132 32 C164 32 192 44 194 70 C196 92 176 102 150 102 L88 102 C68 102 56 88 58 66Z" fill="#4a423a"/><path d="M70 50 L74 40 L79 45 L84 35 L89 41 L95 31 L100 37 L107 29 L112 35 L119 28 L124 34 L131 28 L136 34 L143 29 L148 36 L155 32 L159 39 L166 36 L168 43 L175 42 C176 46 174 48 170 47 C140 40 104 40 70 54Z" fill="#2f2924"/><path d="M66 86 C90 100 140 102 176 92 C150 104 96 104 66 86Z" fill="#5c5349"/><g fill="none" stroke="#6b6157" stroke-width="2" stroke-linecap="round" opacity=".8"><path d="M110 52 l6 10"/><path d="M130 50 l5 10"/><path d="M150 54 l5 9"/><path d="M168 58 l4 9"/><path d="M120 70 l5 9"/><path d="M142 72 l5 9"/><path d="M162 76 l4 8"/><path d="M100 72 l5 9"/></g><rect x="82" y="88" width="14" height="42" rx="6" fill="#3e3731"/><rect x="164" y="86" width="14" height="44" rx="6" fill="#3e3731"/><path d="M80 126 h18 l-2 6 h-14z M162 126 h18 l-2 6 h-14z M68 124 h16 l-2 6 h-12z M148 124 h16 l-2 6 h-12z" fill="#1a1613"/><path d="M70 44 C80 54 84 74 80 96 L94 98 C98 76 94 54 84 40Z" fill="#d9d2c2"/><path d="M74 52 C66 44 52 44 40 50 C28 56 18 62 10 66 C4 70 6 78 12 80 L38 86 C54 90 68 88 76 78 Z" fill="#4a423a"/><ellipse cx="8" cy="72" rx="6" ry="8" fill="#6e5f55"/><ellipse cx="6" cy="71" rx="1.6" ry="2.4" fill="#1a1613"/><ellipse cx="9.5" cy="74" rx="1.6" ry="2.4" fill="#1a1613"/><path d="M16 80 Q28 86 40 84" stroke="#1a1613" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M22 81 l3 6 l2 -6z" fill="#efe9d8"/><path d="M60 48 L66 32 L74 46Z" fill="#3a332c"/><path d="M63 45 L66 36 L70 45Z" fill="#7a6a5e"/><circle cx="44" cy="60" r="3.2" fill="#140f0c"/><circle cx="45" cy="59" r="1" fill="#fff"/></svg>'
+  };
+  // Drawings that need a shape change as well as new colours
+  var STRIP = { cougar: [/<path d="M58 30[^>]*\/>/, /<path d="M66 34[^>]*\/>/] };
+
+  var NATIVE = {
+    forest: [
+      ['p', 'Red oak', 'Quercus rubra', '🌳', 9], ['p', 'Sugar maple', 'Acer saccharum', '🌳', 8.5],
+      ['p', 'Eastern white pine', 'Pinus strobus', '🌲', 10], ['p', 'Christmas fern', 'Polystichum acrostichoides', '🌿', 0.6],
+      ['p', 'White trillium', 'Trillium grandiflorum', '🌸', 0.35], ['o', 'Honey mushroom', 'Armillaria mellea', '🍄', 0.2],
+      ['a', 'White-tailed deer', 'Odocoileus virginianus', '🦌', 1.7], ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'],
+      ['a', 'Red fox', 'Vulpes vulpes', 'a:Fox', 0.5], ['a', 'Eastern gray squirrel', 'Sciurus carolinensis', 'su:squirrel', 0.25],
+      ['a', 'Raccoon', 'Procyon lotor', 'su:raccoon', 0.35], ['a', 'Striped skunk', 'Mephitis mephitis', '🦨', 0.3],
+      ['a', 'Wild turkey', 'Meleagris gallopavo', '🦃', 1.0], ['a', 'Great horned owl', 'Bubo virginianus', '🦉', 0.55, 5],
+      ['a', 'Eastern bluebird', 'Sialia sialis', 'a:Songbird', 0.18, 2.5], ['a', 'Eastern box turtle', 'Terrapene carolina', '🐢', 0.15],
+      ['a', 'Monarch butterfly', 'Danaus plexippus', '🦋', 0.12, 1.2]
+    ],
+    rainforest: [
+      ['p', 'Kapok tree', 'Ceiba pentandra', '🌳', 14], ['p', 'Strangler fig', 'Ficus americana', '🌳', 9],
+      ['p', 'Açaí palm', 'Euterpe oleracea', '🌴', 9], ['p', 'Philodendron', 'Philodendron bipinnatifidum', '🌿', 1.4],
+      ['p', 'Cattleya orchid', 'Cattleya labiata', '🌸', 0.4, 3],
+      ['a', 'Jaguar', 'Panthera onca', '🐆', 0.8], ['a', 'Brown-throated three-toed sloth', 'Bradypus variegatus', '🦥', 0.6, 5],
+      ['a', 'Black spider monkey', 'Ateles paniscus', '🐒', 0.6, 6], ['a', 'Scarlet macaw', 'Ara macao', 'su:macaw', 0.85, 7],
+      ['a', 'Harpy eagle', 'Harpia harpyja', '🦅', 1.0, 12], ['a', 'Red-eyed tree frog', 'Agalychnis callidryas', 'a:Frog', 0.12, 1.5, 'treefrog'],
+      ['a', 'Dyeing poison dart frog', 'Dendrobates tinctorius', 'a:Frog', 0.1, 0, 'dartfrog'],
+      ['a', 'Green anaconda', 'Eunectes murinus', '🐍', 0.5], ['a', 'Leafcutter ant', 'Atta cephalotes', '🐜', 0.05],
+      ['a', 'Blue morpho butterfly', 'Morpho menelaus', '🦋', 0.15, 1.5]
+    ],
+    grassland: [
+      ['p', 'Big bluestem', 'Andropogon gerardii', '🌾', 2], ['p', 'Switchgrass', 'Panicum virgatum', '🌾', 1.5],
+      ['p', 'Purple coneflower', 'Echinacea purpurea', '🌸', 0.9], ['p', 'Common sunflower', 'Helianthus annuus', 'su:sunflower', 2],
+      ['p', 'Bur oak', 'Quercus macrocarpa', '🌳', 9],
+      ['a', 'American bison', 'Bison bison', '🦬', 1.9], ['a', 'Pronghorn', 'Antilocapra americana', '🦌', 1.2],
+      ['a', 'Black-tailed prairie dog', 'Cynomys ludovicianus', '🐿️', 0.35], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Swift fox', 'Vulpes velox', 'a:Fox', 0.4, 0, 'kitfox'], ['a', 'American badger', 'Taxidea taxus', '🦡', 0.3],
+      ['a', 'Red-tailed hawk', 'Buteo jamaicensis', '🦅', 0.55, 9], ['a', 'Prairie rattlesnake', 'Crotalus viridis', 'su:rattlesnake', 0.3],
+      ['a', 'Differential grasshopper', 'Melanoplus differentialis', '🦗', 0.06], ['a', 'Monarch butterfly', 'Danaus plexippus', '🦋', 0.12, 1.2]
+    ],
+    desert: [
+      ['p', 'Saguaro', 'Carnegiea gigantea', '🌵', 7], ['p', 'Engelmann prickly pear', 'Opuntia engelmannii', '🌵', 1.2],
+      ['p', 'Ocotillo', 'Fouquieria splendens', '🎋', 4], ['p', 'Creosote bush', 'Larrea tridentata', '🌿', 1.5],
+      ['p', 'Blue palo verde', 'Parkinsonia florida', '🌳', 6], ['p', 'Desert marigold', 'Baileya multiradiata', '🌼', 0.4],
+      ['a', 'Gila monster', 'Heloderma suspectum', '🦎', 0.12], ['a', 'Western diamondback rattlesnake', 'Crotalus atrox', 'su:rattlesnake', 0.3, 0, 'palesnake'],
+      ['a', 'Kit fox', 'Vulpes macrotis', 'a:Fox', 0.4, 0, 'kitfox'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Collared peccary (javelina)', 'Pecari tajacu', 'n:javelina', 0.55], ['a', 'Black-tailed jackrabbit', 'Lepus californicus', '🐇', 0.5],
+      ['a', "Agassiz's desert tortoise", 'Gopherus agassizii', '🐢', 0.25], ['a', 'Elf owl', 'Micrathene whitneyi', '🦉', 0.15, 4],
+      ['a', 'Lesser long-nosed bat', 'Leptonycteris yerbabuenae', '🦇', 0.3, 4], ['a', 'Arizona bark scorpion', 'Centruroides sculpturatus', '🦂', 0.08],
+      ['a', 'Desert tarantula', 'Aphonopelma chalcodes', '🕷️', 0.08]
+    ],
+    tundra: [
+      ['p', 'Arctic willow', 'Salix arctica', '🌿', 0.2], ['p', 'Arctic cottongrass', 'Eriophorum scheuchzeri', '🌾', 0.3],
+      ['p', 'Purple saxifrage', 'Saxifraga oppositifolia', '🌸', 0.15], ['o', 'Reindeer lichen', 'Cladonia rangiferina', '🌱', 0.15],
+      ['a', 'Caribou', 'Rangifer tarandus', '🦌', 1.8], ['a', 'Muskox', 'Ovibos moschatus', '🦬', 1.4],
+      ['a', 'Polar bear', 'Ursus maritimus', 'a:Polar bear', 1.6], ['a', 'Arctic wolf', 'Canis lupus arctos', 'a:Wolf', 0.85, 0, 'arcticwolf'],
+      ['a', 'Arctic fox', 'Vulpes lagopus', 'a:Fox', 0.4, 0, 'arcticfox'], ['a', 'Arctic hare', 'Lepus arcticus', '🐇', 0.5],
+      ['a', 'Brown lemming', 'Lemmus trimucronatus', '🐁', 0.1], ['a', 'Snowy owl', 'Bubo scandiacus', '🦉', 0.6],
+      ['a', 'Snow goose', 'Anser caerulescens', '🦢', 0.7], ['a', 'Ringed seal', 'Pusa hispida', '🦭', 0.5],
+      ['w', 'Arctic char', 'Salvelinus alpinus', '🐟', 0.3, 0.3]
+    ],
+    wetland: [
+      ['p', 'Broadleaf cattail', 'Typha latifolia', '🌾', 2], ['p', 'Bald cypress', 'Taxodium distichum', '🌲', 9],
+      ['p', 'Pickerelweed', 'Pontederia cordata', '🪻', 0.8], ['p', 'American lotus', 'Nelumbo lutea', '🪷', 0.8],
+      ['p', 'Common duckweed', 'Lemna minor', '☘️', 0.12],
+      ['a', 'American bullfrog', 'Lithobates catesbeianus', 'a:Frog', 0.15], ['a', 'Mallard', 'Anas platyrhynchos', '🦆', 0.5],
+      ['a', 'Trumpeter swan', 'Cygnus buccinator', '🦢', 1.2], ['a', 'North American beaver', 'Castor canadensis', '🦫', 0.5],
+      ['a', 'North American river otter', 'Lontra canadensis', '🦦', 0.5], ['a', 'Common snapping turtle', 'Chelydra serpentina', '🐢', 0.25],
+      ['a', 'American alligator', 'Alligator mississippiensis', 'su:alligator', 0.9], ['a', 'Common garter snake', 'Thamnophis sirtalis', 'su:garter', 0.3],
+      ['a', 'Northern house mosquito', 'Culex pipiens', '🦟', 0.05, 1], ['w', 'Largemouth bass', 'Micropterus salmoides', '🐟', 0.35, 0.3]
+    ],
+    reef: [
+      ['w', 'Staghorn coral', 'Acropora cervicornis', '🪸', 0.9], ['w', 'Brain coral', 'Platygyra daedalea', '🪸', 0.6],
+      ['p', 'Paddle weed seagrass', 'Halophila ovalis', '🌿', 0.4],
+      ['w', 'Clown anemonefish', 'Amphiprion ocellaris', 'su:clownfish', 0.2, 1.5], ['w', 'Blue tang', 'Paracanthurus hepatus', '🐠', 0.25, 2],
+      ['w', 'Steephead parrotfish', 'Chlorurus microrhinos', '🐟', 0.4, 2], ['w', 'Stars-and-stripes pufferfish', 'Arothron hispidus', '🐡', 0.3, 2],
+      ['w', 'Blacktip reef shark', 'Carcharhinus melanopterus', 'su:reefShark', 0.5, 3], ['w', 'Green sea turtle', 'Chelonia mydas', '🐢', 0.6, 2.5],
+      ['w', 'Day octopus', 'Octopus cyanea', '🐙', 0.5], ['w', 'Bigfin reef squid', 'Sepioteuthis lessoniana', '🦑', 0.4, 3],
+      ['w', 'Moon jellyfish', 'Aurelia aurita', '🪼', 0.4, 4], ['w', 'Painted spiny lobster', 'Panulirus versicolor', '🦞', 0.3],
+      ['w', 'Pacific cleaner shrimp', 'Lysmata amboinensis', '🦐', 0.1, 0.5], ['w', 'Bottlenose dolphin', 'Tursiops truncatus', '🐬', 1.5, 4]
+    ],
+
+    yellowstone: [
+      ['p', 'Lodgepole pine', 'Pinus contorta', '🌲', 10], ['p', 'Quaking aspen', 'Populus tremuloides', '🌳', 8],
+      ['p', 'Big sagebrush', 'Artemisia tridentata', '🌿', 1], ['p', 'Fireweed', 'Chamerion angustifolium', '🪻', 1.2],
+      ['o', 'Heat-loving bacteria (thermophiles)', 'Thermus aquaticus', '🦠', 0.3],
+      ['a', 'American bison', 'Bison bison', '🦬', 1.9], ['a', 'Elk', 'Cervus canadensis', '🦌', 2.2],
+      ['a', 'Gray wolf', 'Canis lupus', 'a:Wolf', 0.85], ['a', 'Grizzly bear', 'Ursus arctos horribilis', 'a:Bear', 1.2],
+      ['a', 'Pronghorn', 'Antilocapra americana', '🦌', 1.2], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Bald eagle', 'Haliaeetus leucocephalus', 'su:baldEagle', 0.9, 8], ['a', 'Mountain bluebird', 'Sialia currucoides', 'a:Songbird', 0.18, 2.5, 'mtbluebird'],
+      ['a', 'North American beaver', 'Castor canadensis', '🦫', 0.5], ['w', 'Yellowstone cutthroat trout', 'Oncorhynchus clarkii bouvieri', '🐟', 0.3, 0.3]
+    ],
+    grandteton: [
+      ['p', 'Subalpine fir', 'Abies lasiocarpa', '🌲', 10], ['p', 'Engelmann spruce', 'Picea engelmannii', '🌲', 11],
+      ['p', 'Narrowleaf cottonwood', 'Populus angustifolia', '🌳', 9], ['p', 'Arrowleaf balsamroot', 'Balsamorhiza sagittata', '🌼', 0.5],
+      ['p', 'Silvery lupine', 'Lupinus argenteus', '🪻', 0.6],
+      ['a', 'Elk', 'Cervus canadensis', '🦌', 2.2], ['a', 'Pronghorn', 'Antilocapra americana', '🦌', 1.2],
+      ['a', 'American bison', 'Bison bison', '🦬', 1.9], ['a', 'Grizzly bear', 'Ursus arctos horribilis', 'a:Bear', 1.2],
+      ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Uinta ground squirrel', 'Urocitellus armatus', '🐿️', 0.25], ['a', 'American pika', 'Ochotona princeps', '🐁', 0.15],
+      ['a', 'Trumpeter swan', 'Cygnus buccinator', '🦢', 1.2], ['a', 'Osprey', 'Pandion haliaetus', '🦅', 0.6, 9],
+      ['a', 'Bald eagle', 'Haliaeetus leucocephalus', 'su:baldEagle', 0.9, 8], ['a', 'North American beaver', 'Castor canadensis', '🦫', 0.5],
+      ['w', 'Snake River cutthroat trout', 'Oncorhynchus clarkii behnkei', '🐟', 0.3, 0.3]
+    ],
+    yosemite: [
+      ['p', 'Giant sequoia', 'Sequoiadendron giganteum', '🌲', 14], ['p', 'Ponderosa pine', 'Pinus ponderosa', '🌲', 11],
+      ['p', 'California black oak', 'Quercus kelloggii', '🌳', 9], ['p', 'Pacific dogwood', 'Cornus nuttallii', '🌳', 5],
+      ['p', 'Greenleaf manzanita', 'Arctostaphylos patula', '🌿', 1.5], ['p', 'Leichtlin\'s mariposa lily', 'Calochortus leichtlinii', '🌷', 0.35],
+      ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'], ['a', 'Mule deer', 'Odocoileus hemionus', '🦌', 1.7],
+      ['a', 'Mountain lion', 'Puma concolor', 'a:Lion', 0.8, 0, 'cougar'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Western gray squirrel', 'Sciurus griseus', 'su:squirrel', 0.28], ['a', 'Peregrine falcon', 'Falco peregrinus', '🦅', 0.45, 10],
+      ['a', 'Great gray owl', 'Strix nebulosa', '🦉', 0.7, 5], ['a', 'Western bluebird', 'Sialia mexicana', 'a:Songbird', 0.18, 2.5],
+      ['a', 'Sierra Nevada yellow-legged frog', 'Rana sierrae', 'a:Frog', 0.1, 0, 'yellowfrog'], ['w', 'Rainbow trout', 'Oncorhynchus mykiss', '🐟', 0.3, 0.3]
+    ],
+    grandcanyon: [
+      ['p', 'Ponderosa pine', 'Pinus ponderosa', '🌲', 11], ['p', 'Two-needle pinyon', 'Pinus edulis', '🌲', 6],
+      ['p', 'Utah juniper', 'Juniperus osteosperma', '🌲', 5], ['p', 'Banana yucca', 'Yucca baccata', '🌿', 0.9],
+      ['p', 'Engelmann prickly pear', 'Opuntia engelmannii', '🌵', 1.2],
+      ['a', 'Desert bighorn sheep', 'Ovis canadensis nelsoni', '🐏', 1.0], ['a', 'Mule deer', 'Odocoileus hemionus', '🦌', 1.7],
+      ['a', 'Elk', 'Cervus canadensis', '🦌', 2.2], ['a', 'Mountain lion', 'Puma concolor', 'a:Lion', 0.8, 0, 'cougar'],
+      ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'], ["a", "Abert's squirrel", 'Sciurus aberti', '🐿️', 0.3],
+      ['a', 'Ringtail', 'Bassariscus astutus', '🦝', 0.3], ['a', 'Grand Canyon rattlesnake', 'Crotalus oreganus abyssus', 'su:rattlesnake', 0.3, 0, 'pinksnake'],
+      ['a', 'Common chuckwalla', 'Sauromalus ater', '🦎', 0.15], ['a', 'Canyon bat', 'Parastrellus hesperus', '🦇', 0.2, 4],
+      ['w', 'Humpback chub', 'Gila cypha', '🐟', 0.3, 0.3]
+    ],
+    bigbend: [
+      ['p', 'Lechuguilla', 'Agave lechuguilla', '🌿', 0.6], ['p', 'Ocotillo', 'Fouquieria splendens', '🎋', 4],
+      ['p', 'Engelmann prickly pear', 'Opuntia engelmannii', '🌵', 1.2], ['p', 'Creosote bush', 'Larrea tridentata', '🌿', 1.5],
+      ['p', 'Texas madrone', 'Arbutus xalapensis', '🌳', 6], ['p', 'Big Bend bluebonnet', 'Lupinus havardii', '🪻', 0.8],
+      ['a', 'Collared peccary (javelina)', 'Pecari tajacu', 'n:javelina', 0.55], ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'],
+      ['a', 'Mountain lion', 'Puma concolor', 'a:Lion', 0.8, 0, 'cougar'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Mule deer', 'Odocoileus hemionus', '🦌', 1.7], ['a', 'Black-tailed jackrabbit', 'Lepus californicus', '🐇', 0.5],
+      ['a', 'Western diamondback rattlesnake', 'Crotalus atrox', 'su:rattlesnake', 0.3, 0, 'palesnake'], ['a', 'Texas brown tarantula', 'Aphonopelma hentzi', '🕷️', 0.08],
+      ['a', 'Striped bark scorpion', 'Centruroides vittatus', '🦂', 0.08], ['a', 'Mexican free-tailed bat', 'Tadarida brasiliensis', '🦇', 0.25, 4]
+    ],
+    everglades: [
+      ['p', 'Sawgrass', 'Cladium jamaicense', '🌾', 2], ['p', 'Bald cypress', 'Taxodium distichum', '🌲', 9],
+      ['p', 'Red mangrove', 'Rhizophora mangle', '🌳', 5], ['p', 'Cabbage palm', 'Sabal palmetto', '🌴', 8],
+      ['p', 'Fragrant water lily', 'Nymphaea odorata', '🪷', 0.3],
+      ['a', 'American alligator', 'Alligator mississippiensis', 'su:alligator', 0.95], ['a', 'American crocodile', 'Crocodylus acutus', '🐊', 0.8],
+      ['a', 'Florida panther', 'Puma concolor coryi', 'a:Lion', 0.75, 0, 'cougar'], ['a', 'American flamingo', 'Phoenicopterus ruber', '🦩', 1.3],
+      ['a', 'Raccoon', 'Procyon lotor', 'su:raccoon', 0.35], ['a', 'Green anole', 'Anolis carolinensis', '🦎', 0.12, 1],
+      ['a', 'Florida softshell turtle', 'Apalone ferox', '🐢', 0.2], ['a', 'Florida apple snail', 'Pomacea paludosa', '🐌', 0.08],
+      ['a', 'Saltmarsh mosquito', 'Aedes taeniorhynchus', '🦟', 0.05, 1], ['w', 'Florida largemouth bass', 'Micropterus floridanus', '🐟', 0.35, 0.3]
+    ],
+    smokies: [
+      ['p', 'Eastern hemlock', 'Tsuga canadensis', '🌲', 10], ['p', 'Tulip tree', 'Liriodendron tulipifera', '🌳', 11],
+      ['p', 'Rosebay rhododendron', 'Rhododendron maximum', '🌺', 3], ['p', 'Mountain laurel', 'Kalmia latifolia', '🌸', 2],
+      ['p', 'White trillium', 'Trillium grandiflorum', '🌸', 0.35], ['p', 'Pink lady\'s slipper', 'Cypripedium acaule', '🌷', 0.3],
+      ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'], ['a', 'White-tailed deer', 'Odocoileus virginianus', '🦌', 1.7],
+      ['a', 'Elk', 'Cervus canadensis', '🦌', 2.2], ['a', 'Wild turkey', 'Meleagris gallopavo', '🦃', 1.0],
+      ['a', 'Red fox', 'Vulpes vulpes', 'a:Fox', 0.5], ['a', 'Barred owl', 'Strix varia', '🦉', 0.5, 5],
+      ['a', 'Timber rattlesnake', 'Crotalus horridus', 'su:rattlesnake', 0.3, 0, 'timber'], ['a', 'Red-cheeked salamander', 'Plethodon jordani', '🦎', 0.12],
+      ['a', 'Synchronous firefly', 'Photinus carolinus', '🪲', 0.06, 1], ['a', 'Eastern box turtle', 'Terrapene carolina', '🐢', 0.15],
+      ['w', 'Brook trout', 'Salvelinus fontinalis', '🐟', 0.3, 0.3]
+    ],
+    arches: [
+      ['p', 'Utah juniper', 'Juniperus osteosperma', '🌲', 5], ['p', 'Two-needle pinyon', 'Pinus edulis', '🌲', 6],
+      ['p', 'Fremont cottonwood', 'Populus fremontii', '🌳', 10], ['p', 'Blackbrush', 'Coleogyne ramosissima', '🌿', 1],
+      ['p', 'Sacred datura', 'Datura wrightii', '🌸', 0.8], ['o', 'Biological soil crust', 'Microcoleus vaginatus', '🦠', 0.3],
+      ['a', 'Desert bighorn sheep', 'Ovis canadensis nelsoni', '🐏', 1.0], ['a', 'Mule deer', 'Odocoileus hemionus', '🦌', 1.7],
+      ['a', 'Kit fox', 'Vulpes macrotis', 'a:Fox', 0.4, 0, 'kitfox'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
+      ['a', 'Mountain lion', 'Puma concolor', 'a:Lion', 0.8, 0, 'cougar'], ['a', 'Desert cottontail', 'Sylvilagus audubonii', '🐇', 0.3],
+      ['a', 'Midget faded rattlesnake', 'Crotalus oreganus concolor', 'su:rattlesnake', 0.25, 0, 'palesnake'],
+      ['a', 'Common collared lizard', 'Crotaphytus collaris', '🦎', 0.12], ['a', 'Golden eagle', 'Aquila chrysaetos', '🦅', 0.9, 10],
+      ['a', 'Red-spotted toad', 'Anaxyrus punctatus', 'a:Frog', 0.08, 0, 'redtoad']
+    ]
+  };
+  // The biome lists come from one real region each, so say which
+  var WHERE = { forest: 'an eastern North American forest', rainforest: 'the rainforests of Central and South America',
+    grassland: 'the North American prairie', desert: 'the Sonoran Desert', tundra: 'the Arctic tundra',
+    wetland: 'North American wetlands', reef: 'Indo-Pacific coral reefs' };
+  var KIND = { p: 'plant', a: 'animal', w: 'water', o: 'other' };
+  var GROUPS = [['plant', 'Plants'], ['animal', 'Animals'], ['water', 'Water life'], ['other', 'Fungi, lichens & microbes']];
+
+  function recolor(s, map) {
+    Object.keys(map).forEach(function (k) { s = s.split(k).join(map[k]).split(k.toUpperCase()).join(map[k]); });
+    return s;
+  }
+  function art(spec, rc) {
+    var s = null;
+    if (spec.indexOf('a:') === 0) s = EL.ART[spec.slice(2)];
+    else if (spec.indexOf('n:') === 0) s = NART[spec.slice(2)];
+    else if (spec.indexOf('su:') === 0) s = window.SU_ART && window.SU_ART[spec.slice(3)];
+    if (!s) return null;
+    if (rc && STRIP[rc]) STRIP[rc].forEach(function (re) { s = s.replace(re, ''); });
+    if (rc && RC[rc]) s = recolor(s, RC[rc]);
+    return s;
+  }
+  var cache = {};
+  function nativeFor(env) {
+    var key = typeof env === 'string' ? env : env && env.mode !== 'photo' ? env.preset : '';
+    if (!key || !NATIVE[key]) return [];
+    if (cache[key]) return cache[key];
+    var list = NATIVE[key].map(function (r) {
+      var it = { n: r[1], sci: r[2], c: KIND[r[0]], h: r[4], elev: r[5] || 0, role: '', native: key };
+      if (/^(a|su|n):/.test(r[3])) {
+        it.svg = art(r[3], r[6]);
+        if (!it.svg) { it.e = '❓'; delete it.svg; }
+      } else it.e = r[3];
+      return it;
+    });
+    var order = GROUPS.map(function (g) { return g[0]; });
+    list.sort(function (a, b) { return order.indexOf(a.c) - order.indexOf(b.c); });
+    return (cache[key] = list);
+  }
+  function placeName(env) {
+    var key = env && env.mode !== 'photo' ? env.preset : '';
+    var P = key && window.ECO && ECO.PRESETS[key];
+    if (WHERE[key]) return WHERE[key];
+    return P ? P.name + (P.park ? ' National Park' : '') : '';
+  }
+  // Library grid helpers shared by the builders
+  function tile(i, idx, esc) {
+    return '<button data-i="' + idx + '" title="Add ' + esc(i.n) + (i.sci ? ' (' + esc(i.sci) + ')' : '') + '">' +
+      (i.svg ? '<img class="emo-img" alt="" src="' + EL.svgUrl(i.svg) + '">' : '<span class="emo" aria-hidden="true">' + i.e + '</span>') +
+      '<span>' + esc(i.n) + '</span></button>';
+  }
+  function nativeGrid(items, env, esc) {
+    var where = placeName(env), html = '<p class="native-note">Plants and animals that really live in <b>' + esc(where) + '</b>. ' +
+      'Find out what each one eats and what eats it, then set its role.</p>', idx = 0;
+    GROUPS.forEach(function (g) {
+      var group = items.filter(function (i) { return i.c === g[0]; });
+      if (!group.length) return;
+      html += '<h4 class="native-head">' + g[1] + '</h4>';
+      group.forEach(function (i) { html += tile(i, items.indexOf(i), esc); idx++; });
+    });
+    return html;
+  }
+  EL.NATIVE = NATIVE; EL.nativeFor = nativeFor; EL.nativeArt = art; EL.libTile = tile; EL.nativeGrid = nativeGrid;
+  // Item keys must be unique per drawing: recoloured art gets its own key from its name
+  var baseKey = EL.libKey;
+  EL.libKey = function (item) { return item.native && item.svg ? 'n:' + item.n.toLowerCase().replace(/[^a-z]+/g, '-') + ':1' : baseKey(item); };
+})();</script>
+<script>// Size Up organisms. Sizes are typical adult sizes.
+// art: 'e:<emoji>' | 'su:<SU_ART key>' | 'lib:<ECOLIB.ART key>'   recolor: [[from,to],...]   rot: degrees
+// fit: which dimension the picture is scaled to — 'h' height, 'len' length/width, 'diag' diagonal
+// v: that dimension in meters
+// place: ground | perch (on a post) | fly | swim | hang | stem (lotus)
+var SU_CATS = [['plants', 'Plants'], ['mammals', 'Mammals'], ['birds', 'Birds'], ['reptiles', 'Reptiles & amphibians'], ['small', 'Insects & small animals'], ['water', 'Water life']];
+var SU_DATA = [
+  // ---------- plants ----------
+  { n: 'Evergreen tree', sp: 'Eastern red cedar', sci: 'Juniperus virginiana', c: 'plants', art: 'e:🌲', fit: 'h', v: 12, place: 'ground', size: 'Usually 9–15 m (30–50 ft) tall', note: 'A common evergreen across Texas and the eastern United States.' },
+  { n: 'Palm tree', sp: 'Coconut palm', sci: 'Cocos nucifera', c: 'plants', art: 'e:🌴', fit: 'h', v: 24, place: 'ground', size: 'Tall varieties reach 24–30 m (80–100 ft)' },
+  { n: 'Saguaro cactus', sci: 'Carnegiea gigantea', c: 'plants', art: 'e:🌵', fit: 'h', v: 12, place: 'ground', size: 'Mature saguaros grow 12–15 m (40–50 ft) tall' },
+  { n: 'Sunflower', sp: 'Common sunflower', sci: 'Helianthus annuus', c: 'plants', art: 'su:sunflower', fit: 'h', v: 2.4, place: 'ground', size: 'Usually 1.5–3 m (5–10 ft) tall' },
+  { n: 'Lotus', sp: 'Sacred lotus', sci: 'Nelumbo nucifera', c: 'plants', art: 'e:🪷', fit: 'len', v: 0.25, place: 'stem', elev: 1.0, size: 'Flowers up to 30 cm (1 ft) across, held up to 1.5 m (5 ft) above the water' },
+  { n: 'Corn stalk', sp: 'Corn (maize)', sci: 'Zea mays', c: 'plants', art: 'su:corn', fit: 'h', v: 2.5, place: 'ground', size: 'Usually 2–3 m (7–10 ft) tall' },
+
+  // ---------- mammals ----------
+  { n: 'White-tailed deer', sci: 'Odocoileus virginianus', c: 'mammals', art: 'e:🦌', fit: 'h', v: 1.75, place: 'ground', size: 'About 1 m (3 ft) tall at the shoulder; 1.6–2.2 m (5–7 ft) long' },
+  { n: 'Mule deer', sci: 'Odocoileus hemionus', c: 'mammals', art: 'e:🦌', fit: 'h', v: 1.85, place: 'ground', size: 'About 1 m (3–3.5 ft) tall at the shoulder; 1.5–2.1 m (5–7 ft) long', note: 'Named for its large, mule-like ears.' },
+  { n: 'American black bear', sci: 'Ursus americanus', c: 'mammals', art: 'lib:Bear', recolor: [['#8a5a2e', '#2a2420'], ['#6e4521', '#1c1714'], ['#a06b39', '#3a322c'], ['#b98a5c', '#b08a62'], ['#5c3a1c', '#141110']], fit: 'len', v: 1.6, place: 'ground', size: '0.7–1 m (2.5–3.5 ft) at the shoulder; 1.2–2 m (4–6.5 ft) long; up to 2 m (7 ft) standing on its hind legs' },
+  { n: 'Grizzly bear', sci: 'Ursus arctos horribilis', c: 'mammals', art: 'lib:Bear', fit: 'len', v: 2.0, place: 'ground', size: 'About 1 m (3.3 ft) at the shoulder; 1.8–2.4 m (6–8 ft) long; about 2.4 m (8 ft) standing on its hind legs' },
+  { n: 'Gray wolf', sci: 'Canis lupus', c: 'mammals', art: 'lib:Wolf', fit: 'len', v: 1.7, place: 'ground', size: '66–81 cm (26–32 in) at the shoulder; 1.5–2 m (5–6.5 ft) long including the tail' },
+  { n: 'Timber wolf', sci: 'Canis lupus', c: 'mammals', art: 'lib:Wolf', recolor: [['#8d9198', '#6f6a63'], ['#6b7078', '#514c46'], ['#e3e1dc', '#d9d2c6'], ['#4c5058', '#2f2c29']], fit: 'len', v: 1.7, place: 'ground', size: '66–81 cm (26–32 in) at the shoulder; 1.5–2 m (5–6.5 ft) long including the tail', note: '“Timber wolf” is another name for gray wolves that live in North American forests.' },
+  { n: 'Red fox', sci: 'Vulpes vulpes', c: 'mammals', art: 'lib:Fox', fit: 'len', v: 1.0, place: 'ground', size: '35–50 cm (14–20 in) at the shoulder; about 1 m (3.3 ft) long including the bushy tail' },
+  { n: 'Jackrabbit', sp: 'Black-tailed jackrabbit', sci: 'Lepus californicus', c: 'mammals', art: 'e:🐇', fit: 'len', v: 0.55, place: 'ground', size: '47–63 cm (18–25 in) long, with ears up to 13 cm (5 in)' },
+  { n: 'Cottontail rabbit', sp: 'Eastern cottontail', sci: 'Sylvilagus floridanus', c: 'mammals', art: 'e:🐇', fit: 'len', v: 0.42, place: 'ground', size: '36–48 cm (14–19 in) long' },
+  { n: 'Gray squirrel', sp: 'Eastern gray squirrel', sci: 'Sciurus carolinensis', c: 'mammals', art: 'su:squirrel', fit: 'len', v: 0.35, place: 'ground', size: '42–52 cm (16.5–20.5 in) long including the tail', note: 'Shown sitting with its tail curled up.' },
+  { n: 'Raccoon', sci: 'Procyon lotor', c: 'mammals', art: 'su:raccoon', fit: 'len', v: 0.8, place: 'ground', size: '23–30 cm (9–12 in) at the shoulder; 60–95 cm (2–3 ft) long including the tail' },
+  { n: 'Skunk', sp: 'Striped skunk', sci: 'Mephitis mephitis', c: 'mammals', art: 'e:🦨', fit: 'len', v: 0.65, place: 'ground', size: '52–77 cm (20–30 in) long including the tail' },
+  { n: 'Beaver', sp: 'North American beaver', sci: 'Castor canadensis', c: 'mammals', art: 'e:🦫', fit: 'h', v: 0.6, place: 'ground', size: 'Body 74–90 cm (29–35 in) plus a flat tail 20–35 cm (8–14 in)', note: 'Shown sitting up on its hind legs.' },
+  { n: 'Badger', sp: 'American badger', sci: 'Taxidea taxus', c: 'mammals', art: 'e:🦡', fit: 'len', v: 0.7, place: 'ground', size: '60–75 cm (24–30 in) long, but only about 23 cm (9 in) tall' },
+  { n: 'Field mouse', sp: 'Deer mouse', sci: 'Peromyscus maniculatus', c: 'mammals', art: 'e:🐁', fit: 'len', v: 0.16, place: 'ground', size: '12–22 cm (5–8.5 in) long including the tail' },
+  { n: 'American bison', sci: 'Bison bison', c: 'mammals', art: 'e:🦬', fit: 'len', v: 3.2, place: 'ground', size: 'Males: about 1.8 m (6 ft) at the shoulder and 3–3.8 m (10–12.5 ft) long', note: 'The largest land animal in North America.' },
+  { n: 'Camel', sp: 'Dromedary camel', sci: 'Camelus dromedarius', c: 'mammals', art: 'e:🐪', fit: 'h', v: 2.1, place: 'ground', size: 'About 2 m (6.5 ft) at the shoulder; up to 2.2 m (7 ft) to the top of the hump' },
+  { n: 'Lion', sp: 'African lion', sci: 'Panthera leo', c: 'mammals', art: 'lib:Lion', fit: 'len', v: 2.9, place: 'ground', size: 'Males: about 1.2 m (4 ft) at the shoulder; 2.6–3.3 m (8.5–11 ft) long including the tail' },
+  { n: 'Siberian tiger', sp: 'Amur tiger', sci: 'Panthera tigris altaica', c: 'mammals', art: 'e:🐅', fit: 'len', v: 3.0, place: 'ground', size: 'Males: about 1 m (3.3 ft) at the shoulder; 2.7–3.3 m (9–11 ft) long including the tail', note: 'The largest wild cat.' },
+  { n: 'Leopard', sci: 'Panthera pardus', c: 'mammals', art: 'e:🐆', fit: 'len', v: 2.0, place: 'ground', size: '45–80 cm (18–31 in) at the shoulder; 1.6–2.6 m (5–8.5 ft) long including the tail' },
+  { n: 'Zebra', sp: 'Plains zebra', sci: 'Equus quagga', c: 'mammals', art: 'su:zebra', fit: 'len', v: 2.7, place: 'ground', size: '1.1–1.45 m (3.6–4.8 ft) at the shoulder; 2–2.5 m (6.5–8 ft) long plus the tail' },
+  { n: 'Giraffe', sci: 'Giraffa camelopardalis', c: 'mammals', art: 'e:🦒', fit: 'h', v: 5.0, place: 'ground', size: '4.3–5.7 m (14–19 ft) tall', note: 'The tallest living animal.' },
+  { n: 'Elephant', sp: 'African bush elephant', sci: 'Loxodonta africana', c: 'mammals', art: 'e:🐘', fit: 'h', v: 3.0, place: 'ground', size: 'Males: about 3 m (10 ft) at the shoulder; females about 2.5 m (8 ft)', note: 'The largest living land animal.' },
+  { n: 'Rhinoceros', sp: 'White rhinoceros', sci: 'Ceratotherium simum', c: 'mammals', art: 'e:🦏', fit: 'len', v: 3.8, place: 'ground', size: '1.5–1.8 m (5–6 ft) at the shoulder; 3.4–4 m (11–13 ft) long' },
+  { n: 'Hippopotamus', sci: 'Hippopotamus amphibius', c: 'mammals', art: 'e:🦛', fit: 'len', v: 3.5, place: 'ground', size: 'About 1.5 m (5 ft) at the shoulder; 3–4 m (10–13 ft) long' },
+  { n: 'Kangaroo', sp: 'Red kangaroo', sci: 'Osphranter rufus', c: 'mammals', art: 'e:🦘', fit: 'len', v: 2.4, place: 'ground', size: 'Males: body up to 1.4 m (4.6 ft) plus a tail up to 1 m (3.3 ft)' },
+  { n: 'Spider monkey', sp: 'Geoffroy’s spider monkey', sci: 'Ateles geoffroyi', c: 'mammals', art: 'e:🐒', fit: 'h', v: 0.55, place: 'perch', elev: 1.3, size: 'Body 30–63 cm (1–2 ft); tail up to 85 cm (2.8 ft)', note: 'Shown sitting on a branch.' },
+  { n: 'Chimpanzee', sci: 'Pan troglodytes', c: 'mammals', art: 'su:chimp', fit: 'h', v: 1.3, place: 'ground', size: '1–1.7 m (3.3–5.5 ft) tall when standing upright' },
+  { n: 'Gorilla', sp: 'Western lowland gorilla', sci: 'Gorilla gorilla gorilla', c: 'mammals', art: 'e:🦍', fit: 'h', v: 1.5, place: 'ground', size: 'Males stand about 1.7 m (5.6 ft) tall; females about 1.5 m (5 ft)', note: 'Shown in a hunched pose, a little lower than its full standing height.' },
+  { n: 'Sloth', sp: 'Brown-throated three-toed sloth', sci: 'Bradypus variegatus', c: 'mammals', art: 'e:🦥', fit: 'h', v: 0.7, place: 'hang', elev: 1.5, size: '42–80 cm (1.4–2.6 ft) long', note: 'Shown hanging from a branch.' },
+  { n: 'Polar bear', sci: 'Ursus maritimus', c: 'mammals', art: 'lib:Polar bear', fit: 'len', v: 2.5, place: 'ground', size: 'Males: 1.3–1.6 m (4–5 ft) at the shoulder; 2.4–3 m (8–10 ft) long' },
+  { n: 'Gray seal', sci: 'Halichoerus grypus', c: 'mammals', art: 'e:🦭', fit: 'len', v: 2.3, place: 'ground', size: 'Males 2–3.3 m (6.5–10.8 ft) long; females 1.6–2 m (5.2–6.5 ft)' },
+  { n: 'River otter', sp: 'North American river otter', sci: 'Lontra canadensis', c: 'mammals', art: 'e:🦦', fit: 'len', v: 1.1, place: 'ground', size: '0.9–1.3 m (3–4.3 ft) long including the tail', note: 'Shown floating on its back.' },
+
+  // ---------- birds ----------
+  { n: 'Penguin', sp: 'Emperor penguin', sci: 'Aptenodytes forsteri', c: 'birds', art: 'lib:Penguin', fit: 'h', v: 1.15, place: 'ground', size: 'About 1.15 m (3.8 ft) tall', note: 'The tallest penguin.' },
+  { n: 'Great horned owl', sci: 'Bubo virginianus', c: 'birds', art: 'e:🦉', fit: 'h', v: 0.55, place: 'perch', elev: 1.3, size: '46–63 cm (18–25 in) tall; wingspan 1–1.5 m (3.3–5 ft)' },
+  { n: 'Bald eagle', sci: 'Haliaeetus leucocephalus', c: 'birds', art: 'su:baldEagle', fit: 'len', v: 2.0, place: 'fly', elev: 1.3, size: 'Wingspan 1.8–2.3 m (6–7.5 ft); body 70–100 cm (28–40 in) long', note: 'Shown flying with its wings spread.' },
+  { n: 'Robin', sp: 'American robin', sci: 'Turdus migratorius', c: 'birds', art: 'lib:Songbird', recolor: [['#3f7fd0', '#57504b'], ['#2d64ad', '#433d39'], ['#244f8a', '#35302c'], ['#e5853c', '#d4602a']], fit: 'len', v: 0.25, place: 'perch', elev: 1.3, size: '20–28 cm (8–11 in) long' },
+  { n: 'Scarlet macaw', sci: 'Ara macao', c: 'birds', art: 'su:macaw', fit: 'h', v: 0.88, place: 'perch', elev: 1.1, size: '81–96 cm (32–38 in) long, about half of it tail' },
+  { n: 'Mallard duck', sci: 'Anas platyrhynchos', c: 'birds', art: 'e:🦆', fit: 'len', v: 0.58, place: 'ground', size: '50–65 cm (20–26 in) long' },
+  { n: 'Trumpeter swan', sci: 'Cygnus buccinator', c: 'birds', art: 'e:🦢', fit: 'len', v: 1.5, place: 'ground', size: '1.4–1.65 m (4.6–5.4 ft) long; wingspan about 2–2.5 m (6.5–8 ft)', note: 'The largest waterfowl native to North America.' },
+  { n: 'American flamingo', sci: 'Phoenicopterus ruber', c: 'birds', art: 'e:🦩', fit: 'h', v: 1.3, place: 'ground', size: '1.2–1.45 m (4–4.8 ft) tall' },
+  { n: 'Big brown bat', sci: 'Eptesicus fuscus', c: 'mammals', art: 'e:🦇', fit: 'len', v: 0.32, place: 'fly', elev: 1.6, size: 'Body 10–13 cm (4–5 in); wingspan 28–33 cm (11–13 in)', note: 'Bats are mammals, not birds. Shown flying with its wings spread.' },
+
+  // ---------- reptiles & amphibians ----------
+  { n: 'Bullfrog', sp: 'American bullfrog', sci: 'Lithobates catesbeianus', c: 'reptiles', art: 'lib:Frog', fit: 'len', v: 0.15, place: 'ground', size: 'Body 9–15 cm (3.5–6 in), sometimes up to 20 cm (8 in)' },
+  { n: 'Garter snake', sp: 'Common garter snake', sci: 'Thamnophis sirtalis', c: 'reptiles', art: 'su:garter', fit: 'len', v: 0.7, place: 'ground', size: '46–100 cm (18–40 in) long' },
+  { n: 'Rattlesnake', sp: 'Western diamondback rattlesnake', sci: 'Crotalus atrox', c: 'reptiles', art: 'su:rattlesnake', fit: 'len', v: 1.2, place: 'ground', size: 'About 1.2 m (4 ft) long; up to 2.1 m (7 ft)' },
+  { n: 'Iguana', sp: 'Green iguana', sci: 'Iguana iguana', c: 'reptiles', art: 'e:🦎', fit: 'diag', v: 1.5, place: 'ground', size: '1.2–1.7 m (4–5.6 ft) long including the tail' },
+  { n: 'Red-eared slider turtle', sci: 'Trachemys scripta elegans', c: 'reptiles', art: 'e:🐢', fit: 'len', v: 0.25, place: 'ground', size: 'Shell 15–30 cm (6–12 in) long' },
+  { n: 'Eastern box turtle', sci: 'Terrapene carolina carolina', c: 'reptiles', art: 'e:🐢', fit: 'len', v: 0.16, place: 'ground', size: 'Shell 11–15 cm (4.5–6 in) long' },
+  { n: 'American alligator', sci: 'Alligator mississippiensis', c: 'reptiles', art: 'su:alligator', fit: 'len', v: 3.4, place: 'ground', size: 'Males 3.4–4.6 m (11–15 ft) long; females about 3 m (10 ft)' },
+
+  // ---------- insects & small animals ----------
+  { n: 'Bumblebee', sp: 'Common eastern bumblebee (worker)', sci: 'Bombus impatiens', c: 'small', art: 'e:🐝', fit: 'len', v: 0.015, place: 'ground', size: 'Workers 1–1.6 cm (0.4–0.6 in); queens about 2 cm (0.8 in)' },
+  { n: 'Monarch butterfly', sci: 'Danaus plexippus', c: 'small', art: 'e:🦋', fit: 'len', v: 0.095, place: 'ground', size: 'Wingspan 8.9–10.2 cm (3.5–4 in)' },
+  { n: 'Ladybug', sp: 'Seven-spotted lady beetle', sci: 'Coccinella septempunctata', c: 'small', art: 'e:🐞', fit: 'len', v: 0.0075, place: 'ground', size: 'About 7–8 mm (0.3 in) long' },
+  { n: 'Black ant', sp: 'Black carpenter ant (worker)', sci: 'Camponotus pennsylvanicus', c: 'small', art: 'e:🐜', fit: 'len', v: 0.013, place: 'ground', size: 'Workers 6–13 mm (0.25–0.5 in) long' },
+  { n: 'Japanese beetle', sci: 'Popillia japonica', c: 'small', art: 'e:🪲', fit: 'len', v: 0.013, place: 'ground', size: 'About 1.3 cm (0.5 in) long' },
+  { n: 'Cricket', sp: 'Field cricket', sci: 'Gryllus species', c: 'small', art: 'e:🦗', fit: 'len', v: 0.035, place: 'ground', size: 'Body 1.5–2.5 cm (0.6–1 in) long, plus long antennae' },
+  { n: 'Wolf spider', sp: 'Carolina wolf spider', sci: 'Hogna carolinensis', c: 'small', art: 'e:🕷️', fit: 'len', v: 0.09, place: 'ground', size: 'Body up to 3.5 cm (1.4 in); legs span up to 10 cm (4 in)' },
+  { n: 'Scorpion', sp: 'Striped bark scorpion', sci: 'Centruroides vittatus', c: 'small', art: 'e:🦂', fit: 'diag', v: 0.065, place: 'ground', size: '6–7 cm (2.4–2.8 in) long', note: 'The most common scorpion in Texas.' },
+  { n: 'Snail', sp: 'Garden snail', sci: 'Cornu aspersum', c: 'small', art: 'e:🐌', fit: 'len', v: 0.05, place: 'ground', size: 'Shell 2.5–4 cm (1–1.6 in) across' },
+  { n: 'Earthworm', sp: 'Common nightcrawler', sci: 'Lumbricus terrestris', c: 'small', art: 'e:🪱', fit: 'len', v: 0.2, place: 'ground', size: '9–30 cm (3.5–12 in) long when stretched out' },
+
+  // ---------- water life ----------
+  { n: 'Trout', sp: 'Rainbow trout', sci: 'Oncorhynchus mykiss', c: 'water', art: 'e:🐟', fit: 'len', v: 0.5, place: 'swim', size: 'Usually 30–60 cm (12–24 in) long' },
+  { n: 'Widemouth bass', sp: 'Largemouth bass', sci: 'Micropterus salmoides', c: 'water', art: 'e:🐟', fit: 'len', v: 0.4, place: 'swim', size: 'Usually 30–55 cm (12–22 in) long', note: 'Usually called the largemouth bass.' },
+  { n: 'Clownfish', sp: 'Ocellaris clownfish', sci: 'Amphiprion ocellaris', c: 'water', art: 'su:clownfish', fit: 'len', v: 0.09, place: 'swim', size: '8–11 cm (3–4.3 in) long' },
+  { n: 'Angelfish', sp: 'Queen angelfish', sci: 'Holacanthus ciliaris', c: 'water', art: 'e:🐠', fit: 'len', v: 0.3, place: 'swim', size: 'Usually about 30 cm (1 ft); up to 45 cm (1.5 ft)' },
+  { n: 'Pufferfish', sp: 'White-spotted puffer', sci: 'Arothron hispidus', c: 'water', art: 'e:🐡', fit: 'len', v: 0.35, place: 'swim', size: 'Up to 50 cm (20 in) long', note: 'Shown puffed up.' },
+  { n: 'Reef shark', sp: 'Blacktip reef shark', sci: 'Carcharhinus melanopterus', c: 'water', art: 'su:reefShark', fit: 'len', v: 1.5, place: 'swim', size: 'Usually 1–1.6 m (3.3–5.2 ft) long; up to 2 m (6.6 ft)' },
+  { n: 'Tiger shark', sci: 'Galeocerdo cuvier', c: 'water', art: 'su:tigerShark', fit: 'len', v: 3.8, place: 'swim', size: 'Adults usually 3.3–4.3 m (11–14 ft) long' },
+  { n: 'Great white shark', sci: 'Carcharodon carcharias', c: 'water', art: 'su:greatWhite', fit: 'len', v: 4.5, place: 'swim', size: 'Females 4.6–6.4 m (15–21 ft) long; males 3.4–4 m (11–13 ft)' },
+  { n: 'Blue whale', sci: 'Balaenoptera musculus', c: 'water', art: 'su:blueWhale', fit: 'len', v: 25, place: 'swim', size: 'Usually 24–30 m (80–100 ft) long', note: 'The largest animal known to have ever lived.' },
+  { n: 'Humpback whale', sci: 'Megaptera novaeangliae', c: 'water', art: 'su:humpback', fit: 'len', v: 14.5, place: 'swim', size: '14–16 m (46–52 ft) long' },
+  { n: 'Killer whale (orca)', sci: 'Orcinus orca', c: 'water', art: 'su:orca', fit: 'len', v: 7, place: 'swim', size: 'Males 6–8 m (20–26 ft) long; females 5–7 m (16–23 ft)', note: 'Despite the name, orcas are the largest kind of dolphin.' },
+  { n: 'Bottlenose dolphin', sci: 'Tursiops truncatus', c: 'water', art: 'e:🐬', fit: 'diag', v: 2.6, place: 'swim', size: '2–4 m (6.5–13 ft) long', note: 'Shown leaping.' },
+  { n: 'Giant Pacific octopus', sci: 'Enteroctopus dofleini', c: 'water', art: 'e:🐙', fit: 'len', v: 3.0, place: 'ground', size: 'Typically 2.1–4 m (7–14 ft) across from arm tip to arm tip' },
+  { n: 'Giant squid', sci: 'Architeuthis dux', c: 'water', art: 'e:🦑', fit: 'diag', v: 11, place: 'swim', size: 'Up to about 13 m (43 ft) long, including its two long feeding tentacles' },
+  { n: 'Jellyfish', sp: 'Moon jellyfish', sci: 'Aurelia aurita', c: 'water', art: 'e:🪼', fit: 'len', v: 0.3, place: 'swim', size: 'Bell 25–40 cm (10–16 in) across' },
+  { n: 'King crab', sp: 'Red king crab', sci: 'Paralithodes camtschaticus', c: 'water', art: 'e:🦀', fit: 'len', v: 1.5, place: 'ground', size: 'Legs span up to 1.5 m (5 ft); shell up to 28 cm (11 in) long' },
+  { n: 'Red lobster', sp: 'American lobster', sci: 'Homarus americanus', c: 'water', art: 'e:🦞', rot: 90, fit: 'len', v: 0.45, place: 'ground', size: 'Usually 25–50 cm (10–20 in) long', note: 'Live American lobsters are greenish-brown. They turn red when cooked.' },
+  { n: 'King prawn', sp: 'Western king prawn', sci: 'Penaeus latisulcatus', c: 'water', art: 'e:🦐', fit: 'len', v: 0.2, place: 'swim', size: 'Up to about 20 cm (8 in) long' }
+];</script>
+<script>// CUTOUT: turns an uploaded photo or drawing into a cut-out with a transparent background.
+// 1) Plain backgrounds (a drawing on paper) are removed instantly by color.
+// 2) Busy backgrounds use a small AI model (U-2-Net-p, Apache-2.0) that runs in the browser.
+// 3) Students can touch up the result with Erase / Bring back brushes before saving.
+(function () {
+  var C = window.CUTOUT = {};
+  C.config = {
+    ortScript: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js',
+    ortWasm: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/',
+    // The site's own copy is tried first; the public copy is the backup.
+    models: ['models/u2netp.onnx', 'https://cdn.jsdelivr.net/npm/@planby-tech/rmbg-webgpu@0.2.1/models/u2netp.onnx'],
+    workSize: 768,   // largest side while editing
+    outSize: 512     // largest side of the saved cut-out
+  };
+
+  // ---------- AI model (loaded only when first needed) ----------
+  var sessionP = null;
+  function loadScript(src) {
+    return new Promise(function (res, rej) {
+      if (window.ort) return res();
+      var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function () { rej(new Error('script')); };
+      document.head.appendChild(s);
+    });
+  }
+  function fetchModel(urls, i) {
+    i = i || 0;
+    if (i >= urls.length) return Promise.reject(new Error('model'));
+    return fetch(urls[i]).then(function (r) { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .catch(function () { return fetchModel(urls, i + 1); });
+  }
+  C.session = function () {
+    if (sessionP) return sessionP;
+    sessionP = loadScript(C.config.ortScript).then(function () {
+      ort.env.wasm.wasmPaths = C.config.ortWasm;
+      ort.env.wasm.numThreads = 1;
+      return fetchModel(C.config.models);
+    }).then(function (buf) {
+      return ort.InferenceSession.create(new Uint8Array(buf), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+    });
+    sessionP.catch(function () { sessionP = null; });
+    return sessionP;
+  };
+
+  // Returns a Uint8Array mask (0 = background, 255 = keep) for a canvas
+  C.aiMask = function (canvas) {
+    return C.session().then(function (session) {
+      var S = 320, t = document.createElement('canvas'); t.width = t.height = S;
+      var tx = t.getContext('2d'); tx.drawImage(canvas, 0, 0, S, S);
+      var px = tx.getImageData(0, 0, S, S).data, n = S * S, max = 1;
+      for (var i = 0; i < px.length; i += 4) { if (px[i] > max) max = px[i]; if (px[i + 1] > max) max = px[i + 1]; if (px[i + 2] > max) max = px[i + 2]; }
+      var mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225], input = new Float32Array(3 * n);
+      for (var p = 0, k = 0; p < n; p++, k += 4) {
+        input[p] = (px[k] / max - mean[0]) / std[0];
+        input[n + p] = (px[k + 1] / max - mean[1]) / std[1];
+        input[2 * n + p] = (px[k + 2] / max - mean[2]) / std[2];
+      }
+      var feeds = {}; feeds[session.inputNames[0]] = new ort.Tensor('float32', input, [1, 3, S, S]);
+      return session.run(feeds).then(function (out) {
+        var o = out[session.outputNames[0]].data, lo = Infinity, hi = -Infinity;
+        for (var j = 0; j < n; j++) { if (o[j] < lo) lo = o[j]; if (o[j] > hi) hi = o[j]; }
+        var range = Math.max(hi - lo, 1e-6), small = tx.createImageData(S, S);
+        for (var q = 0, m = 0; q < n; q++, m += 4) { var v = (o[q] - lo) / range * 255; small.data[m] = small.data[m + 1] = small.data[m + 2] = v; small.data[m + 3] = 255; }
+        tx.putImageData(small, 0, 0);
+        // scale the mask up smoothly to the picture size
+        var W = canvas.width, H = canvas.height, big = document.createElement('canvas'); big.width = W; big.height = H;
+        var bx = big.getContext('2d'); bx.imageSmoothingQuality = 'high'; bx.drawImage(t, 0, 0, W, H);
+        var bd = bx.getImageData(0, 0, W, H).data, mask = new Uint8Array(W * H);
+        for (var a = 0, b = 0; a < mask.length; a++, b += 4) {
+          var x = (bd[b] / 255 - 0.2) / 0.6; mask[a] = x <= 0 ? 0 : x >= 1 ? 255 : Math.round(x * x * (3 - 2 * x) * 255);
+        }
+        return mask;
+      });
+    });
+  };
+
+  // ---------- plain-background removal by color ----------
+  function dist(d, i, c) { return Math.abs(d[i] - c[0]) + Math.abs(d[i + 1] - c[1]) + Math.abs(d[i + 2] - c[2]); }
+  // Find the main colors along the edge of the picture and how much of the edge they cover
+  C.border = function (canvas) {
+    var W = canvas.width, H = canvas.height, d = canvas.getContext('2d').getImageData(0, 0, W, H).data, idx = [];
+    for (var x = 0; x < W; x += 2) { idx.push(x * 4, ((H - 1) * W + x) * 4); }
+    for (var y = 0; y < H; y += 2) { idx.push(y * W * 4, (y * W + W - 1) * 4); }
+    var palette = [], counts = [];
+    idx.forEach(function (i) {
+      if (d[i + 3] < 20) return;
+      for (var p = 0; p < palette.length; p++) if (dist(d, i, palette[p]) < 60) { counts[p]++; return; }
+      if (palette.length < 8) { palette.push([d[i], d[i + 1], d[i + 2]]); counts.push(1); }
+    });
+    var order = counts.map(function (c, i) { return i; }).sort(function (a, b) { return counts[b] - counts[a]; });
+    var top = order.slice(0, 3).map(function (i) { return palette[i]; }), covered = 0;
+    order.slice(0, 2).forEach(function (i) { covered += counts[i]; });
+    var transparentEdge = idx.filter(function (i) { return d[i + 3] < 20; }).length / idx.length;
+    return { palette: top, plain: (covered / idx.length) + transparentEdge, transparent: transparentEdge > 0.6 };
+  };
+  C.colorMask = function (canvas, tol) {
+    tol = tol || 70;
+    var W = canvas.width, H = canvas.height, d = canvas.getContext('2d').getImageData(0, 0, W, H).data;
+    var info = C.border(canvas), pal = info.palette, mask = new Uint8Array(W * H).fill(255), stack = [];
+    function isBg(i) {
+      var k = i * 4; if (d[k + 3] < 20) return true;
+      for (var p = 0; p < pal.length; p++) if (dist(d, k, pal[p]) < tol) return true;
+      return false;
+    }
+    for (var x = 0; x < W; x++) stack.push(x, (H - 1) * W + x);
+    for (var y = 0; y < H; y++) stack.push(y * W, y * W + W - 1);
+    var seen = new Uint8Array(W * H);
+    while (stack.length) {
+      var p = stack.pop(); if (seen[p]) continue; seen[p] = 1;
+      if (!isBg(p)) continue;
+      mask[p] = 0;
+      var px = p % W;
+      if (px > 0) stack.push(p - 1); if (px < W - 1) stack.push(p + 1);
+      if (p >= W) stack.push(p - W); if (p < W * (H - 1)) stack.push(p + W);
+    }
+    return soften(mask, W, H);
+  };
+  // Soften hard edges by one pixel so cut-outs don't look jagged
+  function soften(mask, W, H) {
+    var out = new Uint8Array(mask.length);
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+      var s = 0, n = 0;
+      for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+        var xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        s += mask[yy * W + xx]; n++;
+      }
+      out[y * W + x] = mask[y * W + x] === 0 ? Math.min(s / n, 60) | 0 : Math.round(s / n);
+    }
+    return out;
+  }
+
+  // Automatic choice: plain edge → color method; busy edge → AI
+  C.autoMask = function (canvas) {
+    var b = C.border(canvas);
+    if (b.transparent) return Promise.resolve({ mask: alphaMask(canvas), method: 'already' });
+    if (b.plain >= 0.85) return Promise.resolve({ mask: C.colorMask(canvas), method: 'color' });
+    return C.aiMask(canvas).then(function (m) { return { mask: m, method: 'ai' }; });
+  };
+  function alphaMask(canvas) {
+    var d = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data, m = new Uint8Array(d.length / 4);
+    for (var i = 0; i < m.length; i++) m[i] = d[i * 4 + 3];
+    return m;
+  }
+
+  // Put a mask on a picture and return a new canvas
+  C.apply = function (canvas, mask) {
+    var W = canvas.width, H = canvas.height, out = document.createElement('canvas'); out.width = W; out.height = H;
+    var x = out.getContext('2d'); x.drawImage(canvas, 0, 0);
+    var id = x.getImageData(0, 0, W, H);
+    for (var i = 0; i < mask.length; i++) id.data[i * 4 + 3] = Math.min(id.data[i * 4 + 3], mask[i]);
+    x.putImageData(id, 0, 0);
+    return out;
+  };
+  function trim(c) {
+    var x = c.getContext('2d'), d = x.getImageData(0, 0, c.width, c.height).data, W = c.width, H = c.height, x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (var y = 0; y < H; y++) for (var i = 0; i < W; i++) if (d[(y * W + i) * 4 + 3] > 16) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    x0 = Math.max(0, x0 - 2); y0 = Math.max(0, y0 - 2); x1 = Math.min(W - 1, x1 + 2); y1 = Math.min(H - 1, y1 + 2);
+    var o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+    o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+    return o;
+  }
+  function encode(c) {
+    var webp = c.toDataURL('image/webp', 0.9);
+    return webp.indexOf('data:image/webp') === 0 ? webp : c.toDataURL('image/png');
+  }
+  function finish(canvas, mask) {
+    var cut = mask ? C.apply(canvas, mask) : canvas, t = trim(cut) || cut;
+    var k = Math.min(1, C.config.outSize / Math.max(t.width, t.height));
+    var o = document.createElement('canvas'); o.width = Math.max(1, Math.round(t.width * k)); o.height = Math.max(1, Math.round(t.height * k));
+    var ox = o.getContext('2d'); ox.imageSmoothingQuality = 'high'; ox.drawImage(t, 0, 0, o.width, o.height);
+    return { url: encode(o), aspect: o.width / o.height };
+  }
+  function loadFile(file) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var k = Math.min(1, C.config.workSize / Math.max(img.naturalWidth, img.naturalHeight));
+        var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url); res(c);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error('bad image')); };
+      img.src = url;
+    });
+  }
+  function niceName(file) {
+    var n = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\b(img|image|photo|dsc|pxl)\s*\d+\b/ig, '').trim() || 'My picture';
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  }
+
+  // ---------- the cleanup window ----------
+  var CSS = [
+    '.co-modal{position:fixed;inset:0;z-index:100;background:rgba(10,24,18,.6);display:grid;place-items:center;padding:12px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#1b2620}',
+    '.co-sheet{background:#fff;border-radius:16px;width:min(720px,100%);max-height:96vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden}',
+    '.co-head{padding:16px 20px 8px}.co-head h2{margin:0;font-size:21px;text-transform:none;letter-spacing:0;color:#1b2620;font-weight:700}.co-status{margin:4px 0 0;color:#4c5d52;font-size:14.5px;min-height:20px}',
+    '.co-stage{position:relative;flex:1;min-height:200px;margin:0 20px;border-radius:12px;overflow:hidden;display:grid;place-items:center;',
+    'background:#fff conic-gradient(#e6e9e4 25%,#fff 0 50%,#e6e9e4 0 75%,#fff 0) 0 0/22px 22px}',
+    '.co-stage canvas{max-width:100%;max-height:56vh;display:block;touch-action:none;cursor:none}',
+    '.co-ring{position:absolute;pointer-events:none;border:2px solid #fff;outline:2px solid #1b2620;border-radius:50%;display:none}',
+    '.co-busy{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.75);font-weight:600;font-size:16px;text-align:center;padding:20px}',
+    '.co-busy[hidden]{display:none}.co-spin{width:38px;height:38px;border:4px solid #cfd8d2;border-top-color:#2e7d4f;border-radius:50%;animation:cospin 1s linear infinite;margin:0 auto 10px}',
+    '@keyframes cospin{to{transform:rotate(360deg)}}',
+    '.co-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 20px 4px}',
+    '.co-tools button,.co-foot button{font:inherit;border-radius:10px;padding:9px 14px;border:1px solid #cdd3ca;background:#fff;color:#1b2620;cursor:pointer;font-weight:600}',
+    '.co-tools button[aria-pressed="true"]{background:#2e7d4f;color:#fff;border-color:#2e7d4f}',
+    '.co-tools .sz{display:inline-flex;gap:4px;align-items:center;margin-left:4px;font-size:14px;color:#4c5d52}',
+    '.co-tools .sz button{width:40px;height:40px;padding:0;display:grid;place-items:center}',
+    '.co-tools .sz i{display:block;border-radius:50%;background:currentColor}',
+    '.co-tools .sp{flex:1}',
+    '.co-foot{display:flex;flex-wrap:wrap;gap:8px;padding:10px 20px 18px;justify-content:flex-end}',
+    '.co-foot .done{background:#2e7d4f;color:#fff;border-color:#2e7d4f}.co-foot .done:disabled{opacity:.5}',
+    '.co-foot .left{margin-right:auto}',
+    '.co-tools button:disabled,.co-foot button:disabled{opacity:.45;cursor:default}'
+  ].join('\n');
+  var styled = false;
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+
+  // Opens the cleanup window. Resolves with { url, aspect, name } or null if the student cancels.
+  C.open = function (file) {
+    if (!styled) { var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st); styled = true; }
+    return loadFile(file).then(function (pic) {
+      return new Promise(function (resolve) {
+        var W = pic.width, H = pic.height, mask = new Uint8Array(W * H).fill(255), undo = [], tool = 'erase', size = 2, method = '';
+        var modal = el('div', 'co-modal'); modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true');
+        modal.innerHTML =
+          '<div class="co-sheet"><div class="co-head"><h2>Clean up your picture</h2><p class="co-status"></p></div>' +
+          '<div class="co-stage"><canvas></canvas><div class="co-ring"></div><div class="co-busy"><div><div class="co-spin"></div><span>Removing the background…</span></div></div></div>' +
+          '<div class="co-tools">' +
+            '<button data-tool="erase" aria-pressed="true">🧽 Erase</button>' +
+            '<button data-tool="restore" aria-pressed="false">🖌️ Bring back</button>' +
+            '<span class="sz">Brush <button data-size="1" aria-label="Small brush"><i style="width:8px;height:8px"></i></button><button data-size="2" aria-label="Medium brush"><i style="width:14px;height:14px"></i></button><button data-size="3" aria-label="Large brush"><i style="width:22px;height:22px"></i></button></span>' +
+            '<span class="sp"></span><button data-act="undo" disabled>↶ Undo</button>' +
+          '</div>' +
+          '<div class="co-foot"><button class="left" data-act="whole">Keep the whole picture</button><button data-act="again">Try again</button><button data-act="cancel">Cancel</button><button class="done" data-act="done" disabled>Done ✓</button></div></div>';
+        document.body.appendChild(modal);
+        var cv = modal.querySelector('canvas'), cx = cv.getContext('2d'), ring = modal.querySelector('.co-ring'), busy = modal.querySelector('.co-busy');
+        var status = modal.querySelector('.co-status'), stage = modal.querySelector('.co-stage');
+        cv.width = W; cv.height = H;
+        var src = pic.getContext('2d').getImageData(0, 0, W, H), view = cx.createImageData(W, H), raf = 0;
+        function draw() {
+          raf = 0;
+          for (var i = 0, k = 0; i < mask.length; i++, k += 4) { view.data[k] = src.data[k]; view.data[k + 1] = src.data[k + 1]; view.data[k + 2] = src.data[k + 2]; view.data[k + 3] = Math.min(src.data[k + 3], mask[i]); }
+          cx.putImageData(view, 0, 0);
+        }
+        function redraw() { if (!raf) raf = requestAnimationFrame(draw); }
+        function setStatus(t) { status.textContent = t; }
+        function sizes() { modal.querySelectorAll('[data-size]').forEach(function (b) { b.setAttribute('aria-pressed', +b.dataset.size === size); }); }
+        sizes();
+        function run(mode) {
+          busy.hidden = false; modal.querySelector('[data-act="done"]').disabled = true;
+          var needsAI = mode === 'ai' || (mode === 'auto' && !C.border(pic).transparent && C.border(pic).plain < 0.85);
+          busy.querySelector('span').textContent = needsAI && !sessionP ? 'Getting the background remover ready… (only the first time)' : 'Removing the background…';
+          var job = mode === 'ai' ? C.aiMask(pic).then(function (m) { return { mask: m, method: 'ai' }; })
+            : mode === 'color' ? Promise.resolve({ mask: C.colorMask(pic, 80), method: 'color' }) : C.autoMask(pic);
+          job.then(function (r) {
+            undo.push(mask.slice()); mask = r.mask; method = r.method;
+            setStatus(r.method === 'already' ? 'This picture already has a see-through background. Touch it up if you like, then press Done.'
+              : 'Use Erase to rub out any background that is left. Use Bring back to paint back anything removed by mistake.');
+          }).catch(function () {
+            // AI not available (offline?), so fall back to the color method
+            undo.push(mask.slice()); mask = C.colorMask(pic, 80); method = 'color';
+            setStatus('The smart background remover could not load, so a simpler one was used. Erase anything that is left over.');
+          }).then(function () { busy.hidden = true; modal.querySelector('[data-act="done"]').disabled = false; modal.querySelector('[data-act="undo"]').disabled = undo.length < 2; redraw(); });
+        }
+        draw(); run('auto');
+
+        // brush painting
+        var painting = false, last = null;
+        function toImg(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height, s: r.width / W }; }
+        function radius(s) { return [0, 7, 16, 32][size] / s; }
+        function dab(p) {
+          var R = radius(p.s), val = tool === 'erase' ? 0 : 255, x0 = Math.max(0, Math.floor(p.x - R)), x1 = Math.min(W - 1, Math.ceil(p.x + R)), y0 = Math.max(0, Math.floor(p.y - R)), y1 = Math.min(H - 1, Math.ceil(p.y + R));
+          for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++) {
+            var dd = Math.hypot(x - p.x, y - p.y); if (dd > R) continue;
+            var f = dd > R - 1.5 ? (R - dd) / 1.5 : 1, i = y * W + x;
+            mask[i] = val ? Math.max(mask[i], Math.round(255 * f)) : Math.min(mask[i], Math.round(255 * (1 - f)));
+          }
+        }
+        function stroke(p) {
+          if (last) { var steps = Math.ceil(Math.hypot(p.x - last.x, p.y - last.y) / Math.max(1, radius(p.s) / 3)); for (var s = 1; s <= steps; s++) dab({ x: last.x + (p.x - last.x) * s / steps, y: last.y + (p.y - last.y) * s / steps, s: p.s }); }
+          else dab(p);
+          last = p; redraw();
+        }
+        function showRing(e) {
+          var r = stage.getBoundingClientRect(), d = [0, 7, 16, 32][size] * 2;
+          ring.style.display = 'block'; ring.style.width = ring.style.height = d + 'px';
+          ring.style.left = (e.clientX - r.left - d / 2) + 'px'; ring.style.top = (e.clientY - r.top - d / 2) + 'px';
+          ring.style.borderColor = tool === 'erase' ? '#fff' : '#3cbf6a';
+        }
+        cv.addEventListener('pointerdown', function (e) {
+          if (!busy.hidden) return;
+          painting = true; last = null; cv.setPointerCapture(e.pointerId);
+          undo.push(mask.slice()); if (undo.length > 30) undo.shift();
+          modal.querySelector('[data-act="undo"]').disabled = false;
+          stroke(toImg(e)); showRing(e); e.preventDefault();
+        });
+        cv.addEventListener('pointermove', function (e) { showRing(e); if (painting) stroke(toImg(e)); });
+        cv.addEventListener('pointerup', function () { painting = false; last = null; });
+        cv.addEventListener('pointercancel', function () { painting = false; last = null; });
+        cv.addEventListener('pointerleave', function () { if (!painting) ring.style.display = 'none'; });
+
+        function close(result) { modal.remove(); document.removeEventListener('keydown', onKey); resolve(result); }
+        function onKey(e) {
+          if (e.key === 'Escape') close(null);
+          if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); modal.querySelector('[data-act="undo"]').click(); }
+        }
+        document.addEventListener('keydown', onKey);
+        modal.addEventListener('click', function (e) {
+          var b = e.target.closest('button'); if (!b || b.disabled) return;
+          if (b.dataset.tool) { tool = b.dataset.tool; modal.querySelectorAll('[data-tool]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
+          if (b.dataset.size) { size = +b.dataset.size; sizes(); }
+          var a = b.dataset.act;
+          if (a === 'undo' && undo.length) { mask = undo.pop(); b.disabled = !undo.length; redraw(); }
+          if (a === 'again') run(method === 'ai' ? 'color' : 'ai');
+          if (a === 'whole') { undo.push(mask.slice()); mask = new Uint8Array(W * H).fill(255); modal.querySelector('[data-act="undo"]').disabled = false; redraw(); setStatus('The whole picture will be used. Press Done, or use Erase to remove parts.'); }
+          if (a === 'cancel') close(null);
+          if (a === 'done') {
+            var r = finish(pic, mask);
+            if (!r || r.aspect !== r.aspect) { setStatus('Nothing is left to keep. Use Bring back or Undo.'); return; }
+            var keep = 0; for (var i = 0; i < mask.length; i += 7) if (mask[i] > 16) keep++;
+            if (!keep) { setStatus('Nothing is left to keep. Use Bring back or Undo.'); return; }
+            r.name = niceName(file); r.method = method; close(r);
+          }
+        });
+      });
+    });
+  };
+})();</script>
+<style>
+  :root { --ink: #1b2620; --muted: #5d6a62; --line: #dfe3dc; --paper: #f7f6f1; --card: #fff; --forest: #1e3a2c; --accent: #2e7d4f; --gold: #f2c14e; --danger: #b3382c; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: var(--paper); font-size: 14px;
+    display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+  button { font: inherit; border-radius: 8px; padding: 7px 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+  button:hover { border-color: #b0b9ad; }
+  button:disabled { opacity: .5; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 650; }
+  input[type=search], input[type=text], select { font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+  header { background: var(--forest); color: #fff; display: flex; align-items: center; gap: 12px; padding: 10px 16px; flex-wrap: wrap; }
+  header a { color: #fff; text-decoration: none; font-weight: 750; font-size: 17px; padding-right: 12px; border-right: 1px solid rgba(255,255,255,.3); }
+  header h1 { font-size: 17px; margin: 0; font-weight: 650; }
+  header .prog { display: flex; align-items: center; gap: 8px; color: #cfe0d4; font-size: 13px; }
+  header .bar { width: 160px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.18); overflow: hidden; }
+  header .bar i { display: block; height: 100%; background: var(--gold); width: 0; }
+  header .sp { flex: 1; }
+  header button { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.25); }
+  header button.gold { background: var(--gold); color: #1e2a20; border-color: var(--gold); font-weight: 650; }
+  main { display: grid; grid-template-columns: 320px minmax(0, 1fr); min-height: 0; }
+  #side { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  #filters { padding: 12px; display: grid; gap: 8px; border-bottom: 1px solid var(--line); }
+  #filters .row { display: flex; gap: 6px; }
+  #filters select { flex: 1; min-width: 0; }
+  #list { overflow-y: auto; flex: 1; }
+  .it { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; text-align: left; padding: 7px 12px; }
+  .it[aria-current="true"] { background: #e3efe6; }
+  .it .th { width: 38px; height: 38px; flex: none; display: grid; place-items: center; font-size: 26px; }
+  .it .th img { max-width: 38px; max-height: 38px; }
+  .it .nm { flex: 1; min-width: 0; }
+  .it .nm b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .it .nm i { color: var(--muted); font-size: 12px; }
+  .st { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px; flex: none; }
+  .st.done { background: #d6ecd9; color: #1f5c33; }
+  .st.skip { background: #f1e6c4; color: #6b5414; }
+  #work { overflow-y: auto; padding: 18px 22px 40px; min-height: 0; }
+  .top { display: flex; flex-direction: column; gap: 14px; }
+  .now { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .pic { width: 110px; height: 110px; border-radius: 12px; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; font-size: 70px; flex: none;
+    background-image: linear-gradient(45deg, #f1f1ec 25%, transparent 25%, transparent 75%, #f1f1ec 75%), linear-gradient(45deg, #f1f1ec 25%, transparent 25%, transparent 75%, #f1f1ec 75%);
+    background-size: 16px 16px; background-position: 0 0, 8px 8px; }
+  .pic img { max-width: 100px; max-height: 100px; }
+  .lab { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; text-align: center; margin-top: 4px; }
+  .now h2 { margin: 0 0 2px; font-size: 22px; }
+  .now .sci { font-style: italic; color: var(--muted); }
+  .now .file { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  .now .where { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .note { background: #fff8e1; border: 1px solid #ecd9a0; border-radius: 10px; padding: 10px 12px; margin: 14px 0 0; line-height: 1.45; }
+  .note.ok { background: #e9f5ec; border-color: #b9dcc2; }
+  .search { display: flex; gap: 8px; margin: 18px 0 8px; flex-wrap: wrap; }
+  .search input { flex: 1; min-width: 220px; }
+  .taxa { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .taxa button { font-size: 12.5px; padding: 4px 10px; border-radius: 14px; }
+  .taxa button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+  .ph { padding: 0; overflow: hidden; display: flex; flex-direction: column; text-align: left; border-radius: 10px; background: #fff; }
+  .ph img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #eceee8; display: block; }
+  .ph span { padding: 5px 8px; font-size: 11.5px; color: var(--muted); line-height: 1.3; }
+  .ph span b { color: var(--ink); font-weight: 650; }
+  .ph:hover { outline: 3px solid var(--accent); outline-offset: -1px; }
+  .more { margin-top: 12px; }
+  .muted { color: var(--muted); }
+  .credit { font-size: 12.5px; color: var(--muted); margin-top: 6px; max-width: 520px; }
+  .credit a { color: var(--accent); }
+  #toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #1e2a20; color: #fff; padding: 10px 16px; border-radius: 10px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50; max-width: 90vw; }
+  #toast.on { opacity: 1; }
+  details.help { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 12px; }
+  details.help summary { cursor: pointer; font-weight: 650; }
+  details.help p, details.help li { line-height: 1.5; max-width: 760px; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } #side { max-height: 40vh; } body { overflow: auto; } }
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">🌿 EcoBuild</a>
+  <h1>Picture Picker</h1>
+  <div class="prog"><div class="bar"><i id="bar"></i></div><span id="count"></span></div>
+  <span class="sp"></span>
+  <button id="b-load" title="Continue on this computer from a pictures file you downloaded before">Open saved pictures…</button>
+  <button id="b-down" class="gold">Download pictures</button>
+  <input type="file" id="f-load" accept=".zip" hidden>
+  <input type="file" id="f-own" accept="image/*" hidden>
+</header>
+<main>
+  <section id="side">
+    <div id="filters">
+      <input type="search" id="q" placeholder="Find an item">
+      <div class="row">
+        <select id="f-status" aria-label="Show"><option value="todo">To do</option><option value="all">All items</option><option value="done">Done</option><option value="skip">Kept as is</option></select>
+        <select id="f-cat" aria-label="Category"><option value="">All kinds</option></select>
+      </div>
+    </div>
+    <div id="list"></div>
+  </section>
+  <section id="work"></section>
+</main>
+<div id="toast"></div>
+<script>
+(function () {
+  var EL = window.ECOLIB, $ = function (s) { return document.querySelector(s); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function toast(m) { var t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(function () { t.classList.remove('on'); }, 3200); }
+  function slug(n) { return n.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+
+  // ---------- 1. every picture in EcoBuild, one row per name (same list as the inventory spreadsheet) ----------
+  var CATNAME = { plant: 'Plant', animal: 'Animal', water: 'Water life', other: 'Other', stage: 'Life stage',
+    plants: 'Plant', mammals: 'Animal', birds: 'Animal', reptiles: 'Animal', small: 'Animal' };
+  var PLACES = { forest: 'Forest', rainforest: 'Rainforest', grassland: 'Grassland', desert: 'Desert', tundra: 'Tundra', wetland: 'Wetland', reef: 'Coral reef',
+    yellowstone: 'Yellowstone', grandteton: 'Grand Teton', yosemite: 'Yosemite', grandcanyon: 'Grand Canyon', bigbend: 'Big Bend', everglades: 'Everglades', smokies: 'Great Smoky Mtns', arches: 'Arches' };
+  // What to look up on iNaturalist for the library's general pictures. stage: an iNaturalist life-stage
+  // annotation [term, value]: 1/2 adult, 1/4 pupa, 1/6 larva, 1/7 egg, 1/8 juvenile, 12/14 fruiting.
+  var HINT = {
+    'Deciduous tree': ['Quercus alba'], 'Evergreen tree': ['Picea pungens'], 'Palm tree': ['Sabal palmetto'], 'Cactus': ['Carnegiea gigantea'], 'Bamboo': ['Phyllostachys'],
+    'Grass': ['Poaceae'], 'Fern': ['Polystichum acrostichoides'], 'Clover': ['Trifolium repens'], 'Sunflower': ['Helianthus annuus'], 'Wildflower': ['Rudbeckia hirta'],
+    'Blossom': ['Prunus serrulata'], 'Hibiscus': ['Hibiscus rosa-sinensis'], 'Tulip': ['Tulipa'], 'Hyacinth': ['Hyacinthus orientalis'], 'Lotus': ['Nelumbo nucifera'], 'Corn': ['Zea mays'],
+    'Deer': ['Odocoileus virginianus'], 'Bear': ['Ursus arctos'], 'Wolf': ['Canis lupus'], 'Fox': ['Vulpes vulpes'], 'Rabbit': ['Sylvilagus floridanus'], 'Squirrel': ['Sciurus carolinensis'],
+    'Hedgehog': ['Erinaceus europaeus'], 'Raccoon': ['Procyon lotor'], 'Skunk': ['Mephitis mephitis'], 'Beaver': ['Castor canadensis'], 'Badger': ['Taxidea taxus'], 'Mouse': ['Peromyscus maniculatus'],
+    'Bison': ['Bison bison'], 'Camel': ['Camelus dromedarius'], 'Lion': ['Panthera leo'], 'Tiger': ['Panthera tigris'], 'Leopard': ['Panthera pardus'], 'Zebra': ['Equus quagga'],
+    'Giraffe': ['Giraffa'], 'Elephant': ['Loxodonta africana'], 'Rhinoceros': ['Ceratotherium simum'], 'Hippopotamus': ['Hippopotamus amphibius'], 'Kangaroo': ['Osphranter rufus'],
+    'Monkey': ['Ateles geoffroyi'], 'Gorilla': ['Gorilla gorilla'], 'Sloth': ['Bradypus variegatus'], 'Polar bear': ['Ursus maritimus'], 'Penguin': ['Aptenodytes forsteri'], 'Seal': ['Phoca vitulina'],
+    'Owl': ['Bubo virginianus'], 'Eagle': ['Haliaeetus leucocephalus'], 'Songbird': ['Sialia sialis'], 'Parrot': ['Ara macao'], 'Duck': ['Anas platyrhynchos'], 'Swan': ['Cygnus olor'],
+    'Flamingo': ['Phoenicopterus ruber'], 'Bat': ['Tadarida brasiliensis'], 'Frog': ['Lithobates catesbeianus', [1, 2]], 'Snake': ['Thamnophis sirtalis'], 'Lizard': ['Sceloporus undulatus'],
+    'Turtle': ['Trachemys scripta'], 'Alligator': ['Alligator mississippiensis'], 'Bee': ['Apis mellifera'], 'Butterfly': ['Danaus plexippus', [1, 2]], 'Caterpillar': ['Danaus plexippus', [1, 6]],
+    'Ladybug': ['Coccinella septempunctata'], 'Ant': ['Camponotus pennsylvanicus'], 'Beetle': ['Coleoptera', [1, 2]], 'Cricket': ['Gryllus'], 'Spider': ['Araneus diadematus'],
+    'Scorpion': ['Centruroides vittatus'], 'Snail': ['Cornu aspersum'], 'Earthworm': ['Lumbricus terrestris'], 'Fish': ['Micropterus salmoides'], 'Tropical fish': ['Pomacanthus imperator'],
+    'Pufferfish': ['Arothron hispidus'], 'Shark': ['Carcharodon carcharias'], 'Whale': ['Megaptera novaeangliae'], 'Dolphin': ['Tursiops truncatus'], 'Octopus': ['Octopus vulgaris'],
+    'Squid': ['Sepioteuthis lessoniana'], 'Jellyfish': ['Aurelia aurita'], 'Crab': ['Callinectes sapidus'], 'Lobster': ['Homarus americanus'], 'Shrimp': ['Lysmata amboinensis'],
+    'Coral': ['Acropora'], 'Otter': ['Lontra canadensis'], 'Mushroom': ['Amanita muscaria'],
+    'Frog eggs': ['Anura', [1, 7]], 'Butterfly egg': ['Danaus plexippus', [1, 7]], 'Tadpole': ['Anura', [1, 6]], 'Tadpole with legs': ['Anura', [1, 6]], 'Froglet': ['Anura', [1, 8]],
+    'Chrysalis': ['Danaus plexippus', [1, 4]], 'Larva (grub)': ['Scarabaeidae', [1, 6]], 'Pupa': ['Coleoptera', [1, 4]], 'Chick': ['Gallus gallus', [1, 8]], 'Hen': ['Gallus gallus', [1, 2]],
+    'Rooster': ['Gallus gallus', [1, 2]], 'Acorn': ['Quercus', [12, 14]], 'Nest with eggs': ['Turdus migratorius', [1, 7]]
+  };
+  // Not living things (or not photographed on iNaturalist): upload a picture instead
+  var NOT_INAT = { 'Rock': 1, 'Log': 1, 'Water source': 1, 'Sunlight': 1, 'Nest': 1, 'Egg': 1, 'Hatching chick': 1, 'Seed': 1, 'Sprouting seed': 1, 'Fruit': 1, 'Seedling': 1, 'Bacteria': 1 };
+  var SUCAT = { plants: 'Plants', mammals: 'Mammals', birds: 'Birds', reptiles: 'Reptiles & amphibians', small: 'Insects & small animals', water: 'Water life' };
+
+  var items = [], byKey = {};
+  function add(n) { var k = n.toLowerCase(); if (!byKey[k]) { byKey[k] = { name: n, slug: slug(n), sci: '', cat: '', where: [], thumb: null }; items.push(byKey[k]); } return byKey[k]; }
+  function thumbFor(spec) {
+    if (!spec) return null;
+    if (spec.svg) return { img: EL.svgUrl(spec.svg) };
+    if (spec.e) return { e: spec.e };
+    return null;
+  }
+  EL.LIB.forEach(function (i) {
+    var r = add(i.n); r.cat = r.cat || CATNAME[i.c];
+    r.where.push(i.c === 'stage' ? 'Life stages library' : 'Main library');
+    r.thumb = r.thumb || thumbFor(i);
+  });
+  var natPlaces = {};
+  Object.keys(EL.NATIVE).forEach(function (place) {
+    EL.nativeFor(place).forEach(function (i) {
+      var r = add(i.n); r.sci = r.sci || i.sci; r.cat = r.cat || CATNAME[i.c];
+      (natPlaces[r.name.toLowerCase()] = natPlaces[r.name.toLowerCase()] || []).push(PLACES[place] || place);
+      r.thumb = r.thumb || thumbFor(i);
+    });
+  });
+  Object.keys(natPlaces).forEach(function (k) { byKey[k].where.push('Native: ' + natPlaces[k].join(', ')); });
+  (window.SU_DATA || []).forEach(function (o) {
+    var r = add(o.n); r.sci = r.sci || o.sci; r.cat = r.cat || CATNAME[o.c];
+    r.where.push('Size Up: ' + SUCAT[o.c]);
+    if (!r.thumb && o.art) {
+      var a = o.art;
+      if (a.indexOf('e:') === 0) r.thumb = { e: a.slice(2) };
+      else if (a.indexOf('su:') === 0 && window.SU_ART && SU_ART[a.slice(3)]) r.thumb = { img: EL.svgUrl(SU_ART[a.slice(3)]) };
+      else if (a.indexOf('lib:') === 0 && EL.ART[a.slice(4)]) r.thumb = { img: EL.svgUrl(EL.ART[a.slice(4)]) };
+    }
+  });
+  var ORDER = ['Plant', 'Animal', 'Water life', 'Other', 'Life stage'];
+  items.sort(function (a, b) { return (ORDER.indexOf(a.cat) - ORDER.indexOf(b.cat)) || a.name.localeCompare(b.name); });
+  items.forEach(function (r) {
+    var h = HINT[r.name];
+    r.query = h ? h[0] : (r.sci || r.name);
+    r.stage = h && h[1] ? h[1] : null;
+    r.noInat = !!NOT_INAT[r.name];
+  });
+  ORDER.forEach(function (c) { $('#f-cat').insertAdjacentHTML('beforeend', '<option value="' + c + '">' + c + '</option>'); });
+
+  // ---------- 2. saved picks, kept in this browser (IndexedDB) ----------
+  var picks = {}, db = null;
+  function openDB() {
+    return new Promise(function (res) {
+      try {
+        var rq = indexedDB.open('ecobuild-picker', 1);
+        rq.onupgradeneeded = function () { rq.result.createObjectStore('picks'); };
+        rq.onsuccess = function () { db = rq.result; res(); };
+        rq.onerror = function () { res(); };
+      } catch (e) { res(); }
+    });
+  }
+  function loadAll() {
+    return new Promise(function (res) {
+      if (!db) return res();
+      try {
+        var st = db.transaction('picks').objectStore('picks'), rq = st.openCursor();
+        rq.onsuccess = function () { var c = rq.result; if (c) { picks[c.key] = c.value; c.continue(); } else res(); };
+        rq.onerror = function () { res(); };
+      } catch (e) { res(); }
+    });
+  }
+  function savePick(s, v) {
+    if (v) picks[s] = v; else delete picks[s];
+    if (!db) return;
+    try { var st = db.transaction('picks', 'readwrite').objectStore('picks'); if (v) st.put(v, s); else st.delete(s); } catch (e) {}
+  }
+
+  // ---------- 3. the list ----------
+  var cur = 0;
+  function status(r) { var p = picks[r.slug]; return p ? p.status : 'todo'; }
+  function thumbHTML(r) {
+    var p = picks[r.slug];
+    if (p && p.status === 'done') return '<img alt="" src="' + p.url + '">';
+    if (r.thumb && r.thumb.img) return '<img alt="" src="' + r.thumb.img + '">';
+    return r.thumb && r.thumb.e ? r.thumb.e : '';
+  }
+  function visible() {
+    var q = $('#q').value.trim().toLowerCase(), f = $('#f-status').value, c = $('#f-cat').value;
+    return items.filter(function (r, i) {
+      if (i === cur) return true;
+      if (c && r.cat !== c) return false;
+      if (f !== 'all' && status(r) !== f) return false;
+      return !q || r.name.toLowerCase().indexOf(q) >= 0 || r.sci.toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  function renderList() {
+    var v = visible();
+    $('#list').innerHTML = v.map(function (r) {
+      var s = status(r), i = items.indexOf(r);
+      return '<button class="it" data-i="' + i + '" aria-current="' + (i === cur) + '"><span class="th">' + thumbHTML(r) + '</span>' +
+        '<span class="nm"><b>' + esc(r.name) + '</b><i>' + esc(r.sci || r.cat) + '</i></span>' +
+        (s === 'done' ? '<span class="st done">Done</span>' : s === 'skip' ? '<span class="st skip">Kept</span>' : '') + '</button>';
+    }).join('') || '<p class="muted" style="padding:14px">Nothing here. Change the filters above.</p>';
+    var done = items.filter(function (r) { return status(r) !== 'todo'; }).length;
+    $('#count').textContent = done + ' of ' + items.length + ' done';
+    $('#bar').style.width = (100 * done / items.length) + '%';
+    var a = $('#list .it[aria-current="true"]'); if (a && a.scrollIntoViewIfNeeded) a.scrollIntoViewIfNeeded(false); else if (a) a.scrollIntoView({ block: 'nearest' });
+  }
+  $('#list').addEventListener('click', function (e) { var b = e.target.closest('[data-i]'); if (b) show(+b.dataset.i); });
+  ['#q', '#f-status', '#f-cat'].forEach(function (s) { $(s).addEventListener('input', renderList); });
+
+  // ---------- 4. iNaturalist ----------
+  var API = 'https://api.inaturalist.org/v1/';
+  // Photos we may use: open licences that allow changes (no "no derivatives"). NC = non-commercial use only.
+  var OK = { 'cc0': 'CC0', 'cc-by': 'CC BY', 'cc-by-sa': 'CC BY-SA', 'cc-by-nc': 'CC BY-NC', 'cc-by-nc-sa': 'CC BY-NC-SA' };
+  var cache = {};
+  function getJSON(url) {
+    if (cache[url]) return cache[url];
+    return (cache[url] = fetch(url).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .catch(function (e) { delete cache[url]; throw e; }));
+  }
+  function size(url, s) { return String(url || '').replace(/\/(square|small|medium|large|thumb|original)\.(jpe?g|png|gif)/i, '/' + s + '.$2'); }
+  function photoObj(p, extra) {
+    var lc = (p.license_code || '').toLowerCase();
+    if (!OK[lc] || !p.url) return null;
+    return { id: p.id, thumb: size(p.url, 'medium'), big: size(p.url, 'large'), license: OK[lc], attribution: p.attribution || '',
+      page: 'https://www.inaturalist.org/photos/' + p.id, obs: extra && extra.obs ? 'https://www.inaturalist.org/observations/' + extra.obs : '', who: extra && extra.who || '' };
+  }
+
+  var view = null; // { r, taxa, taxon, photos, page, seen }
+  function show(i) {
+    cur = Math.max(0, Math.min(items.length - 1, i));
+    var r = items[cur];
+    try { localStorage.setItem('ecobuild-picker-cur', r.slug); } catch (e) {}
+    view = { r: r, taxa: [], taxon: null, photos: [], page: 0, seen: {}, query: r.query };
+    renderList(); renderWork();
+    if (!r.noInat) search(r.query);
+  }
+  function renderWork() {
+    var r = view.r, p = picks[r.slug], s = status(r);
+    var curPic = r.thumb && r.thumb.img ? '<img alt="" src="' + r.thumb.img + '">' : (r.thumb && r.thumb.e) || '';
+    var html = '<div class="top"><div class="now"><div><div class="pic">' + curPic + '</div><div class="lab">Now</div></div>' +
+      (p && p.status === 'done' ? '<div><div class="pic"><img alt="" src="' + p.url + '"></div><div class="lab">New</div></div>' : '') +
+      '<div><h2>' + esc(r.name) + '</h2>' + (r.sci ? '<div class="sci">' + esc(r.sci) + '</div>' : '') +
+      '<div class="where">' + esc(r.cat) + ' · ' + esc(r.where.join(' · ')) + '</div>' +
+      '<div class="file">pictures/' + esc(r.slug) + (p && p.status === 'done' ? (p.url.indexOf('image/png') > 0 ? '.png' : '.webp') : '.webp') + '</div></div></div>' +
+      '<div class="acts"><button id="b-prev">‹ Back</button><button id="b-own">Upload my own picture</button>' +
+      '<button id="b-skip">' + (s === 'skip' ? 'Kept as is ✓' : 'Keep current picture') + '</button>' +
+      (s !== 'todo' ? '<button id="b-undo" class="danger">Start over</button>' : '') + '<button id="b-next" class="primary">Next ›</button></div></div>';
+    if (p && p.status === 'done') html += '<div class="note ok"><b>Done.</b> <span class="credit">' + creditHTML(p.credit) + '</span><br>Pick another photo below to replace it.</div>';
+    if (r.noInat) html += '<div class="note">iNaturalist only has photos of wild living things, so there is nothing to look up for <b>' + esc(r.name) + '</b>. Use <b>Upload my own picture</b> (a photo you took, or one with a licence that allows reuse), or keep the current picture.</div>';
+    else html += '<div class="search"><input type="text" id="sq" value="' + esc(view.query) + '" aria-label="Look up on iNaturalist"><button id="b-sq">Look up</button></div>' +
+      '<div class="taxa" id="taxa"></div><div class="grid" id="grid"><p class="muted">Looking up photos…</p></div><div class="more" id="more"></div>';
+    html += '<details class="help"><summary>How this works</summary><ol>' +
+      '<li>Pick a clear side view of the whole organism. The background is removed next, and you can clean it up with Erase and Bring back.</li>' +
+      '<li>Press <b>Done</b> in the clean-up window. The picture is saved in this browser and the next item opens.</li>' +
+      '<li>Only photos whose licences allow reuse with changes are shown. Each photographer is recorded for the credits page. ' +
+      '“NC” licences mean non-commercial use only, which fits a free classroom site.</li>' +
+      '<li>Your picks stay in this browser on this computer. Press <b>Download pictures</b> any time to get a .zip of everything so far, ' +
+      'and use <b>Open saved pictures…</b> to pick up where you left off on another computer.</li>' +
+      '<li>Life stages (eggs, tadpoles, chrysalis) are looked up with iNaturalist\'s life-stage labels, so the photos should already show that stage.</li></ol></details>';
+    $('#work').innerHTML = html; $('#work').scrollTop = 0;
+    $('#b-prev').onclick = function () { step(-1); };
+    $('#b-next').onclick = function () { step(1); };
+    $('#b-own').onclick = function () { $('#f-own').click(); };
+    $('#b-skip').onclick = function () { if (s === 'skip') return; savePick(r.slug, { status: 'skip' }); toast('Keeping the current picture for ' + r.name + '.'); step(1); };
+    if ($('#b-undo')) $('#b-undo').onclick = function () { savePick(r.slug, null); renderList(); renderWork(); if (!r.noInat) search(view.query); };
+    if ($('#b-sq')) {
+      $('#b-sq').onclick = function () { search($('#sq').value.trim()); };
+      $('#sq').addEventListener('keydown', function (e) { if (e.key === 'Enter') search(this.value.trim()); });
+    }
+    if (view.taxa.length) { renderTaxa(); renderPhotos(); }
+  }
+  function step(d) {
+    var v = visible(), i = v.indexOf(items[cur]), n = v[i + d];
+    if (d > 0 && $('#f-status').value === 'todo') {
+      // jump to the next item still to do
+      for (var k = cur + 1; k < items.length; k++) if (status(items[k]) === 'todo') { n = items[k]; break; }
+    }
+    if (n) show(items.indexOf(n)); else toast(d > 0 ? 'That was the last one in this list.' : 'This is the first one.');
+  }
+  function creditHTML(c) {
+    if (!c) return '';
+    if (c.source === 'upload') return 'Your own picture' + (c.attribution ? ' · ' + esc(c.attribution) : '') + '.';
+    var at = c.attribution || ('by ' + c.who);
+    return 'Photo ' + esc(at) + (c.license && at.indexOf(c.license) < 0 ? ' (' + esc(c.license) + ')' : '') + ' · <a target="_blank" rel="noopener" href="' + esc(c.page) + '">iNaturalist</a>';
+  }
+
+  function search(q) {
+    if (!q) return;
+    view.query = q; view.taxa = []; view.taxon = null; view.photos = []; view.page = 0; view.seen = {};
+    var g = $('#grid'); if (g) g.innerHTML = '<p class="muted">Looking up photos…</p>';
+    var mine = view;
+    getJSON(API + 'taxa/autocomplete?per_page=8&q=' + encodeURIComponent(q)).then(function (d) {
+      if (mine !== view) return;
+      var res = (d.results || []).filter(function (t) { return t.id; });
+      if (!res.length) { $('#grid').innerHTML = '<p class="muted">iNaturalist found nothing for “' + esc(q) + '”. Try the scientific name, a simpler common name, or upload your own picture.</p>'; $('#taxa').innerHTML = ''; return; }
+      var ql = q.toLowerCase(), best = res.filter(function (t) { return (t.name || '').toLowerCase() === ql || (t.preferred_common_name || '').toLowerCase() === ql; })[0] || res[0];
+      view.taxa = res; pickTaxon(best);
+    }).catch(offline);
+  }
+  function offline() {
+    var g = $('#grid'); if (!g) return;
+    g.innerHTML = '<p class="muted">Could not reach iNaturalist. Check the internet connection and press Look up again. ' +
+      'If this keeps happening, use <b>Upload my own picture</b> for now.</p>';
+  }
+  function renderTaxa() {
+    $('#taxa').innerHTML = view.taxa.map(function (t, k) {
+      return '<button data-k="' + k + '" aria-pressed="' + (view.taxon && t.id === view.taxon.id) + '">' + esc(t.preferred_common_name || t.name) +
+        ' <i>' + esc(t.preferred_common_name ? t.name : t.rank) + '</i></button>';
+    }).join('') + '<span class="muted small" style="align-self:center;font-size:12px">Not the right one? Pick another match.</span>';
+    $('#taxa').onclick = function (e) { var b = e.target.closest('[data-k]'); if (b) pickTaxon(view.taxa[+b.dataset.k]); };
+  }
+  function pickTaxon(t) {
+    view.taxon = t; view.photos = []; view.page = 0; view.seen = {};
+    renderTaxa(); $('#grid').innerHTML = '<p class="muted">Loading photos…</p>';
+    var mine = view, r = view.r;
+    // the curated photos on the species page come first (unless a life stage is wanted), then the most-liked observations
+    var first = r.stage ? Promise.resolve(null) : getJSON(API + 'taxa/' + t.id).catch(function () { return null; });
+    first.then(function (d) {
+      if (mine !== view) return;
+      var tx = d && d.results && d.results[0];
+      (tx && tx.taxon_photos || []).forEach(function (tp) { addPhoto(photoObj(tp.photo || {})); });
+      return morePhotos();
+    }).catch(offline);
+  }
+  function addPhoto(p) { if (p && !view.seen[p.id]) { view.seen[p.id] = 1; view.photos.push(p); } }
+  function morePhotos() {
+    var mine = view, r = view.r; view.page++;
+    var u = API + 'observations?photos=true&quality_grade=research&order_by=votes&per_page=30&page=' + view.page +
+      '&photo_license=' + Object.keys(OK).join(',') + '&taxon_id=' + view.taxon.id + (r.stage ? '&term_id=' + r.stage[0] + '&term_value_id=' + r.stage[1] : '');
+    $('#more').innerHTML = '<span class="muted">Loading more…</span>';
+    return getJSON(u).then(function (d) {
+      if (mine !== view) return;
+      (d.results || []).forEach(function (o) {
+        var who = o.user ? (o.user.name || o.user.login) : '';
+        (o.photos || []).slice(0, 2).forEach(function (p) { addPhoto(photoObj(p, { obs: o.id, who: who })); });
+      });
+      view.total = d.total_results || 0;
+      renderPhotos();
+    }).catch(function () { if (mine === view) { renderPhotos(); offline(); } });
+  }
+  function renderPhotos() {
+    var g = $('#grid'); if (!g) return;
+    g.innerHTML = view.photos.length ? view.photos.map(function (p, k) {
+      return '<button class="ph" data-k="' + k + '" title="Use this photo"><img loading="lazy" alt="" src="' + esc(p.thumb) + '">' +
+        '<span><b>' + esc(p.license) + '</b> · ' + esc(p.who || (p.attribution || '').replace(/^\(c\)\s*/i, '').split(',')[0]) + '</span></button>';
+    }).join('') : '<p class="muted">No photos with a reusable licence were found for this match' + (view.r.stage ? ' at this life stage' : '') + '. Try another match above, another name, or upload your own picture.</p>';
+    g.onclick = function (e) { var b = e.target.closest('.ph'); if (b) usePhoto(view.photos[+b.dataset.k]); };
+    $('#more').innerHTML = view.photos.length && view.page * 30 < (view.total || 0) ? '<button id="b-more">Show more photos</button>' : '';
+    if ($('#b-more')) $('#b-more').onclick = function () { morePhotos(); };
+  }
+
+  // ---------- 5. cut out and save ----------
+  function usePhoto(p) {
+    var r = view.r;
+    toast('Opening the photo…');
+    fetch(p.big, { mode: 'cors' }).then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.blob(); })
+      .catch(function () { return fetch(p.thumb, { mode: 'cors' }).then(function (res) { if (!res.ok) throw new Error(); return res.blob(); }); })
+      .then(function (blob) {
+        var file = new File([blob], r.slug + '.jpg', { type: blob.type || 'image/jpeg' });
+        return CUTOUT.open(file);
+      })
+      .then(function (out) {
+        if (!out) return;
+        save(r, out, { source: 'inaturalist', attribution: p.attribution, license: p.license, page: p.page, observation: p.obs, who: p.who,
+          taxon: view.taxon ? view.taxon.name : '', taxonCommon: view.taxon ? view.taxon.preferred_common_name || '' : '' });
+      })
+      .catch(function () {
+        $('#work').insertAdjacentHTML('afterbegin', '<div class="note">The browser would not let this page open that photo directly. ' +
+          '<a target="_blank" rel="noopener" href="' + esc(p.page) + '">Open it on iNaturalist</a>, save the image to your computer, then press <b>Upload my own picture</b>. ' +
+          'The photographer will still be credited.</div>');
+        pendingCredit = { slug: r.slug, credit: { source: 'inaturalist', attribution: p.attribution, license: p.license, page: p.page, observation: p.obs, who: p.who, taxon: view.taxon ? view.taxon.name : '' } };
+      });
+  }
+  var pendingCredit = null;
+  $('#f-own').addEventListener('change', function () {
+    var f = this.files[0], r = view.r; this.value = ''; if (!f) return;
+    CUTOUT.open(f).then(function (out) {
+      if (!out) return;
+      var c = pendingCredit && pendingCredit.slug === r.slug ? pendingCredit.credit : { source: 'upload', attribution: '', license: '', page: '' };
+      if (c.source === 'upload') { var who = prompt('Who took or made this picture? (for the credits page — leave blank if it is yours)', ''); c.attribution = who || ''; }
+      pendingCredit = null; save(r, out, c);
+    });
+  });
+  function save(r, out, credit) {
+    savePick(r.slug, { status: 'done', url: out.url, aspect: out.aspect, credit: credit, name: r.name, sci: r.sci, at: Date.now() });
+    toast('Saved ' + r.name + '.');
+    step(1);
+    if (items[cur] === r) { renderList(); renderWork(); }
+  }
+
+  // ---------- 6. download / open a .zip (stored, no compression: the pictures are already compressed) ----------
+  var CRC = (function () { var t = new Uint32Array(256); for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(b) { var c = 0xffffffff; for (var i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+  function utf8(s) { return new TextEncoder().encode(s); }
+  function zip(files) {
+    var parts = [], central = [], off = 0;
+    files.forEach(function (f) {
+      var name = utf8(f.name), data = f.data, crc = crc32(data);
+      var h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+      h.setUint16(10, 0, true); h.setUint16(12, 0x21, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true);
+      h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+      parts.push(new Uint8Array(h.buffer), name, data);
+      var c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+      c.setUint16(12, 0, true); c.setUint16(14, 0x21, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true);
+      c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+      central.push(new Uint8Array(c.buffer), name);
+      off += 30 + name.length + data.length;
+    });
+    var csize = central.reduce(function (s, a) { return s + a.length; }, 0);
+    var e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, csize, true); e.setUint32(16, off, true);
+    return new Blob(parts.concat(central, [new Uint8Array(e.buffer)]), { type: 'application/zip' });
+  }
+  function unzip(buf) {
+    var v = new DataView(buf), out = {}, i = 0;
+    while (i + 30 <= buf.byteLength && v.getUint32(i, true) === 0x04034b50) {
+      var method = v.getUint16(i + 8, true), size = v.getUint32(i + 18, true), nl = v.getUint16(i + 26, true), xl = v.getUint16(i + 28, true);
+      var name = new TextDecoder().decode(new Uint8Array(buf, i + 30, nl)), start = i + 30 + nl + xl;
+      if (method === 0) out[name] = new Uint8Array(buf, start, size);
+      i = start + size;
+    }
+    return out;
+  }
+  function dataToBytes(u) { var b = atob(u.split(',')[1]), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+  function csvCell(s) { s = String(s == null ? '' : s); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  $('#b-down').addEventListener('click', function () {
+    var files = [], credits = [], rows = [['File', 'Name', 'Scientific name', 'Status', 'Source', 'Credit', 'Licence', 'Photo page', 'iNaturalist species']];
+    items.forEach(function (r) {
+      var p = picks[r.slug]; if (!p) return;
+      var file = '';
+      if (p.status === 'done') {
+        file = 'pictures/' + r.slug + (p.url.indexOf('image/png') > 0 ? '.png' : '.webp');
+        files.push({ name: file, data: dataToBytes(p.url) });
+      }
+      var c = p.credit || {};
+      credits.push({ slug: r.slug, name: r.name, sci: r.sci, status: p.status, file: file, aspect: p.aspect || null, credit: c });
+      rows.push([file, r.name, r.sci, p.status === 'done' ? 'New picture' : 'Keep current', c.source || '', c.attribution || '', c.license || '', c.page || '', c.taxon || '']);
+    });
+    if (!credits.length) { toast('Nothing to download yet. Pick a photo first.'); return; }
+    files.push({ name: 'credits.json', data: utf8(JSON.stringify({ made: new Date().toISOString(), items: credits }, null, 1)) });
+    files.push({ name: 'credits.csv', data: utf8('﻿' + rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n')) });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(zip(files)); a.download = 'ecobuild-pictures.zip';
+    document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    toast('Downloaded ' + (files.length - 2) + ' pictures and the credits list.');
+  });
+  $('#b-load').addEventListener('click', function () { $('#f-load').click(); });
+  $('#f-load').addEventListener('change', function () {
+    var f = this.files[0]; this.value = ''; if (!f) return;
+    f.arrayBuffer().then(function (buf) {
+      var z = unzip(buf), meta = z['credits.json'];
+      if (!meta) { toast('That is not a pictures file from this page.'); return; }
+      var list = JSON.parse(new TextDecoder().decode(meta)).items || [], n = 0;
+      list.forEach(function (it) {
+        if (it.status === 'skip') { savePick(it.slug, { status: 'skip' }); n++; return; }
+        var bytes = it.file && z[it.file]; if (!bytes) return;
+        var type = /\.png$/.test(it.file) ? 'image/png' : 'image/webp', s = '';
+        for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        savePick(it.slug, { status: 'done', url: 'data:' + type + ';base64,' + btoa(s), aspect: it.aspect, credit: it.credit, name: it.name, sci: it.sci, at: Date.now() });
+        n++;
+      });
+      toast('Opened ' + n + ' saved items.'); renderList(); renderWork();
+    }).catch(function () { toast('Could not open that file.'); });
+  });
+
+  // ---------- start ----------
+  openDB().then(loadAll).then(function () {
+    var last = null; try { last = localStorage.getItem('ecobuild-picker-cur'); } catch (e) {}
+    var i = 0;
+    items.forEach(function (r, k) { if (r.slug === last) i = k; });
+    if (!last) for (var k = 0; k < items.length; k++) if (status(items[k]) === 'todo') { i = k; break; }
+    show(i);
+  });
+  window.PICKER = { items: items, picks: picks };
+})();
+</script>
+</body>
+</html>
