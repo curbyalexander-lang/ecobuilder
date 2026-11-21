@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Background Picker · EcoBuild</title>
+<script>// Turns a cut-out photo into a flat, outlined illustration, keeping every shape from the photo.
+// ILLUS.render(imageOrCanvas, { detail: 'simple' | 'medium' | 'detailed', outline: true }) -> canvas
+(function () {
+  var I = window.ILLUS = {};
+  var LEVELS = {
+    simple:   { radius: 5, passes: 2, colors: 6,  modePasses: 2, minArea: 160, inner: 70 },
+    medium:   { radius: 4, passes: 2, colors: 9,  modePasses: 1, minArea: 70,  inner: 55 },
+    detailed: { radius: 3, passes: 1, colors: 14, modePasses: 1, minArea: 25,  inner: 45 }
+  };
+
+  I.render = function (src, opts) {
+    opts = opts || {};
+    var L = LEVELS[opts.detail] || LEVELS.medium, outline = opts.outline !== false;
+    // silhouette: the bold line round the outside (off for backgrounds, which have no outside)
+    var sil = outline && opts.silhouette !== false;
+    var W = src.naturalWidth || src.width, H = src.naturalHeight || src.height;
+    var c0 = document.createElement('canvas'); c0.width = W; c0.height = H;
+    var x0 = c0.getContext('2d'); x0.drawImage(src, 0, 0, W, H);
+    var d = x0.getImageData(0, 0, W, H).data, N = W * H;
+
+    // 1. Smooth away grain and fur while keeping edges (Kuwahara filter, weighted by alpha)
+    var alpha = new Uint8Array(N), sm = new Float32Array(N * 3);
+    for (var i = 0; i < N; i++) { alpha[i] = d[i * 4 + 3]; sm[i * 3] = d[i * 4]; sm[i * 3 + 1] = d[i * 4 + 1]; sm[i * 3 + 2] = d[i * 4 + 2]; }
+    for (var kp = 0; kp < L.passes; kp++) sm = kuwahara(sm, alpha, W, H, L.radius);
+    var x, y, k;
+
+    // 2. A small set of flat colours (k-means on the organism's own pixels), a little richer than the photo
+    var K = L.colors, samp = [], step = Math.max(1, Math.floor(N / 6000));
+    for (i = 0; i < N; i += step) if (alpha[i] >= 128) samp.push(i);
+    if (!samp.length) return c0;
+    samp.sort(function (a, b) { return lum(sm, a) - lum(sm, b); });
+    var cen = [];
+    for (k = 0; k < K; k++) { var s0 = samp[Math.floor((k + 0.5) / K * samp.length)]; cen.push([sm[s0 * 3], sm[s0 * 3 + 1], sm[s0 * 3 + 2]]); }
+    for (var it = 0; it < 8; it++) {
+      var acc = cen.map(function () { return [0, 0, 0, 0]; });
+      samp.forEach(function (s) { var j = nearest(cen, sm[s * 3], sm[s * 3 + 1], sm[s * 3 + 2]), A = acc[j]; A[0] += sm[s * 3]; A[1] += sm[s * 3 + 1]; A[2] += sm[s * 3 + 2]; A[3]++; });
+      cen = cen.map(function (c, j) { var A = acc[j]; return A[3] ? [A[0] / A[3], A[1] / A[3], A[2] / A[3]] : c; });
+    }
+    cen = cen.map(function (c) { var m = (c[0] + c[1] + c[2]) / 3; return c.map(function (v) { return clamp(m + (v - m) * 1.18); }); });
+    var lab = new Int16Array(N).fill(-1);
+    for (i = 0; i < N; i++) if (alpha[i] >= 128) lab[i] = nearest(cen, sm[i * 3], sm[i * 3 + 1], sm[i * 3 + 2]);
+
+    // 3. Tidy speckles: each pixel takes the most common colour around it
+    for (var pass = 0; pass < L.modePasses; pass++) {
+      var nl = new Int16Array(lab), cnt = new Int16Array(K);
+      for (y = 1; y < H - 1; y++) for (x = 1; x < W - 1; x++) {
+        i = y * W + x; if (lab[i] < 0) continue;
+        cnt.fill(0); var top = lab[i], tc = 0;
+        for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) { var n = lab[i + dy * W + dx]; if (n >= 0 && ++cnt[n] > tc) { tc = cnt[n]; top = n; } }
+        nl[i] = top;
+      }
+      lab = nl;
+    }
+
+    mergeSmall(lab, W, H, K, L.minArea);
+
+    // 4. Paint, with fine lines where very different colours meet and a bold line round the outside
+    var pad = sil ? 3 : 0, OW = W + pad * 2, OH = H + pad * 2;
+    var out = document.createElement('canvas'); out.width = OW; out.height = OH;
+    var ox = out.getContext('2d'), od = ox.createImageData(OW, OH), o = od.data;
+    var darkest = cen.reduce(function (a, c) { return c[0] + c[1] + c[2] < a[0] + a[1] + a[2] ? c : a; });
+    var ink = [darkest[0] * 0.45, darkest[1] * 0.45, darkest[2] * 0.45].map(Math.round);
+    function dist(a, b) { var A = cen[a], B = cen[b]; return Math.sqrt((A[0] - B[0]) * (A[0] - B[0]) + (A[1] - B[1]) * (A[1] - B[1]) + (A[2] - B[2]) * (A[2] - B[2])); }
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      i = y * W + x; var lb = lab[i]; if (lb < 0) continue;
+      var c = cen[lb], col = c, edge = false;
+      if (outline) {
+        var rn = x + 1 < W ? lab[i + 1] : -1, dn = y + 1 < H ? lab[i + W] : -1;
+        if ((rn >= 0 && rn !== lb && dist(lb, rn) > L.inner) || (dn >= 0 && dn !== lb && dist(lb, dn) > L.inner)) edge = true;
+      }
+      if (edge) col = [c[0] * 0.4, c[1] * 0.4, c[2] * 0.4];
+      var op = ((y + pad) * OW + x + pad) * 4;
+      o[op] = col[0]; o[op + 1] = col[1]; o[op + 2] = col[2]; o[op + 3] = 255;
+    }
+    if (sil) {
+      // outline: every empty pixel within `pad` of the organism
+      var solid = new Uint8Array(OW * OH);
+      for (y = 0; y < H; y++) for (x = 0; x < W; x++) if (lab[y * W + x] >= 0) solid[(y + pad) * OW + x + pad] = 1;
+      for (y = 0; y < OH; y++) for (x = 0; x < OW; x++) {
+        var j2 = y * OW + x; if (solid[j2]) continue;
+        var near = false;
+        for (dy = -pad; dy <= pad && !near; dy++) for (dx = -pad; dx <= pad; dx++) {
+          if (dx * dx + dy * dy > pad * pad + 1) continue;
+          var yy = y + dy, xx = x + dx;
+          if (yy >= 0 && yy < OH && xx >= 0 && xx < OW && solid[yy * OW + xx]) { near = true; break; }
+        }
+        if (near) { o[j2 * 4] = ink[0]; o[j2 * 4 + 1] = ink[1]; o[j2 * 4 + 2] = ink[2]; o[j2 * 4 + 3] = 255; }
+      }
+    }
+    ox.putImageData(od, 0, 0);
+    return out;
+  };
+  function kuwahara(src, alpha, W, H, R) {
+    var S = (W + 1) * (H + 1), sA = new Float64Array(S), sR = new Float64Array(S), sG = new Float64Array(S), sB = new Float64Array(S), sL = new Float64Array(S), sL2 = new Float64Array(S);
+    for (var y = 0; y < H; y++) {
+      var rA = 0, rR = 0, rG = 0, rB = 0, rL = 0, rL2 = 0;
+      for (var x = 0; x < W; x++) {
+        var i = y * W + x, a = alpha[i] / 255, r = src[i * 3], g = src[i * 3 + 1], b = src[i * 3 + 2], l = 0.299 * r + 0.587 * g + 0.114 * b;
+        rA += a; rR += a * r; rG += a * g; rB += a * b; rL += a * l; rL2 += a * l * l;
+        var q = (y + 1) * (W + 1) + x + 1, u = q - (W + 1);
+        sA[q] = sA[u] + rA; sR[q] = sR[u] + rR; sG[q] = sG[u] + rG; sB[q] = sB[u] + rB; sL[q] = sL[u] + rL; sL2[q] = sL2[u] + rL2;
+      }
+    }
+    function box(arr, xa, ya, xb, yb) { var w = W + 1; return arr[(yb + 1) * w + xb + 1] - arr[ya * w + xb + 1] - arr[(yb + 1) * w + xa] + arr[ya * w + xa]; }
+    var out = new Float32Array(src.length);
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      var j = y * W + x; if (alpha[j] < 8) continue;
+      var best = Infinity, br = 0, bg = 0, bb = 0;
+      for (var k = 0; k < 4; k++) {
+        var xa = k & 1 ? x : Math.max(0, x - R), xb = k & 1 ? Math.min(W - 1, x + R) : x;
+        var ya = k & 2 ? y : Math.max(0, y - R), yb = k & 2 ? Math.min(H - 1, y + R) : y;
+        var wa = box(sA, xa, ya, xb, yb); if (wa < 1) continue;
+        var ml = box(sL, xa, ya, xb, yb) / wa, v = box(sL2, xa, ya, xb, yb) / wa - ml * ml;
+        if (v < best) { best = v; br = box(sR, xa, ya, xb, yb) / wa; bg = box(sG, xa, ya, xb, yb) / wa; bb = box(sB, xa, ya, xb, yb) / wa; }
+      }
+      out[j * 3] = br; out[j * 3 + 1] = bg; out[j * 3 + 2] = bb;
+    }
+    return out;
+  }
+  // Merge patches smaller than minArea into the neighbouring colour they touch most
+  function mergeSmall(lab, W, H, K, minArea) {
+    var N = W * H, comp = new Int32Array(N).fill(-1), stack = new Int32Array(N), nc = 0;
+    for (var s = 0; s < N; s++) {
+      if (lab[s] < 0 || comp[s] >= 0) continue;
+      var L0 = lab[s], top = 0, members = [s], touch = new Int32Array(K); comp[s] = nc; stack[top++] = s;
+      while (top) {
+        var i = stack[--top], x = i % W, y = (i / W) | 0;
+        var nb = [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, y > 0 ? i - W : -1, y < H - 1 ? i + W : -1];
+        for (var t = 0; t < 4; t++) {
+          var n = nb[t]; if (n < 0 || lab[n] < 0) continue;
+          if (lab[n] === L0) { if (comp[n] < 0) { comp[n] = nc; stack[top++] = n; members.push(n); } }
+          else touch[lab[n]]++;
+        }
+      }
+      if (members.length < minArea) {
+        var bi = -1, bc = 0; for (var k = 0; k < K; k++) if (touch[k] > bc) { bc = touch[k]; bi = k; }
+        if (bi >= 0) for (var m = 0; m < members.length; m++) lab[members[m]] = bi;
+      }
+      nc++;
+    }
+  }
+  function lum(a, i) { return 0.299 * a[i * 3] + 0.587 * a[i * 3 + 1] + 0.114 * a[i * 3 + 2]; }
+  function clamp(v) { return v < 0 ? 0 : v > 255 ? 255 : v; }
+  function nearest(cen, r, g, b) {
+    var bi = 0, bd = Infinity;
+    for (var k = 0; k < cen.length; k++) { var c = cen[k], dd = (c[0] - r) * (c[0] - r) + (c[1] - g) * (c[1] - g) + (c[2] - b) * (c[2] - b); if (dd < bd) { bd = dd; bi = k; } }
+    return bi;
+  }
+  // Promise version from a data URL; resolves with a data URL (WebP where supported)
+  I.fromURL = function (url, opts) {
+    return new Promise(function (res, rej) {
+      var img = new Image();
+      img.onload = function () {
+        var c = I.render(img, opts), w = c.toDataURL('image/webp', 0.9);
+        res(w.indexOf('data:image/webp') === 0 ? w : c.toDataURL('image/png'));
+      };
+      img.onerror = rej; img.src = url;
+    });
+  };
+})();</script>
+<style>
+  :root { --ink: #1b2620; --muted: #5d6a62; --line: #dfe3dc; --paper: #f7f6f1; --card: #fff; --forest: #1e3a2c; --accent: #2e7d4f; --gold: #f2c14e; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: var(--paper); font-size: 14px;
+    display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+  button { font: inherit; border-radius: 8px; padding: 7px 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+  button:hover { border-color: #b0b9ad; }
+  button:disabled { opacity: .5; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 650; }
+  input[type=text], select { font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+  header { background: var(--forest); color: #fff; display: flex; align-items: center; gap: 12px; padding: 10px 16px; flex-wrap: wrap; }
+  header a { color: #fff; text-decoration: none; font-weight: 750; font-size: 17px; padding-right: 12px; border-right: 1px solid rgba(255,255,255,.3); }
+  header a.lnk { font-weight: 500; font-size: 13px; border: 0; color: #cfe0d4; text-decoration: underline; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 650; }
+  header .prog { color: #cfe0d4; font-size: 13px; }
+  header .sp { flex: 1; }
+  header .sty { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #dfeae2; }
+  header .sty select { padding: 4px 6px; font-size: 13px; }
+  header button { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.25); }
+  header button.gold { background: var(--gold); color: #1e2a20; border-color: var(--gold); font-weight: 650; }
+  main { display: grid; grid-template-columns: 270px minmax(0, 1fr); min-height: 0; }
+  #side { border-right: 1px solid var(--line); overflow-y: auto; }
+  #side h3 { margin: 14px 14px 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .set { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; text-align: left; padding: 9px 14px; }
+  .set[aria-current="true"] { background: #e3efe6; }
+  .set .sw { width: 54px; height: 30px; border-radius: 6px; flex: none; background-size: cover; background-position: center; border: 1px solid rgba(0,0,0,.08); }
+  .set b { flex: 1; font-weight: 600; }
+  .st { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px; background: #d6ecd9; color: #1f5c33; }
+  #work { overflow-y: auto; padding: 18px 22px 40px; min-height: 0; }
+  h2 { margin: 0 0 4px; font-size: 22px; }
+  .muted { color: var(--muted); }
+  .tabs { display: flex; gap: 6px; margin: 16px 0 10px; flex-wrap: wrap; }
+  .tabs button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .search { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+  .search input[type=text] { flex: 1; min-width: 240px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+  .ph { padding: 0; overflow: hidden; display: flex; flex-direction: column; text-align: left; border-radius: 10px; background: #fff; }
+  .ph img { width: 100%; height: 120px; object-fit: cover; background: #eceee8; display: block; }
+  .ph span { padding: 6px 8px; font-size: 11.5px; color: var(--muted); line-height: 1.35; }
+  .ph span b { color: var(--ink); font-weight: 650; }
+  .ph:hover { outline: 3px solid var(--accent); outline-offset: -1px; }
+  .note { background: #fff8e1; border: 1px solid #ecd9a0; border-radius: 10px; padding: 10px 12px; margin: 12px 0; line-height: 1.45; }
+  .note.ok { background: #e9f5ec; border-color: #b9dcc2; }
+  .ed { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 14px; }
+  .ed h3 { margin: 0 0 6px; font-size: 16px; }
+  .step { font-size: 13px; color: var(--muted); margin: 0 0 8px; line-height: 1.45; }
+  .photo { position: relative; user-select: none; touch-action: none; }
+  .photo img { width: 100%; display: block; border-radius: 8px; }
+  .line { position: absolute; left: 0; right: 0; height: 0; border-top: 3px dashed #fff; outline: 2px solid rgba(0,0,0,.35); cursor: ns-resize; }
+  .line i { position: absolute; left: 8px; top: -26px; font-style: normal; background: rgba(20,30,24,.85); color: #fff; font-size: 12px; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+  .line.hz { border-top-color: var(--gold); }
+  #ln-top i { top: 6px; }
+  .line::after { content: ""; position: absolute; left: 0; right: 0; top: -12px; height: 24px; }
+  .shade { position: absolute; left: 0; right: 0; background: rgba(10,20,14,.45); pointer-events: none; border-radius: 0 0 8px 8px; }
+  .shade.t { border-radius: 8px 8px 0 0; }
+  .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+  .row label { display: flex; align-items: center; gap: 8px; }
+  .swatches { display: flex; gap: 6px; }
+  .swatches button { width: 34px; height: 34px; padding: 0; border-radius: 8px; }
+  .swatches button[aria-pressed="true"] { outline: 3px solid var(--accent); outline-offset: 2px; }
+  #pv { width: 100%; border-radius: 10px; display: block; cursor: grab; background: #ccc; }
+  #pv:active { cursor: grabbing; }
+  .credit { font-size: 12.5px; color: var(--muted); }
+  .credit a { color: var(--accent); }
+  #toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #1e2a20; color: #fff; padding: 10px 16px; border-radius: 10px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50; max-width: 90vw; }
+  #toast.on { opacity: 1; }
+  .busy { color: var(--muted); font-style: italic; }
+  details.help { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 12px; }
+  details.help summary { cursor: pointer; font-weight: 650; }
+  details.help li { line-height: 1.5; max-width: 760px; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } #side { max-height: 34vh; } body { overflow: auto; } }
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">🌿 EcoBuild</a>
+  <h1>Background Picker</h1>
+  <span class="prog" id="count"></span>
+  <a class="lnk" href="picture-picker.html">Picture Picker</a>
+  <span class="sp"></span>
+  <label class="sty">Style <select id="s-style"><option value="illus">Illustration</option><option value="photo">Photo</option></select></label>
+  <label class="sty" id="l-detail">Detail <select id="s-detail"><option value="simple">Simple</option><option value="medium">Medium</option><option value="detailed">Detailed</option></select></label>
+  <label class="sty" id="l-outline"><input type="checkbox" id="s-outline" checked> Outlines</label>
+  <button id="b-load">Open saved backgrounds…</button>
+  <button id="b-down" class="gold">Download backgrounds</button>
+  <input type="file" id="f-load" accept=".zip" hidden>
+  <input type="file" id="f-own" accept="image/*" hidden>
+</header>
+<main>
+  <section id="side"></section>
+  <section id="work"></section>
+</main>
+<div id="toast"></div>
+<script>
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function toast(m) { var t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(function () { t.classList.remove('on'); }, 3500); }
+
+  // ---------- the settings that get a background ----------
+  // q: Wikimedia Commons search; ph: Poly Haven tags (biomes only: Poly Haven has no national-park panoramas)
+  var SETTINGS = [
+    { key: 'forest', name: 'Temperate forest', q: 'deciduous forest panorama', ph: ['forest', 'trees'], sky: ['#5b97d8', '#d4e8f3'], ground: '#4f6b34' },
+    { key: 'rainforest', name: 'Tropical rainforest', q: 'rainforest canopy panorama', ph: ['forest', 'jungle'], sky: ['#79a8b9', '#dbe9df'], ground: '#3a5626' },
+    { key: 'grassland', name: 'Grassland / prairie', q: 'tallgrass prairie panorama', ph: ['field', 'grass', 'meadow'], sky: ['#3e8fe2', '#eef2d4'], ground: '#a7a154' },
+    { key: 'desert', name: 'Desert', q: 'Sonoran Desert saguaro panorama', ph: ['desert', 'sand'], sky: ['#3c8be6', '#f5dfb9'], ground: '#d1b07a' },
+    { key: 'tundra', name: 'Arctic tundra', q: 'arctic tundra panorama', ph: ['snow', 'winter'], sky: ['#8db4dc', '#eef3f8'], ground: '#cfd6d2' },
+    { key: 'wetland', name: 'Wetland / pond', q: 'marsh wetland panorama', ph: ['lake', 'river', 'water'], sky: ['#5d98cc', '#e2ede7'], ground: '#6f8a4a' },
+    { key: 'plain', name: 'Blank meadow', q: 'meadow panorama', ph: ['meadow', 'field'], sky: ['#5a9be0', '#e8f0f6'], ground: '#7fa152' },
+    { key: 'yellowstone', name: 'Yellowstone', park: 1, q: 'Yellowstone National Park panorama', sky: ['#4f92d6', '#dcecf6'], ground: '#9a9a6a' },
+    { key: 'grandteton', name: 'Grand Teton', park: 1, q: 'Teton Range panorama', sky: ['#3f86d4', '#e2eef6'], ground: '#8e9670' },
+    { key: 'yosemite', name: 'Yosemite', park: 1, q: 'Yosemite Valley panorama Half Dome', sky: ['#4a8fd8', '#e4eff7'], ground: '#7f9a52' },
+    { key: 'grandcanyon', name: 'Grand Canyon', park: 1, q: 'Grand Canyon panorama', sky: ['#3d86d8', '#f1e6d8'], ground: '#bfae8c' },
+    { key: 'bigbend', name: 'Big Bend', park: 1, q: 'Big Bend National Park Chisos panorama', sky: ['#3b88dd', '#f3e7cf'], ground: '#c4a777' },
+    { key: 'everglades', name: 'Everglades', park: 1, q: 'Everglades panorama', sky: ['#4a96d8', '#eaf2ef'], ground: '#9e9d55' },
+    { key: 'smokies', name: 'Great Smoky Mountains', park: 1, q: 'Great Smoky Mountains panorama', sky: ['#6d9ccc', '#e3ebf2'], ground: '#53703a' },
+    { key: 'arches', name: 'Arches', park: 1, q: 'Arches National Park panorama', sky: ['#3a83d6', '#f2e6d6'], ground: '#c47a48' }
+  ];
+  var BW = 4096; // width of a finished background: the whole circle round the viewer
+
+  // ---------- saved backgrounds (IndexedDB) ----------
+  var saved = {}, db = null;
+  function openDB() {
+    return new Promise(function (res) {
+      try {
+        var rq = indexedDB.open('ecobuild-bgpicker', 1);
+        rq.onupgradeneeded = function () { rq.result.createObjectStore('bg'); };
+        rq.onsuccess = function () { db = rq.result; var st = db.transaction('bg').objectStore('bg'), c = st.openCursor();
+          c.onsuccess = function () { var r = c.result; if (r) { saved[r.key] = r.value; r.continue(); } else res(); }; c.onerror = function () { res(); }; };
+        rq.onerror = function () { res(); };
+      } catch (e) { res(); }
+    });
+  }
+  function store(k, v) { if (v) saved[k] = v; else delete saved[k]; if (!db) return; try { var st = db.transaction('bg', 'readwrite').objectStore('bg'); if (v) st.put(v, k); else st.delete(k); } catch (e) {} }
+
+  // ---------- style (shared with the Picture Picker) ----------
+  var STY = { style: 'illus', detail: 'medium', outline: true };
+  try { var ss = JSON.parse(localStorage.getItem('ecobuild-picker-style') || 'null'); if (ss) STY = ss; } catch (e) {}
+  $('#s-style').value = STY.style; $('#s-detail').value = STY.detail; $('#s-outline').checked = STY.outline !== false;
+  function styCtl() { $('#l-detail').style.display = $('#l-outline').style.display = STY.style === 'illus' ? '' : 'none'; }
+  styCtl();
+  ['#s-style', '#s-detail', '#s-outline'].forEach(function (id) {
+    $(id).addEventListener('change', function () {
+      STY = { style: $('#s-style').value, detail: $('#s-detail').value, outline: $('#s-outline').checked };
+      try { localStorage.setItem('ecobuild-picker-style', JSON.stringify(STY)); } catch (e) {}
+      styCtl(); illCache = {}; if (ed) { ed.ill = null; makeIll(); } renderSide();
+    });
+  });
+
+  // ---------- side list ----------
+  var cur = 0;
+  function swatchCSS(s) {
+    var v = saved[s.key];
+    if (v && v.thumb) return 'background-image:url(' + v.thumb + ')';
+    return 'background:linear-gradient(' + s.sky[0] + ',' + s.sky[1] + ' 58%,' + s.ground + ' 60%)';
+  }
+  function renderSide() {
+    var html = '<h3>Biomes</h3>';
+    SETTINGS.forEach(function (s, i) {
+      if (i === 7) html += '<h3>National parks</h3>';
+      html += '<button class="set" data-i="' + i + '" aria-current="' + (i === cur) + '"><span class="sw" style="' + swatchCSS(s) + '"></span><b>' + esc(s.name) + '</b>' +
+        (saved[s.key] ? '<span class="st">Done</span>' : '') + '</button>';
+    });
+    html += '<p class="muted" style="padding:10px 14px;font-size:12.5px">The coral reef is underwater, so it keeps its own background.</p>';
+    $('#side').innerHTML = html;
+    $('#count').textContent = Object.keys(saved).length + ' of ' + SETTINGS.length + ' done';
+  }
+  $('#side').addEventListener('click', function (e) { var b = e.target.closest('[data-i]'); if (b) show(+b.dataset.i); });
+
+  // ---------- searching ----------
+  var src = 'commons', results = [], wideOnly = true, offset = 0, query = '';
+  function show(i) {
+    cur = i; var s = SETTINGS[i]; ed = null;
+    src = 'commons'; query = s.q; offset = 0; results = [];
+    try { localStorage.setItem('ecobuild-bgpicker-cur', s.key); } catch (e) {}
+    renderSide(); renderWork(); search();
+  }
+  function renderWork() {
+    var s = SETTINGS[cur], v = saved[s.key];
+    var html = '<h2>' + esc(s.name) + (s.park ? ' National Park' : '') + '</h2>' +
+      '<p class="muted">Pick a wide photo of the landscape. You will mark the horizon, then see it as a background.</p>';
+    if (v) html += '<div class="note ok"><b>Done.</b> <span class="credit">' + creditHTML(v.credit) + '</span> Pick another photo below to replace it.' +
+      '<br><img alt="" src="' + v.thumb + '" style="width:100%;max-width:720px;margin-top:8px;border-radius:8px"></div>';
+    html += '<div class="tabs"><button data-src="commons" aria-pressed="' + (src === 'commons') + '">Wikimedia Commons</button>' +
+      (s.ph ? '<button data-src="polyhaven" aria-pressed="' + (src === 'polyhaven') + '">Poly Haven (360° photos)</button>' : '') +
+      '<button data-src="own">Upload my own photo</button></div>';
+    if (src === 'commons') html += '<div class="search"><input type="text" id="q" value="' + esc(query) + '" aria-label="Search Wikimedia Commons"><button id="b-q">Search</button>' +
+      '<label class="muted"><input type="checkbox" id="wide"' + (wideOnly ? ' checked' : '') + '> Wide panoramas only</label></div>';
+    html += '<div class="grid" id="grid"><p class="busy">Searching…</p></div><div id="more" style="margin-top:10px"></div><div id="editor"></div>' +
+      '<details class="help"><summary>How this works</summary><ol>' +
+      '<li>Pick a wide photo. Panoramas work best, because the background wraps all the way round the viewer. A narrower photo is repeated, mirrored, to fill the circle.</li>' +
+      '<li>Drag the gold line to the horizon (where the ground meets the distant scenery). Everything below it is replaced by the ground organisms stand on. Drag the white line down to cut off sky you do not need.</li>' +
+      '<li>Choose a ground colour from the photo, check the preview (drag it to look around), and press Save.</li>' +
+      '<li>Style at the top is shared with the Picture Picker, so backgrounds and organisms match. The original photos are kept, so the style can change later.</li>' +
+      '<li>Only photos whose licences allow reuse are shown, and each photographer is saved for the credits page. Your work stays in this browser; Download backgrounds gives you a .zip to send.</li></ol></details>';
+    $('#work').innerHTML = html;
+    $('#work').querySelector('.tabs').onclick = function (e) {
+      var b = e.target.closest('[data-src]'); if (!b) return;
+      if (b.dataset.src === 'own') { $('#f-own').click(); return; }
+      src = b.dataset.src; offset = 0; results = []; renderWork(); search();
+    };
+    if ($('#b-q')) {
+      $('#b-q').onclick = function () { query = $('#q').value.trim(); offset = 0; results = []; search(); };
+      $('#q').addEventListener('keydown', function (e) { if (e.key === 'Enter') { query = this.value.trim(); offset = 0; results = []; search(); } });
+      $('#wide').onchange = function () { wideOnly = this.checked; offset = 0; results = []; search(); };
+    }
+  }
+  function creditHTML(c) {
+    if (!c) return '';
+    if (c.source === 'upload') return 'Your own photo' + (c.attribution ? ' · ' + esc(c.attribution) : '') + '.';
+    return 'Photo by ' + esc(c.attribution) + ' (' + esc(c.license) + ') · <a target="_blank" rel="noopener" href="' + esc(c.page) + '">' + (c.source === 'polyhaven' ? 'Poly Haven' : 'Wikimedia Commons') + '</a>';
+  }
+  function stripTags(h) { var d = document.createElement('div'); d.innerHTML = h || ''; return (d.textContent || '').replace(/\s+/g, ' ').trim(); }
+  var OKLIC = /^(cc0|cc[- ]?zero|public domain|pd|cc[- ]by([- ]sa)?)([- ][0-9.]+)?/i;
+  function search() {
+    var g = $('#grid'); if (!g) return;
+    if (!results.length) g.innerHTML = '<p class="busy">Searching…</p>';
+    var mine = SETTINGS[cur].key + src + query + offset;
+    search.tok = mine;
+    var job = src === 'polyhaven' ? searchPH() : searchCommons();
+    job.then(function (list) {
+      if (search.tok !== mine) return;
+      results = results.concat(list); renderGrid();
+    }).catch(function () {
+      if (search.tok !== mine) return;
+      g.innerHTML = '<p class="muted">Could not reach ' + (src === 'polyhaven' ? 'Poly Haven' : 'Wikimedia Commons') + '. Check the internet connection and try again.</p>';
+    });
+  }
+  function searchCommons() {
+    var u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=50' +
+      '&gsroffset=' + offset + '&gsrsearch=' + encodeURIComponent(query + ' filetype:bitmap') +
+      '&prop=imageinfo&iiprop=url|size|extmetadata|mime&iiurlwidth=960&iiextmetadatafilter=LicenseShortName|License|Artist|Credit';
+    return fetch(u).then(function (r) { return r.json(); }).then(function (d) {
+      searchCommons.more = !!(d['continue'] && d['continue'].gsroffset); offset = d['continue'] ? d['continue'].gsroffset : offset;
+      var pages = d.query && d.query.pages ? Object.keys(d.query.pages).map(function (k) { return d.query.pages[k]; }) : [];
+      pages.sort(function (a, b) { return (a.index || 0) - (b.index || 0); });
+      return pages.map(function (p) {
+        var ii = p.imageinfo && p.imageinfo[0]; if (!ii || !/jpeg|png/.test(ii.mime || '')) return null;
+        var m = ii.extmetadata || {}, lic = (m.LicenseShortName && m.LicenseShortName.value) || '', licId = (m.License && m.License.value) || '';
+        if (/nc|nd/i.test(lic.replace(/public domain/i, '')) || !(OKLIC.test(lic) || OKLIC.test(licId))) return null;
+        var aspect = ii.width / ii.height;
+        if (wideOnly && aspect < 2) return null;
+        var big = ii.width > 3840 && ii.thumburl ? ii.thumburl.replace(/\/960px-/, '/3840px-') : ii.url;
+        return { id: 'c' + p.pageid, thumb: ii.thumburl || ii.url, big: big, w: ii.width, h: ii.height, aspect: aspect, full360: false,
+          title: p.title.replace(/^File:/, '').replace(/\.[a-z]+$/i, ''), license: lic || licId, attribution: stripTags(m.Artist && m.Artist.value) || 'Unknown',
+          page: ii.descriptionurl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(p.title)), source: 'commons' };
+      }).filter(Boolean);
+    });
+  }
+  var phAll = null;
+  function searchPH() {
+    var s = SETTINGS[cur];
+    phAll = phAll || fetch('https://api.polyhaven.com/assets?t=hdris').then(function (r) { return r.json(); });
+    return phAll.then(function (all) {
+      searchCommons.more = false;
+      return Object.keys(all).filter(function (id) {
+        var a = all[id], tags = (a.tags || []).concat(a.categories || []).map(function (t) { return String(t).toLowerCase(); });
+        if (tags.indexOf('indoor') >= 0 || tags.indexOf('urban') >= 0) return false;
+        return s.ph.some(function (t) { return tags.indexOf(t) >= 0; });
+      }).slice(0, 60).map(function (id) {
+        var a = all[id], authors = Object.keys(a.authors || {}).join(', ') || 'Poly Haven';
+        return { id: 'p' + id, phid: id, thumb: 'https://cdn.polyhaven.com/asset_img/thumbs/' + id + '.png?width=600&height=300', big: null, w: 2, h: 1, aspect: 2, full360: true,
+          title: a.name || id, license: 'CC0', attribution: authors, page: 'https://polyhaven.com/a/' + id, source: 'polyhaven' };
+      });
+    });
+  }
+  function renderGrid() {
+    var g = $('#grid'); if (!g) return;
+    g.innerHTML = results.length ? results.map(function (r, k) {
+      return '<button class="ph" data-k="' + k + '" title="Use this photo"><img loading="lazy" alt="" src="' + esc(r.thumb) + '">' +
+        '<span><b>' + esc(r.title) + '</b><br>' + esc(r.license) + ' · ' + esc(r.attribution).slice(0, 60) + (r.full360 ? ' · 360°' : ' · ' + r.aspect.toFixed(1) + ':1') + '</span></button>';
+    }).join('') : '<p class="muted">No reusable ' + (wideOnly && src === 'commons' ? 'wide ' : '') + 'photos found. Try other words' + (wideOnly && src === 'commons' ? ', or untick “Wide panoramas only”' : '') + '.</p>';
+    g.onclick = function (e) { var b = e.target.closest('.ph'); if (b) pick(results[+b.dataset.k]); };
+    $('#more').innerHTML = src === 'commons' && searchCommons.more ? '<button id="b-more">Show more</button>' : '';
+    if ($('#b-more')) $('#b-more').onclick = function () { search(); };
+  }
+
+  // ---------- editing: horizon, height, ground colour, preview ----------
+  var ed = null, illCache = {};
+  function loadImage(url) {
+    return fetch(url, { mode: 'cors' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); }).then(blobImage);
+  }
+  function blobImage(b) {
+    return new Promise(function (res, rej) { var u = URL.createObjectURL(b), im = new Image(); im.onload = function () { res(im); }; im.onerror = rej; im.src = u; });
+  }
+  function pick(r) {
+    $('#editor').innerHTML = '<div class="ed"><p class="busy">Opening the photo… (large panoramas can take a moment)</p></div>';
+    $('#editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    var urlP = r.source === 'polyhaven'
+      ? fetch('https://api.polyhaven.com/files/' + r.phid).then(function (x) { return x.json(); }).then(function (f) {
+          var t = f.tonemapped && f.tonemapped.url;
+          return t || ('https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/' + r.phid + '.jpg');
+        })
+      : Promise.resolve(r.big);
+    urlP.then(loadImage).then(function (img) { startEdit(img, r); }).catch(function () {
+      $('#editor').innerHTML = '<div class="note">The browser would not let this page open that photo directly. <a target="_blank" rel="noopener" href="' + esc(r.page) + '">Open its page</a>, ' +
+        'download the largest version, then press <b>Upload my own photo</b>. The photographer will still be credited.</div>';
+      pendingCredit = { key: SETTINGS[cur].key, r: r };
+    });
+  }
+  var pendingCredit = null;
+  $('#f-own').addEventListener('change', function () {
+    var f = this.files[0]; this.value = ''; if (!f) return;
+    var key = SETTINGS[cur].key, pc = pendingCredit && pendingCredit.key === key ? pendingCredit.r : null; pendingCredit = null;
+    blobImage(f).then(function (img) {
+      var aspect = img.naturalWidth / img.naturalHeight;
+      var r = pc ? Object.assign({}, pc) : { source: 'upload', title: f.name, license: '', attribution: '', page: '' };
+      r.full360 = pc ? pc.full360 : Math.abs(aspect - 2) < 0.03 && confirm('Is this a full 360° photo (it shows all the way round)?');
+      if (!pc) r.attribution = prompt('Who took this photo? (for the credits page — leave blank if it is yours)', '') || '';
+      startEdit(img, r);
+    });
+  });
+
+  function startEdit(img, r) {
+    // keep working copies a sensible size
+    var W = img.naturalWidth, H = img.naturalHeight, k = Math.min(1, 6000 / W), cw = Math.round(W * k), ch = Math.round(H * k);
+    var c = document.createElement('canvas'); c.width = cw; c.height = ch; c.getContext('2d').drawImage(img, 0, 0, cw, ch);
+    var shown = document.createElement('canvas'), sk = Math.min(1, 1400 / cw); shown.width = Math.round(cw * sk); shown.height = Math.round(ch * sk);
+    shown.getContext('2d').drawImage(c, 0, 0, shown.width, shown.height);
+    ed = { r: r, src: c, top: 0, hz: r.full360 ? 0.5 : 0.62, full360: !!r.full360, height: 0, ground: null, palette: [], band: null, ill: null, yaw: 0, view: 'illus' };
+    ed.height = defaultHeight();
+    $('#editor').innerHTML = '<div class="ed"><h3>' + esc(r.title || 'Your photo') + '</h3><p class="credit">' + creditHTML({ source: r.source, attribution: r.attribution, license: r.license, page: r.page }) + '</p>' +
+      '<p class="step"><b>1.</b> Drag the <b style="color:#b8860b">gold line</b> to the horizon. Drag the white line down to trim extra sky.</p>' +
+      '<div class="photo" id="photo"><img alt="" src="' + shown.toDataURL('image/jpeg', 0.85) + '"><div class="shade t" id="sh-t"></div><div class="shade" id="sh-b"></div>' +
+      '<div class="line" id="ln-top"><i>Top</i></div><div class="line hz" id="ln-hz"><i>Horizon: the ground starts here</i></div></div>' +
+      '<div class="row"><label><input type="checkbox" id="full"' + (ed.full360 ? ' checked' : '') + '> This is a full 360° photo</label>' +
+      '<label>Scenery height <input type="range" id="hgt" min="6" max="45" step="1" value="' + ed.height + '"> <span id="hgt-v"></span></label></div>' +
+      '<p class="step"><b>2.</b> Choose the colour of the ground organisms will stand on.</p><div class="row"><div class="swatches" id="sw"></div>' +
+      '<label class="muted">or <input type="color" id="gc"></label></div>' +
+      '<p class="step"><b>3.</b> Check the preview. Drag it to look around.</p>' +
+      '<div class="row"><div class="tabs" id="pvtabs" style="margin:0"><button data-v="illus" aria-pressed="true">Illustration</button><button data-v="photo" aria-pressed="false">Photo</button></div><span id="pvbusy" class="busy"></span></div>' +
+      '<canvas id="pv" width="1200" height="420"></canvas>' +
+      '<div class="row"><button class="primary" id="b-save">Save this background</button><button id="b-cancel">Cancel</button></div></div>';
+    placeLines(); dragLine('ln-top', 'top'); dragLine('ln-hz', 'hz');
+    $('#full').onchange = function () { ed.full360 = this.checked; ed.height = defaultHeight(); $('#hgt').value = ed.height; rebuild(); };
+    $('#hgt').oninput = function () { ed.height = +this.value; rebuild(true); };
+    $('#gc').oninput = function () { ed.ground = this.value; drawSwatches(); drawPreview(); };
+    $('#pvtabs').onclick = function (e) { var b = e.target.closest('[data-v]'); if (!b) return; ed.view = b.dataset.v; this.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); drawPreview(); if (ed.view === 'illus') makeIll(); };
+    $('#b-cancel').onclick = function () { ed = null; $('#editor').innerHTML = ''; };
+    $('#b-save').onclick = save;
+    panPreview();
+    rebuild();
+  }
+  function defaultHeight() {
+    var h = (ed.hz - ed.top) * ed.src.height, w = ed.src.width;
+    if (ed.full360) return Math.max(6, Math.min(45, Math.round((ed.hz - ed.top) * 180)));
+    return Math.max(10, Math.min(24, Math.round(180 * h / w)));
+  }
+  function placeLines() {
+    var ph = $('#photo'); if (!ph) return;
+    $('#ln-top').style.top = (ed.top * 100) + '%'; $('#ln-hz').style.top = (ed.hz * 100) + '%';
+    $('#sh-t').style.top = 0; $('#sh-t').style.height = (ed.top * 100) + '%';
+    $('#sh-b').style.top = (ed.hz * 100) + '%'; $('#sh-b').style.bottom = 0;
+    $('#hgt-v').textContent = ed.height + '°';
+  }
+  function dragLine(id, which) {
+    var el = $('#' + id), ph = $('#photo');
+    el.addEventListener('pointerdown', function (e) {
+      el.setPointerCapture(e.pointerId); e.preventDefault();
+      function mv(ev) {
+        var r = ph.getBoundingClientRect(), f = Math.max(0, Math.min(1, (ev.clientY - r.top) / r.height));
+        if (which === 'top') ed.top = Math.min(f, ed.hz - 0.05); else ed.hz = Math.max(f, ed.top + 0.05);
+        placeLines();
+      }
+      function up() { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); ed.height = defaultHeight(); $('#hgt').value = ed.height; rebuild(); }
+      el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up);
+    });
+  }
+
+  // Build the band: the scenery from the top line to the horizon, wrapped round the full circle
+  function buildBand() {
+    var S = ed.src, sy = Math.round(ed.top * S.height), sh = Math.max(4, Math.round((ed.hz - ed.top) * S.height)), sw = S.width;
+    var bh = Math.max(32, Math.round(BW * ed.height / 360)), c = document.createElement('canvas'); c.width = BW; c.height = bh;
+    var x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+    if (ed.full360) { x.drawImage(S, 0, sy, sw, sh, 0, 0, BW, bh); ed.tiles = 1; return c; }
+    var tw = bh * sw / sh, n = Math.round(BW / tw);
+    if (n <= 1) {
+      // one wide photo covers the circle: stretch it, and blend its two ends where they meet behind the viewer
+      x.drawImage(S, 0, sy, sw, sh, 0, 0, BW, bh);
+      var fw = Math.round(BW * 0.04), g = x.createLinearGradient(BW - fw, 0, BW, 0), e = document.createElement('canvas'); e.width = fw; e.height = bh;
+      var ex = e.getContext('2d'); ex.translate(fw, 0); ex.scale(-1, 1); ex.drawImage(c, 0, 0, fw, bh, 0, 0, fw, bh);
+      var m = document.createElement('canvas'); m.width = fw; m.height = bh; var mx = m.getContext('2d');
+      var lg = mx.createLinearGradient(0, 0, fw, 0); lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(1, 'rgba(0,0,0,1)');
+      mx.drawImage(e, 0, 0); mx.globalCompositeOperation = 'destination-in'; mx.fillStyle = lg; mx.fillRect(0, 0, fw, bh);
+      x.drawImage(m, BW - fw, 0); ed.tiles = 1; return c;
+    }
+    // narrower photo: repeat it, every other copy mirrored, so the joins match (an even count closes the circle)
+    if (n % 2) n += 1;
+    tw = BW / n;
+    for (var i = 0; i < n; i++) {
+      x.save();
+      if (i % 2) { x.translate((i + 1) * tw, 0); x.scale(-1, 1); x.drawImage(S, 0, sy, sw, sh, 0, 0, tw, bh); }
+      else x.drawImage(S, 0, sy, sw, sh, i * tw, 0, tw, bh);
+      x.restore();
+    }
+    ed.tiles = n; return c;
+  }
+  // Fade the top of the band into the sky so there is no hard edge
+  function fadeTop(c) {
+    var o = document.createElement('canvas'); o.width = c.width; o.height = c.height;
+    var x = o.getContext('2d'); x.drawImage(c, 0, 0);
+    // one gradient over the whole band ('destination-in' clears whatever it does not cover)
+    var g = x.createLinearGradient(0, 0, 0, c.height); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.3, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,1)');
+    x.globalCompositeOperation = 'destination-in'; x.fillStyle = g; x.fillRect(0, 0, c.width, c.height);
+    return o;
+  }
+  // Colours: sky from the top of the band, ground choices from just below the horizon
+  function avg(ctx, x0, y0, w, h) {
+    var d = ctx.getImageData(x0, y0, Math.max(1, w), Math.max(1, h)).data, r = 0, g = 0, b = 0, n = 0;
+    for (var i = 0; i < d.length; i += 16) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+    return [r / n, g / n, b / n];
+  }
+  function hex(c) { return '#' + c.map(function (v) { v = Math.max(0, Math.min(255, Math.round(v))); return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
+  function groundPalette() {
+    var S = ed.src, x = S.getContext('2d'), y0 = Math.round(ed.hz * S.height), h = Math.max(4, Math.round(Math.min(0.3, 1 - ed.hz) * S.height));
+    if (y0 + 2 >= S.height) return [];
+    var d = x.getImageData(0, y0, S.width, Math.min(h, S.height - y0)).data, px = [];
+    for (var i = 0; i < d.length; i += 4 * 37) px.push([d[i], d[i + 1], d[i + 2]]);
+    var K = 5, cen = [];
+    px.sort(function (a, b) { return (a[0] + a[1] + a[2]) - (b[0] + b[1] + b[2]); });
+    for (var k = 0; k < K; k++) cen.push(px[Math.floor((k + 0.5) / K * px.length)].slice());
+    for (var it = 0; it < 8; it++) {
+      var acc = cen.map(function () { return [0, 0, 0, 0]; });
+      px.forEach(function (p) { var bi = 0, bd = 1e9; cen.forEach(function (c, j) { var dd = (c[0] - p[0]) * (c[0] - p[0]) + (c[1] - p[1]) * (c[1] - p[1]) + (c[2] - p[2]) * (c[2] - p[2]); if (dd < bd) { bd = dd; bi = j; } }); var A = acc[bi]; A[0] += p[0]; A[1] += p[1]; A[2] += p[2]; A[3]++; });
+      cen = cen.map(function (c, j) { var A = acc[j]; return A[3] ? [A[0] / A[3], A[1] / A[3], A[2] / A[3], A[3]] : c; });
+    }
+    cen.sort(function (a, b) { return (b[3] || 0) - (a[3] || 0); });
+    return cen.map(function (c) { return hex(c.slice(0, 3)); });
+  }
+  function drawSwatches() {
+    $('#sw').innerHTML = ed.palette.map(function (c) { return '<button data-c="' + c + '" style="background:' + c + '" aria-pressed="' + (c === ed.ground) + '" title="' + c + '"></button>'; }).join('');
+    $('#sw').onclick = function (e) { var b = e.target.closest('[data-c]'); if (!b) return; ed.ground = b.dataset.c; $('#gc').value = ed.ground; drawSwatches(); drawPreview(); };
+    $('#gc').value = ed.ground || '#7f9a52';
+  }
+  function rebuild(quick) {
+    placeLines();
+    clearTimeout(rebuild.t);
+    rebuild.t = setTimeout(function () {
+      ed.band = buildBand(); ed.ill = null;
+      var bx = ed.band.getContext('2d'), top = avg(bx, 0, 0, BW, Math.max(2, ed.band.height * 0.05));
+      ed.sky = [hex(top.map(function (v, i) { return v * 0.82 - [10, 4, 0][i]; })), hex(top)];
+      if (!quick || !ed.palette.length) { ed.palette = groundPalette(); if (!ed.ground || ed.palette.indexOf(ed.ground) < 0) ed.ground = ed.palette[0] || SETTINGS[cur].ground; drawSwatches(); }
+      drawPreview(); if (ed.view === 'illus') makeIll();
+    }, quick ? 120 : 30);
+  }
+  function makeIll() {
+    if (!ed || !ed.band || ed.ill || ed.view !== 'illus') return;
+    var mine = ed.band; $('#pvbusy').textContent = 'Drawing the illustration…';
+    setTimeout(function () {
+      if (!ed || ed.band !== mine) return;
+      ed.ill = STY.style === 'illus' || ed.view === 'illus' ? ILLUS.render(mine, { detail: STY.detail, outline: STY.outline, silhouette: false }) : mine;
+      $('#pvbusy').textContent = ''; drawPreview();
+    }, 30);
+  }
+  // The preview: a 100° slice of the view, as if standing in the scene
+  function drawPreview() {
+    var cv = $('#pv'); if (!cv || !ed || !ed.band) return;
+    var x = cv.getContext('2d'), W = cv.width, H = cv.height, hy = Math.round(H * 0.62), FOV = 100, pxDeg = W / FOV;
+    var g = x.createLinearGradient(0, 0, 0, hy); g.addColorStop(0, ed.sky[0]); g.addColorStop(1, ed.sky[1]);
+    x.fillStyle = g; x.fillRect(0, 0, W, hy);
+    var band = fadeTop(ed.view === 'illus' && ed.ill ? ed.ill : ed.band), bh = ed.height * pxDeg, bw = 360 * pxDeg;
+    var start = ((ed.yaw % 360) + 360) % 360 * pxDeg;
+    for (var o = -start; o < W; o += bw) x.drawImage(band, o, hy - bh, bw, bh);
+    var gg = x.createLinearGradient(0, hy, 0, H); gg.addColorStop(0, shade(ed.ground, 1.08)); gg.addColorStop(1, shade(ed.ground, 0.85));
+    x.fillStyle = gg; x.fillRect(0, hy, W, H - hy);
+    // a soft haze where the scenery meets the ground
+    var hz = x.createLinearGradient(0, hy - 14, 0, hy + 10); hz.addColorStop(0, 'rgba(255,255,255,0)'); hz.addColorStop(0.6, 'rgba(255,255,255,.28)'); hz.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = hz; x.fillRect(0, hy - 14, W, 24);
+    // a person for scale, about 10 m in front
+    x.fillStyle = 'rgba(30,40,34,.55)'; var ps = 60; x.beginPath(); x.arc(W / 2, H - 20 - ps, ps * 0.13, 0, 7); x.fill(); x.fillRect(W / 2 - ps * 0.12, H - 20 - ps * 0.86, ps * 0.24, ps * 0.86);
+  }
+  function shade(h, f) { var n = parseInt(h.slice(1), 16); return hex([(n >> 16 & 255) * f, (n >> 8 & 255) * f, (n & 255) * f]); }
+  function panPreview() {
+    var cv = $('#pv'), drag = null;
+    cv.addEventListener('pointerdown', function (e) { drag = { x: e.clientX, yaw: ed.yaw }; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', function (e) { if (!drag) return; var r = cv.getBoundingClientRect(); ed.yaw = drag.yaw - (e.clientX - drag.x) / r.width * 100; drawPreview(); });
+    cv.addEventListener('pointerup', function () { drag = null; });
+  }
+
+  function save() {
+    var s = SETTINGS[cur], r = ed.r, band = ed.band;
+    var photo = webp(band), th = document.createElement('canvas'); th.width = 360; th.height = 120;
+    var tx = th.getContext('2d'), g = tx.createLinearGradient(0, 0, 0, 70); g.addColorStop(0, ed.sky[0]); g.addColorStop(1, ed.sky[1]);
+    tx.fillStyle = g; tx.fillRect(0, 0, 360, 72); tx.drawImage(fadeTop(ed.ill || band), 0, 72 - Math.min(60, band.height * 360 / BW * 1.6), 360 * 4, Math.min(60, band.height * 360 / BW * 1.6));
+    tx.fillStyle = ed.ground; tx.fillRect(0, 72, 360, 48);
+    store(s.key, { key: s.key, name: s.name, photo: photo, thumb: th.toDataURL('image/jpeg', 0.8), heightDeg: ed.height, tiles: ed.tiles, full360: ed.full360,
+      horizon: ed.hz, top: ed.top, sky: ed.sky, ground: ed.ground, yaw: Math.round(ed.yaw),
+      credit: { source: r.source, attribution: r.attribution || '', license: r.license || '', page: r.page || '', title: r.title || '' }, at: Date.now() });
+    illCache = {}; toast('Saved the ' + s.name + ' background.');
+    ed = null; renderSide();
+    var next = SETTINGS.findIndex(function (x, i) { return i > cur && !saved[x.key]; });
+    show(next >= 0 ? next : cur);
+  }
+  function webp(c) { var u = c.toDataURL('image/webp', 0.88); return u.indexOf('data:image/webp') === 0 ? u : c.toDataURL('image/png'); }
+
+  // ---------- download / open (.zip, stored) ----------
+  var CRC = (function () { var t = new Uint32Array(256); for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(b) { var c = 0xffffffff; for (var i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+  function utf8(s) { return new TextEncoder().encode(s); }
+  function zip(files) {
+    var parts = [], central = [], off = 0;
+    files.forEach(function (f) {
+      var name = utf8(f.name), data = f.data, crc = crc32(data), h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(12, 0x21, true);
+      h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, name.length, true);
+      parts.push(new Uint8Array(h.buffer), name, data);
+      var c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(14, 0x21, true);
+      c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+      central.push(new Uint8Array(c.buffer), name); off += 30 + name.length + data.length;
+    });
+    var cs = central.reduce(function (s, a) { return s + a.length; }, 0), e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+    return new Blob(parts.concat(central, [new Uint8Array(e.buffer)]), { type: 'application/zip' });
+  }
+  function unzip(buf) {
+    var v = new DataView(buf), out = {}, i = 0;
+    while (i + 30 <= buf.byteLength && v.getUint32(i, true) === 0x04034b50) {
+      var size = v.getUint32(i + 18, true), nl = v.getUint16(i + 26, true), xl = v.getUint16(i + 28, true);
+      var name = new TextDecoder().decode(new Uint8Array(buf, i + 30, nl)), st = i + 30 + nl + xl;
+      if (v.getUint16(i + 8, true) === 0) out[name] = new Uint8Array(buf, st, size);
+      i = st + size;
+    }
+    return out;
+  }
+  function dataToBytes(u) { var b = atob(u.split(',')[1]), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+  function bytesToData(bytes, type) { var s = ''; for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return 'data:' + type + ';base64,' + btoa(s); }
+  function imgFromData(u) { return new Promise(function (res, rej) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = rej; im.src = u; }); }
+  function csvCell(s) { s = String(s == null ? '' : s); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  $('#b-down').addEventListener('click', function () {
+    var keys = SETTINGS.map(function (s) { return s.key; }).filter(function (k) { return saved[k]; });
+    if (!keys.length) { toast('Nothing to download yet. Save a background first.'); return; }
+    var btn = this, files = [], meta = [], rows = [['Setting', 'File', 'Photo', 'Credit', 'Licence', 'Source page']], k = 0;
+    btn.disabled = true;
+    (function next() {
+      var key = keys[k++]; if (!key) return finish();
+      var v = saved[key]; btn.textContent = 'Preparing ' + k + ' of ' + keys.length + '…';
+      imgFromData(v.photo).then(function (im) {
+        var c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0);
+        var fin = fadeTop(STY.style === 'illus' ? ILLUS.render(c, { detail: STY.detail, outline: STY.outline, silhouette: false }) : c);
+        var ext = function (u) { return u.indexOf('image/png') > 0 ? '.png' : '.webp'; }, fu = webp(fin);
+        var file = 'backgrounds/' + key + ext(fu), photo = 'backgrounds/photos/' + key + ext(v.photo);
+        files.push({ name: file, data: dataToBytes(fu) }, { name: photo, data: dataToBytes(v.photo) });
+        meta.push({ key: key, name: v.name, file: file, photo: photo, heightDeg: v.heightDeg, tiles: v.tiles, full360: v.full360, horizon: v.horizon, top: v.top,
+          sky: v.sky, ground: v.ground, yaw: v.yaw, credit: v.credit, thumb: v.thumb });
+        rows.push([v.name, file, photo, v.credit.attribution, v.credit.license, v.credit.page]);
+        setTimeout(next, 0);
+      }).catch(function () { setTimeout(next, 0); });
+    })();
+    function finish() {
+      files.push({ name: 'backgrounds.json', data: utf8(JSON.stringify({ made: new Date().toISOString(), style: STY, width: BW, items: meta }, null, 1)) });
+      files.push({ name: 'background-credits.csv', data: utf8('﻿' + rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n')) });
+      var a = document.createElement('a'); a.href = URL.createObjectURL(zip(files)); a.download = 'ecobuild-backgrounds.zip';
+      document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      btn.disabled = false; btn.textContent = 'Download backgrounds';
+      toast('Downloaded ' + meta.length + ' backgrounds, the original photos and the credits list.');
+    }
+  });
+  $('#b-load').addEventListener('click', function () { $('#f-load').click(); });
+  $('#f-load').addEventListener('change', function () {
+    var f = this.files[0]; this.value = ''; if (!f) return;
+    f.arrayBuffer().then(function (buf) {
+      var z = unzip(buf), m = z['backgrounds.json'];
+      if (!m) { toast('That is not a backgrounds file from this page.'); return; }
+      var list = JSON.parse(new TextDecoder().decode(m)).items || [], n = 0;
+      list.forEach(function (it) {
+        var b = it.photo && z[it.photo]; if (!b) return;
+        var v = Object.assign({}, it); v.photo = bytesToData(b, /\.png$/.test(it.photo) ? 'image/png' : 'image/webp'); delete v.file;
+        store(it.key, v); n++;
+      });
+      toast('Opened ' + n + ' saved backgrounds.'); renderSide(); renderWork(); search();
+    }).catch(function () { toast('Could not open that file.'); });
+  });
+
+  openDB().then(function () {
+    var last = null; try { last = localStorage.getItem('ecobuild-bgpicker-cur'); } catch (e) {}
+    var i = SETTINGS.findIndex(function (s) { return s.key === last; });
+    show(i >= 0 ? i : 0);
+  });
+  window.BGPICKER = { settings: SETTINGS, saved: saved, get ed() { return ed; } };
+})();
+</script>
+</body>
+</html>
