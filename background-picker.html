@@ -220,6 +220,16 @@
   .line::after { content: ""; position: absolute; left: 0; right: 0; top: -12px; height: 24px; }
   .shade { position: absolute; left: 0; right: 0; background: rgba(10,20,14,.45); pointer-events: none; border-radius: 0 0 8px 8px; }
   .shade.t { border-radius: 8px 8px 0 0; }
+  .pieces { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0 14px; align-items: stretch; }
+  .pc { width: 220px; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; cursor: pointer; }
+  .pc.on { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(46,125,79,.25); }
+  .pc img { width: 100%; height: 70px; object-fit: cover; display: block; }
+  .pcb { padding: 6px 8px; display: grid; gap: 4px; font-size: 12px; }
+  .pcb label { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+  .pcb input[type=range] { flex: 1; min-width: 0; }
+  .pcact { display: flex; gap: 4px; }
+  .pcact button { padding: 2px 8px; font-size: 12px; }
+  .pcadd { width: 160px; border: 2px dashed #b9c4b5; background: #fbfcf9; color: var(--accent); font-weight: 650; }
   .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
   .row label { display: flex; align-items: center; gap: 8px; }
   .swatches { display: flex; gap: 6px; }
@@ -337,7 +347,7 @@
   // ---------- searching ----------
   var src = 'commons', results = [], wideOnly = true, offset = 0, query = '';
   function show(i) {
-    cur = i; var s = SETTINGS[i]; ed = null;
+    cur = i; var s = SETTINGS[i]; ed = null; adding = false;
     src = 'commons'; query = s.q; offset = 0; results = [];
     try { localStorage.setItem('ecobuild-bgpicker-cur', s.key); } catch (e) {}
     renderSide(); renderWork(); search();
@@ -346,7 +356,7 @@
     var s = SETTINGS[cur], v = saved[s.key];
     var html = '<h2>' + esc(s.name) + (s.park ? ' National Park' : '') + '</h2>' +
       '<p class="muted">Pick a wide photo of the landscape. You will mark the horizon, then see it as a background.</p>';
-    if (v) html += '<div class="note ok"><b>Done.</b> <span class="credit">' + creditHTML(v.credit) + '</span> Pick another photo below to replace it.' +
+    if (v) html += '<div class="note ok"><b>Done.</b> <span class="credit">' + (v.credits || [v.credit]).map(creditHTML).join('<br>') + '</span><br> Pick another photo below to replace it.' +
       '<br><img alt="" src="' + v.thumb + '" style="width:100%;max-width:720px;margin-top:8px;border-radius:8px"></div>';
     html += '<div class="tabs"><button data-src="commons" aria-pressed="' + (src === 'commons') + '">Wikimedia Commons</button>' +
       (s.ph ? '<button data-src="polyhaven" aria-pressed="' + (src === 'polyhaven') + '">Poly Haven (360° photos)</button>' : '') +
@@ -357,6 +367,7 @@
       '<details class="help"><summary>How this works</summary><ol>' +
       '<li>Pick a wide photo. Panoramas work best, because the background wraps all the way round the viewer. A narrower photo is repeated, mirrored, to fill the circle.</li>' +
       '<li>Drag the gold line to the horizon (where the ground meets the distant scenery). Everything below it is replaced by the ground organisms stand on. Drag the white line down to cut off sky you do not need.</li>' +
+      '<li>To combine views, press <b>Add another photo</b> after the first one (up to four). They go round the circle in order, with soft blends at the joins. Set how much of the circle each one fills with its Width slider.</li>' +
       '<li>Choose a ground colour from the photo, check the preview (drag it to look around), and press Save.</li>' +
       '<li>Style at the top is shared with the Picture Picker, so backgrounds and organisms match. The original photos are kept, so the style can change later.</li>' +
       '<li>Only photos whose licences allow reuse are shown, and each photographer is saved for the credits page. Your work stays in this browser; Download backgrounds gives you a .zip to send.</li></ol></details>';
@@ -364,13 +375,19 @@
     $('#work').querySelector('.tabs').onclick = function (e) {
       var b = e.target.closest('[data-src]'); if (!b) return;
       if (b.dataset.src === 'own') { $('#f-own').click(); return; }
-      src = b.dataset.src; offset = 0; results = []; renderWork(); search();
+      src = b.dataset.src; offset = 0; results = []; switchSource();
     };
     if ($('#b-q')) {
       $('#b-q').onclick = function () { query = $('#q').value.trim(); offset = 0; results = []; search(); };
       $('#q').addEventListener('keydown', function (e) { if (e.key === 'Enter') { query = this.value.trim(); offset = 0; results = []; search(); } });
       $('#wide').onchange = function () { wideOnly = this.checked; offset = 0; results = []; search(); };
     }
+  }
+  // change the search source without losing a background being edited
+  function switchSource() {
+    var keep = ed ? $('#editor').firstChild : null;
+    renderWork(); search();
+    if (keep) { $('#editor').appendChild(keep); }
   }
   function creditHTML(c) {
     if (!c) return '';
@@ -442,8 +459,8 @@
     if ($('#b-more')) $('#b-more').onclick = function () { search(); };
   }
 
-  // ---------- editing: horizon, height, ground colour, preview ----------
-  var ed = null, illCache = {};
+  // ---------- editing: one or more photos round the circle, horizon, height, ground colour, preview ----------
+  var ed = null, illCache = {}, adding = false, MAXP = 4;
   function loadImage(url) {
     return fetch(url, { mode: 'cors' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); }).then(blobImage);
   }
@@ -451,7 +468,9 @@
     return new Promise(function (res, rej) { var u = URL.createObjectURL(b), im = new Image(); im.onload = function () { res(im); }; im.onerror = rej; im.src = u; });
   }
   function pick(r) {
-    $('#editor').innerHTML = '<div class="ed"><p class="busy">Opening the photo… (large panoramas can take a moment)</p></div>';
+    var into = adding && ed;
+    if (!into) $('#editor').innerHTML = '<div class="ed"><p class="busy">Opening the photo… (large panoramas can take a moment)</p></div>';
+    else toast('Adding the photo…');
     $('#editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
     var urlP = r.source === 'polyhaven'
       ? fetch('https://api.polyhaven.com/files/' + r.phid).then(function (x) { return x.json(); }).then(function (f) {
@@ -459,9 +478,10 @@
           return t || ('https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/' + r.phid + '.jpg');
         })
       : Promise.resolve(r.big);
-    urlP.then(loadImage).then(function (img) { startEdit(img, r); }).catch(function () {
-      $('#editor').innerHTML = '<div class="note">The browser would not let this page open that photo directly. <a target="_blank" rel="noopener" href="' + esc(r.page) + '">Open its page</a>, ' +
+    urlP.then(loadImage).then(function (img) { into ? addPiece(img, r) : startEdit(img, r); }).catch(function () {
+      var msg = '<div class="note">The browser would not let this page open that photo directly. <a target="_blank" rel="noopener" href="' + esc(r.page) + '">Open its page</a>, ' +
         'download the largest version, then press <b>Upload my own photo</b>. The photographer will still be credited.</div>';
+      if (into) $('#editor').insertAdjacentHTML('afterbegin', msg); else $('#editor').innerHTML = msg;
       pendingCredit = { key: SETTINGS[cur].key, r: r };
     });
   }
@@ -470,54 +490,108 @@
     var f = this.files[0]; this.value = ''; if (!f) return;
     var key = SETTINGS[cur].key, pc = pendingCredit && pendingCredit.key === key ? pendingCredit.r : null; pendingCredit = null;
     blobImage(f).then(function (img) {
-      var aspect = img.naturalWidth / img.naturalHeight;
+      var aspect = img.naturalWidth / img.naturalHeight, into = adding && ed;
       var r = pc ? Object.assign({}, pc) : { source: 'upload', title: f.name, license: '', attribution: '', page: '' };
-      r.full360 = pc ? pc.full360 : Math.abs(aspect - 2) < 0.03 && confirm('Is this a full 360° photo (it shows all the way round)?');
+      r.full360 = !into && (pc ? pc.full360 : Math.abs(aspect - 2) < 0.03 && confirm('Is this a full 360° photo (it shows all the way round)?'));
       if (!pc) r.attribution = prompt('Who took this photo? (for the credits page — leave blank if it is yours)', '') || '';
-      startEdit(img, r);
+      into ? addPiece(img, r) : startEdit(img, r);
     });
   });
-
-  function startEdit(img, r) {
-    // keep working copies a sensible size
+  function makePiece(img, r) {
     var W = img.naturalWidth, H = img.naturalHeight, k = Math.min(1, 6000 / W), cw = Math.round(W * k), ch = Math.round(H * k);
     var c = document.createElement('canvas'); c.width = cw; c.height = ch; c.getContext('2d').drawImage(img, 0, 0, cw, ch);
     var shown = document.createElement('canvas'), sk = Math.min(1, 1400 / cw); shown.width = Math.round(cw * sk); shown.height = Math.round(ch * sk);
     shown.getContext('2d').drawImage(c, 0, 0, shown.width, shown.height);
-    ed = { r: r, src: c, top: 0, hz: r.full360 ? 0.5 : 0.62, full360: !!r.full360, height: 0, ground: null, palette: [], band: null, ill: null, yaw: 0, view: 'illus' };
+    return { r: r, src: c, shown: shown.toDataURL('image/jpeg', 0.85), top: 0, hz: r.full360 ? 0.5 : 0.62, share: 1 };
+  }
+  function startEdit(img, r) {
+    adding = false;
+    ed = { pieces: [makePiece(img, r)], act: 0, full360: !!r.full360, height: 0, ground: null, palette: [], band: null, ill: null, yaw: 0, view: 'illus' };
     ed.height = defaultHeight();
-    $('#editor').innerHTML = '<div class="ed"><h3>' + esc(r.title || 'Your photo') + '</h3><p class="credit">' + creditHTML({ source: r.source, attribution: r.attribution, license: r.license, page: r.page }) + '</p>' +
-      '<p class="step"><b>1.</b> Drag the <b style="color:#b8860b">gold line</b> to the horizon. Drag the white line down to trim extra sky.</p>' +
-      '<div class="photo" id="photo"><img alt="" src="' + shown.toDataURL('image/jpeg', 0.85) + '"><div class="shade t" id="sh-t"></div><div class="shade" id="sh-b"></div>' +
+    renderEditor(); rebuild();
+  }
+  function addPiece(img, r) {
+    adding = false;
+    if (ed.pieces.length >= MAXP) { toast('A background can have up to ' + MAXP + ' photos.'); return; }
+    var p = makePiece(img, r), avgShare = ed.pieces.reduce(function (s, q) { return s + q.share; }, 0) / ed.pieces.length;
+    p.share = avgShare; ed.pieces.push(p); ed.act = ed.pieces.length - 1; ed.full360 = false;
+    renderEditor(); rebuild();
+    toast('Added. Drag its gold line to the horizon too.');
+  }
+  function act() { return ed.pieces[ed.act]; }
+  function renderEditor() {
+    var P = act(), multi = ed.pieces.length > 1, tot = ed.pieces.reduce(function (s, q) { return s + q.share; }, 0);
+    var strip = '<div class="pieces">' + ed.pieces.map(function (q, i) {
+      return '<div class="pc' + (i === ed.act ? ' on' : '') + '" data-p="' + i + '"><img alt="" src="' + q.shown + '"><div class="pcb">' +
+        '<b>' + (i + 1) + '. ' + esc((q.r.title || 'Photo').slice(0, 28)) + '</b>' +
+        (multi ? '<label>Width <input type="range" min="10" max="100" value="' + Math.round(q.share * 50) + '" data-share="' + i + '"> <span>' + Math.round(q.share / tot * 360) + '°</span></label>' +
+          '<span class="pcact"><button data-mv="' + i + '" data-d="-1" title="Move left"' + (i === 0 ? ' disabled' : '') + '>◀</button><button data-mv="' + i + '" data-d="1" title="Move right"' + (i === ed.pieces.length - 1 ? ' disabled' : '') + '>▶</button>' +
+          '<button data-rm="' + i + '" title="Remove this photo">✕</button></span>' : '') + '</div></div>';
+    }).join('') + (ed.pieces.length < MAXP ? '<button class="pcadd" id="b-add">＋ Add another photo</button>' : '') + '</div>';
+    $('#editor').innerHTML = '<div class="ed"><h3>' + (multi ? ed.pieces.length + ' photos, side by side round the circle' : esc(P.r.title || 'Your photo')) + '</h3>' +
+      '<p class="credit">' + ed.pieces.map(function (q) { return creditHTML(q.r); }).join('<br>') + '</p>' + strip +
+      (multi ? '<p class="step">Photo 1 is what students see first. The photos go round the circle in this order, and the last one joins back to the first. Click a photo to edit its horizon.</p>' : '') +
+      '<p class="step"><b>1.</b> Drag the <b style="color:#b8860b">gold line</b> to the horizon' + (multi ? ' in photo ' + (ed.act + 1) : '') + '. Drag the white line down to trim extra sky.</p>' +
+      '<div class="photo" id="photo"><img alt="" src="' + P.shown + '"><div class="shade t" id="sh-t"></div><div class="shade" id="sh-b"></div>' +
       '<div class="line" id="ln-top"><i>Top</i></div><div class="line hz" id="ln-hz"><i>Horizon: the ground starts here</i></div></div>' +
-      '<div class="row"><label><input type="checkbox" id="full"' + (ed.full360 ? ' checked' : '') + '> This is a full 360° photo</label>' +
+      '<div class="row">' + (multi ? '' : '<label><input type="checkbox" id="full"' + (ed.full360 ? ' checked' : '') + '> This is a full 360° photo</label>') +
       '<label>Scenery height <input type="range" id="hgt" min="6" max="45" step="1" value="' + ed.height + '"> <span id="hgt-v"></span></label></div>' +
       '<p class="step"><b>2.</b> Choose the colour of the ground organisms will stand on.</p><div class="row"><div class="swatches" id="sw"></div>' +
       '<label class="muted">or <input type="color" id="gc"></label></div>' +
-      '<p class="step"><b>3.</b> Check the preview. Drag it to look around.</p>' +
-      '<div class="row"><div class="tabs" id="pvtabs" style="margin:0"><button data-v="illus" aria-pressed="true">Illustration</button><button data-v="photo" aria-pressed="false">Photo</button></div><span id="pvbusy" class="busy"></span></div>' +
+      '<p class="step"><b>3.</b> Check the preview. Drag it to look around' + (multi ? ', and look at the joins between photos' : '') + '.</p>' +
+      '<div class="row"><div class="tabs" id="pvtabs" style="margin:0"><button data-v="illus" aria-pressed="' + (ed.view === 'illus') + '">Illustration</button><button data-v="photo" aria-pressed="' + (ed.view === 'photo') + '">Photo</button></div><span id="pvbusy" class="busy"></span></div>' +
       '<canvas id="pv" width="1200" height="420"></canvas>' +
       '<div class="row"><button class="primary" id="b-save">Save this background</button><button id="b-cancel">Cancel</button></div></div>';
     placeLines(); dragLine('ln-top', 'top'); dragLine('ln-hz', 'hz');
-    $('#full').onchange = function () { ed.full360 = this.checked; ed.height = defaultHeight(); $('#hgt').value = ed.height; rebuild(); };
+    if ($('#full')) $('#full').onchange = function () { ed.full360 = this.checked; ed.height = defaultHeight(); $('#hgt').value = ed.height; rebuild(); };
     $('#hgt').oninput = function () { ed.height = +this.value; rebuild(true); };
     $('#gc').oninput = function () { ed.ground = this.value; drawSwatches(); drawPreview(); };
     $('#pvtabs').onclick = function (e) { var b = e.target.closest('[data-v]'); if (!b) return; ed.view = b.dataset.v; this.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); drawPreview(); if (ed.view === 'illus') makeIll(); };
-    $('#b-cancel').onclick = function () { ed = null; $('#editor').innerHTML = ''; };
+    $('#b-cancel').onclick = function () { ed = null; adding = false; $('#editor').innerHTML = ''; };
     $('#b-save').onclick = save;
+    var pcs = $('#editor .pieces');
+    pcs.addEventListener('click', function (e) {
+      var b;
+      if ((b = e.target.closest('#b-add'))) {
+        adding = true; toast('Pick or upload the next photo. It will be added to this background.');
+        ($('#grid') || $('#work')).scrollIntoView({ behavior: 'smooth', block: 'start' }); return;
+      }
+      if ((b = e.target.closest('[data-mv]'))) {
+        var i = +b.dataset.mv, j = i + (+b.dataset.d), t = ed.pieces[i]; ed.pieces[i] = ed.pieces[j]; ed.pieces[j] = t; ed.act = j; renderEditor(); rebuild(); return;
+      }
+      if ((b = e.target.closest('[data-rm]'))) {
+        ed.pieces.splice(+b.dataset.rm, 1); ed.act = Math.min(ed.act, ed.pieces.length - 1); ed.height = defaultHeight(); renderEditor(); rebuild(); return;
+      }
+      if (e.target.closest('input,label')) return;
+      if ((b = e.target.closest('[data-p]'))) { ed.act = +b.dataset.p; renderEditor(); drawSwatches(); drawPreview(); }
+    });
+    pcs.addEventListener('input', function (e) {
+      var s = e.target.closest('[data-share]'); if (!s) return;
+      ed.pieces[+s.dataset.share].share = +s.value / 50;
+      var tot2 = ed.pieces.reduce(function (a, q) { return a + q.share; }, 0);
+      pcs.querySelectorAll('[data-share]').forEach(function (x) { x.nextElementSibling.textContent = Math.round(ed.pieces[+x.dataset.share].share / tot2 * 360) + '°'; });
+      rebuild(true);
+    });
     panPreview();
-    rebuild();
+    if (ed.palette.length) drawSwatches();
   }
   function defaultHeight() {
-    var h = (ed.hz - ed.top) * ed.src.height, w = ed.src.width;
-    if (ed.full360) return Math.max(6, Math.min(45, Math.round((ed.hz - ed.top) * 180)));
-    return Math.max(10, Math.min(24, Math.round(180 * h / w)));
+    if (ed.pieces.length === 1) {
+      var P = ed.pieces[0], h = (P.hz - P.top) * P.src.height, w = P.src.width;
+      if (ed.full360) return Math.max(6, Math.min(45, Math.round((P.hz - P.top) * 180)));
+      return Math.max(10, Math.min(24, Math.round(180 * h / w)));
+    }
+    // several photos: the height at which they fill the circle without stretching, on average
+    var tot = ed.pieces.reduce(function (s, q) { return s + q.share; }, 0), hs = ed.pieces.map(function (q) {
+      var seg = q.share / tot * 360, a = q.src.width / ((q.hz - q.top) * q.src.height); return seg / a;
+    });
+    return Math.max(10, Math.min(24, Math.round(hs.reduce(function (s, v) { return s + v; }, 0) / hs.length)));
   }
   function placeLines() {
-    var ph = $('#photo'); if (!ph) return;
-    $('#ln-top').style.top = (ed.top * 100) + '%'; $('#ln-hz').style.top = (ed.hz * 100) + '%';
-    $('#sh-t').style.top = 0; $('#sh-t').style.height = (ed.top * 100) + '%';
-    $('#sh-b').style.top = (ed.hz * 100) + '%'; $('#sh-b').style.bottom = 0;
+    var P = act();
+    $('#ln-top').style.top = (P.top * 100) + '%'; $('#ln-hz').style.top = (P.hz * 100) + '%';
+    $('#sh-t').style.top = 0; $('#sh-t').style.height = (P.top * 100) + '%';
+    $('#sh-b').style.top = (P.hz * 100) + '%'; $('#sh-b').style.bottom = 0;
     $('#hgt-v').textContent = ed.height + '°';
   }
   function dragLine(id, which) {
@@ -525,8 +599,8 @@
     el.addEventListener('pointerdown', function (e) {
       el.setPointerCapture(e.pointerId); e.preventDefault();
       function mv(ev) {
-        var r = ph.getBoundingClientRect(), f = Math.max(0, Math.min(1, (ev.clientY - r.top) / r.height));
-        if (which === 'top') ed.top = Math.min(f, ed.hz - 0.05); else ed.hz = Math.max(f, ed.top + 0.05);
+        var r = ph.getBoundingClientRect(), f = Math.max(0, Math.min(1, (ev.clientY - r.top) / r.height)), P = act();
+        if (which === 'top') P.top = Math.min(f, P.hz - 0.05); else P.hz = Math.max(f, P.top + 0.05);
         placeLines();
       }
       function up() { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); ed.height = defaultHeight(); $('#hgt').value = ed.height; rebuild(); }
@@ -534,17 +608,53 @@
     });
   }
 
+  // Draw one photo's scenery into a strip `width` wide, centred, repeating it (every other copy mirrored) if it is too narrow
+  function paintPiece(x, P, x0, width, bh, extL) {
+    var S = P.src, sy = Math.round(P.top * S.height), sh = Math.max(4, Math.round((P.hz - P.top) * S.height)), sw = S.width;
+    var tw = bh * sw / sh, c = x0 + extL + (width - extL) / 2, base = c - tw / 2;
+    var kmin = Math.floor((x0 - base) / tw) - 1, kmax = Math.ceil((x0 + width - base) / tw) + 1;
+    x.save(); x.beginPath(); x.rect(x0, 0, width, bh); x.clip();
+    for (var k = kmin; k <= kmax; k++) {
+      var left = base + k * tw;
+      if (((k % 2) + 2) % 2) { x.save(); x.translate(left + tw, 0); x.scale(-1, 1); x.drawImage(S, 0, sy, sw, sh, 0, 0, tw, bh); x.restore(); }
+      else x.drawImage(S, 0, sy, sw, sh, left, 0, tw, bh);
+    }
+    x.restore();
+  }
   // Build the band: the scenery from the top line to the horizon, wrapped round the full circle
   function buildBand() {
-    var S = ed.src, sy = Math.round(ed.top * S.height), sh = Math.max(4, Math.round((ed.hz - ed.top) * S.height)), sw = S.width;
     var bh = Math.max(32, Math.round(BW * ed.height / 360)), c = document.createElement('canvas'); c.width = BW; c.height = bh;
     var x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+    if (ed.pieces.length === 1) return singleBand(c, x, bh, ed.pieces[0]);
+    var tot = ed.pieces.reduce(function (s, q) { return s + q.share; }, 0), starts = [], pos = 0;
+    ed.pieces.forEach(function (q) { starts.push(pos); pos += q.share / tot * BW; });
+    var widths = ed.pieces.map(function (q) { return q.share / tot * BW; });
+    // 1) each photo in its own part of the circle
+    ed.pieces.forEach(function (q, i) { paintPiece(x, q, starts[i], widths[i], bh, 0); });
+    // 2) blend each join: the next photo fades in over the end of the one before
+    var fw = Math.round(Math.min(BW * 0.05, Math.min.apply(null, widths) * 0.3));
+    ed.pieces.forEach(function (q, i) {
+      var t = document.createElement('canvas'); t.width = fw + Math.round(widths[i]); t.height = bh;
+      var tx = t.getContext('2d'); tx.imageSmoothingQuality = 'high';
+      paintPiece(tx, q, 0, t.width, bh, fw);
+      var m = document.createElement('canvas'); m.width = fw; m.height = bh; var mx = m.getContext('2d');
+      mx.drawImage(t, 0, 0, fw, bh, 0, 0, fw, bh);
+      var g = mx.createLinearGradient(0, 0, fw, 0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)');
+      mx.globalCompositeOperation = 'destination-in'; mx.fillStyle = g; mx.fillRect(0, 0, fw, bh);
+      var at = starts[i] - fw;
+      x.drawImage(m, at < 0 ? at + BW : at, 0);
+      if (at < 0) x.drawImage(m, at, 0);
+    });
+    ed.tiles = 0; return c;
+  }
+  function singleBand(c, x, bh, P) {
+    var S = P.src, sy = Math.round(P.top * S.height), sh = Math.max(4, Math.round((P.hz - P.top) * S.height)), sw = S.width;
     if (ed.full360) { x.drawImage(S, 0, sy, sw, sh, 0, 0, BW, bh); ed.tiles = 1; return c; }
     var tw = bh * sw / sh, n = Math.round(BW / tw);
     if (n <= 1) {
       // one wide photo covers the circle: stretch it, and blend its two ends where they meet behind the viewer
       x.drawImage(S, 0, sy, sw, sh, 0, 0, BW, bh);
-      var fw = Math.round(BW * 0.04), g = x.createLinearGradient(BW - fw, 0, BW, 0), e = document.createElement('canvas'); e.width = fw; e.height = bh;
+      var fw = Math.round(BW * 0.04), e = document.createElement('canvas'); e.width = fw; e.height = bh;
       var ex = e.getContext('2d'); ex.translate(fw, 0); ex.scale(-1, 1); ex.drawImage(c, 0, 0, fw, bh, 0, 0, fw, bh);
       var m = document.createElement('canvas'); m.width = fw; m.height = bh; var mx = m.getContext('2d');
       var lg = mx.createLinearGradient(0, 0, fw, 0); lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(1, 'rgba(0,0,0,1)');
@@ -571,7 +681,7 @@
     x.globalCompositeOperation = 'destination-in'; x.fillStyle = g; x.fillRect(0, 0, c.width, c.height);
     return o;
   }
-  // Colours: sky from the top of the band, ground choices from just below the horizon
+  // Colours: sky from the top of the band, ground choices from just below the horizon in every photo
   function avg(ctx, x0, y0, w, h) {
     var d = ctx.getImageData(x0, y0, Math.max(1, w), Math.max(1, h)).data, r = 0, g = 0, b = 0, n = 0;
     for (var i = 0; i < d.length; i += 16) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
@@ -579,10 +689,14 @@
   }
   function hex(c) { return '#' + c.map(function (v) { v = Math.max(0, Math.min(255, Math.round(v))); return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
   function groundPalette() {
-    var S = ed.src, x = S.getContext('2d'), y0 = Math.round(ed.hz * S.height), h = Math.max(4, Math.round(Math.min(0.3, 1 - ed.hz) * S.height));
-    if (y0 + 2 >= S.height) return [];
-    var d = x.getImageData(0, y0, S.width, Math.min(h, S.height - y0)).data, px = [];
-    for (var i = 0; i < d.length; i += 4 * 37) px.push([d[i], d[i + 1], d[i + 2]]);
+    var px = [];
+    ed.pieces.forEach(function (P) {
+      var S = P.src, x = S.getContext('2d'), y0 = Math.round(P.hz * S.height), h = Math.max(4, Math.round(Math.min(0.3, 1 - P.hz) * S.height));
+      if (y0 + 2 >= S.height) return;
+      var d = x.getImageData(0, y0, S.width, Math.min(h, S.height - y0)).data;
+      for (var i = 0; i < d.length; i += 4 * 37) px.push([d[i], d[i + 1], d[i + 2]]);
+    });
+    if (!px.length) return [];
     var K = 5, cen = [];
     px.sort(function (a, b) { return (a[0] + a[1] + a[2]) - (b[0] + b[1] + b[2]); });
     for (var k = 0; k < K; k++) cen.push(px[Math.floor((k + 0.5) / K * px.length)].slice());
@@ -595,6 +709,7 @@
     return cen.map(function (c) { return hex(c.slice(0, 3)); });
   }
   function drawSwatches() {
+    if (!$('#sw')) return;
     $('#sw').innerHTML = ed.palette.map(function (c) { return '<button data-c="' + c + '" style="background:' + c + '" aria-pressed="' + (c === ed.ground) + '" title="' + c + '"></button>'; }).join('');
     $('#sw').onclick = function (e) { var b = e.target.closest('[data-c]'); if (!b) return; ed.ground = b.dataset.c; $('#gc').value = ed.ground; drawSwatches(); drawPreview(); };
     $('#gc').value = ed.ground || '#7f9a52';
@@ -603,6 +718,7 @@
     placeLines();
     clearTimeout(rebuild.t);
     rebuild.t = setTimeout(function () {
+      if (!ed) return;
       ed.band = buildBand(); ed.ill = null;
       var bx = ed.band.getContext('2d'), top = avg(bx, 0, 0, BW, Math.max(2, ed.band.height * 0.05));
       ed.sky = [hex(top.map(function (v, i) { return v * 0.82 - [10, 4, 0][i]; })), hex(top)];
@@ -615,8 +731,8 @@
     var mine = ed.band; $('#pvbusy').textContent = 'Drawing the illustration…';
     setTimeout(function () {
       if (!ed || ed.band !== mine) return;
-      ed.ill = STY.style === 'illus' || ed.view === 'illus' ? ILLUS.render(mine, { detail: STY.detail, outline: STY.outline, silhouette: false }) : mine;
-      $('#pvbusy').textContent = ''; drawPreview();
+      ed.ill = ILLUS.render(mine, { detail: STY.detail, outline: STY.outline, silhouette: false });
+      if ($('#pvbusy')) $('#pvbusy').textContent = ''; drawPreview();
     }, 30);
   }
   // The preview: a 100° slice of the view, as if standing in the scene
@@ -626,15 +742,18 @@
     var g = x.createLinearGradient(0, 0, 0, hy); g.addColorStop(0, ed.sky[0]); g.addColorStop(1, ed.sky[1]);
     x.fillStyle = g; x.fillRect(0, 0, W, hy);
     var band = fadeTop(ed.view === 'illus' && ed.ill ? ed.ill : ed.band), bh = ed.height * pxDeg, bw = 360 * pxDeg;
-    var start = ((ed.yaw % 360) + 360) % 360 * pxDeg;
+    // the view starts centred on photo 1
+    var tot = ed.pieces.reduce(function (s, q) { return s + q.share; }, 0), front = ed.pieces.length > 1 ? ed.pieces[0].share / tot * 180 : 180;
+    var start = (((ed.yaw + front - FOV / 2) % 360) + 360) % 360 * pxDeg;
     for (var o = -start; o < W; o += bw) x.drawImage(band, o, hy - bh, bw, bh);
     var gg = x.createLinearGradient(0, hy, 0, H); gg.addColorStop(0, shade(ed.ground, 1.08)); gg.addColorStop(1, shade(ed.ground, 0.85));
     x.fillStyle = gg; x.fillRect(0, hy, W, H - hy);
-    // a soft haze where the scenery meets the ground
     var hz = x.createLinearGradient(0, hy - 14, 0, hy + 10); hz.addColorStop(0, 'rgba(255,255,255,0)'); hz.addColorStop(0.6, 'rgba(255,255,255,.28)'); hz.addColorStop(1, 'rgba(255,255,255,0)');
     x.fillStyle = hz; x.fillRect(0, hy - 14, W, 24);
-    // a person for scale, about 10 m in front
-    x.fillStyle = 'rgba(30,40,34,.55)'; var ps = 60; x.beginPath(); x.arc(W / 2, H - 20 - ps, ps * 0.13, 0, 7); x.fill(); x.fillRect(W / 2 - ps * 0.12, H - 20 - ps * 0.86, ps * 0.24, ps * 0.86);
+    // compass for looking round
+    x.fillStyle = 'rgba(20,30,24,.7)'; x.fillRect(W - 150, 10, 140, 26);
+    x.fillStyle = '#fff'; x.font = '600 13px system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('Facing ' + Math.round(((ed.yaw % 360) + 360) % 360) + '° · drag', W - 80, 23);
   }
   function shade(h, f) { var n = parseInt(h.slice(1), 16); return hex([(n >> 16 & 255) * f, (n >> 8 & 255) * f, (n & 255) * f]); }
   function panPreview() {
@@ -645,16 +764,19 @@
   }
 
   function save() {
-    var s = SETTINGS[cur], r = ed.r, band = ed.band;
+    var s = SETTINGS[cur], band = ed.band, tot = ed.pieces.reduce(function (a, q) { return a + q.share; }, 0);
     var photo = webp(band), th = document.createElement('canvas'); th.width = 360; th.height = 120;
-    var tx = th.getContext('2d'), g = tx.createLinearGradient(0, 0, 0, 70); g.addColorStop(0, ed.sky[0]); g.addColorStop(1, ed.sky[1]);
-    tx.fillStyle = g; tx.fillRect(0, 0, 360, 72); tx.drawImage(fadeTop(ed.ill || band), 0, 72 - Math.min(60, band.height * 360 / BW * 1.6), 360 * 4, Math.min(60, band.height * 360 / BW * 1.6));
+    var tx = th.getContext('2d'), g = tx.createLinearGradient(0, 0, 0, 72); g.addColorStop(0, ed.sky[0]); g.addColorStop(1, ed.sky[1]);
+    tx.fillStyle = g; tx.fillRect(0, 0, 360, 72);
+    var tb = Math.min(60, band.height * 1440 / BW); tx.drawImage(fadeTop(ed.ill || band), 0, 72 - tb, 1440, tb);
     tx.fillStyle = ed.ground; tx.fillRect(0, 72, 360, 48);
+    var credits = ed.pieces.map(function (q) { var r = q.r; return { source: r.source, attribution: r.attribution || '', license: r.license || '', page: r.page || '', title: r.title || '' }; });
     store(s.key, { key: s.key, name: s.name, photo: photo, thumb: th.toDataURL('image/jpeg', 0.8), heightDeg: ed.height, tiles: ed.tiles, full360: ed.full360,
-      horizon: ed.hz, top: ed.top, sky: ed.sky, ground: ed.ground, yaw: Math.round(ed.yaw),
-      credit: { source: r.source, attribution: r.attribution || '', license: r.license || '', page: r.page || '', title: r.title || '' }, at: Date.now() });
+      pieces: ed.pieces.map(function (q) { return { top: q.top, horizon: q.hz, deg: Math.round(q.share / tot * 360) }; }),
+      frontDeg: ed.pieces.length > 1 ? ed.pieces[0].share / tot * 180 : 180,
+      sky: ed.sky, ground: ed.ground, yaw: Math.round(ed.yaw), credit: credits[0], credits: credits, at: Date.now() });
     illCache = {}; toast('Saved the ' + s.name + ' background.');
-    ed = null; renderSide();
+    ed = null; adding = false; renderSide();
     var next = SETTINGS.findIndex(function (x, i) { return i > cur && !saved[x.key]; });
     show(next >= 0 ? next : cur);
   }
@@ -709,8 +831,8 @@
         var file = 'backgrounds/' + key + ext(fu), photo = 'backgrounds/photos/' + key + ext(v.photo);
         files.push({ name: file, data: dataToBytes(fu) }, { name: photo, data: dataToBytes(v.photo) });
         meta.push({ key: key, name: v.name, file: file, photo: photo, heightDeg: v.heightDeg, tiles: v.tiles, full360: v.full360, horizon: v.horizon, top: v.top,
-          sky: v.sky, ground: v.ground, yaw: v.yaw, credit: v.credit, thumb: v.thumb });
-        rows.push([v.name, file, photo, v.credit.attribution, v.credit.license, v.credit.page]);
+          sky: v.sky, ground: v.ground, yaw: v.yaw, pieces: v.pieces, frontDeg: v.frontDeg, credit: v.credit, credits: v.credits || [v.credit], thumb: v.thumb });
+        (v.credits || [v.credit]).forEach(function (c) { rows.push([v.name, file, photo, c.attribution, c.license, c.page]); });
         setTimeout(next, 0);
       }).catch(function () { setTimeout(next, 0); });
     })();
