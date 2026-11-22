@@ -157,10 +157,13 @@
       g.add(ground);
     }
     if (!photo) {
-      addHills(g, P.hills, ECO.rng(1234 + hash(env.preset)));
+      // biomes: their hills and pond can be hidden in the Landmark Studio (ECO.HIDE)
+      var hide = (ECO.HIDE && ECO.HIDE[env.preset]) || [], F = (ECO.FEATURES = ECO.FEATURES || {});
+      if (!P.park) F[env.preset] = (P.hills && P.hills.type !== 'none' ? ['Hills'] : []).concat(P.water ? ['Pond'] : []);
+      if (P.park || hide.indexOf('Hills') < 0) addHills(g, P.hills, ECO.rng(1234 + hash(env.preset)));
       if (P.park && ECO.buildPark) ECO.buildPark(g, P, env.preset);
       if (ECO.buildLandmarks) ECO.buildLandmarks(g, env.preset);
-      if (P.water) {
+      if (P.water && hide.indexOf('Pond') < 0) {
         var w = new THREE.Mesh(new THREE.CircleGeometry(P.water.r, 48),
           new THREE.MeshLambertMaterial({ color: P.water.color, transparent: true, opacity: 0.88 }));
         w.rotation.x = -Math.PI / 2; w.position.set(P.water.x, 0.04, P.water.z); w.raycast = function () {};
@@ -394,62 +397,100 @@
     ys.forEach(function (y) { x.beginPath(); x.moveTo(X(deg0), Y(y)); x.lineTo(X(deg1), Y(y)); x.stroke(); }); x.restore();
   }
 
+  // Each feature is a named part, so the Landmark Studio can hide it (ECO.HIDE[park] = [names])
+  var hideSet = [], featureList = [];
+  function part(name, fn) { if (featureList.indexOf(name) < 0) featureList.push(name); if (hideSet.indexOf(name) < 0) fn(); }
+
   // ---------- the eight parks ----------
   var PAINT = {
     yellowstone: function (x) {
       setRange(40, -2);
-      ridge(x, { seed: 11, base: 3, amp: 9, color: '#9fb2c8', top: '#c9d6e3', terms: 5 });
-      ridge(x, { seed: 12, base: 1.5, amp: 5, color: '#5f7a63', terms: 7 });
-      trees(x, { seed: 13, base: 1.2, baseJitter: 2.5, count: 900, hMin: 1.2, hMax: 2.6, color: '#36513a' });
-      ridge(x, { seed: 14, base: 0, amp: 2, color: '#44603f', terms: 8 });
-      trees(x, { seed: 15, base: 0, baseJitter: 1, count: 700, hMin: 1.4, hMax: 3, color: '#2d4630' });
+      part('Distant mountains', function () {
+        ridge(x, { seed: 11, base: 3, amp: 9, color: '#9fb2c8', top: '#c9d6e3', terms: 5 });
+      });
+      part('Forested hills', function () {
+        ridge(x, { seed: 12, base: 1.5, amp: 5, color: '#5f7a63', terms: 7 });
+        trees(x, { seed: 13, base: 1.2, baseJitter: 2.5, count: 900, hMin: 1.2, hMax: 2.6, color: '#36513a' });
+        ridge(x, { seed: 14, base: 0, amp: 2, color: '#44603f', terms: 8 });
+        trees(x, { seed: 15, base: 0, baseJitter: 1, count: 700, hMin: 1.4, hMax: 3, color: '#2d4630' });
+      });
       // Old Faithful erupting, and steam from other thermal features
-      steam(x, 105, 0, 26, 7, 0.75);
-      steam(x, -60, 0, 9, 6, 0.55); steam(x, -140, 0, 7, 5, 0.5); steam(x, 40, 0, 6, 5, 0.5);
-      cloud(x, -20, 31, 14, 0.85); cloud(x, 150, 29, 12, 0.8);
+      part('Old Faithful', function () {
+        steam(x, 105, 0, 26, 7, 0.75);
+      });
+      part('Steam vents', function () {
+        steam(x, -60, 0, 9, 6, 0.55); steam(x, -140, 0, 7, 5, 0.5); steam(x, 40, 0, 6, 5, 0.5);
+      });
+      part('Clouds', function () {
+        cloud(x, -20, 31, 14, 0.85); cloud(x, 150, 29, 12, 0.8);
+      });
     },
     grandteton: function (x) {
       setRange(40, -2);
-      ridge(x, { seed: 21, base: 1, amp: 5, color: '#8a9db3', top: '#a9bacb', terms: 5 }); // distant Gros Ventre range
+      part('Distant range', function () {
+        ridge(x, { seed: 21, base: 1, amp: 5, color: '#8a9db3', top: '#a9bacb', terms: 5 }); // distant Gros Ventre range
+      });
       // the Teton Range: jagged peaks rising straight from the valley, Grand Teton in the middle
-      var peaks = [[-62, 9], [-50, 14], [-41, 12], [-32, 18], [-24, 16], [-15, 23], [-8, 21], [0, 30], [5, 26], [10, 27], [17, 21], [25, 19], [33, 15], [42, 13], [52, 10], [62, 7]];
-      var pts = [[-75, 1]]; peaks.forEach(function (p, i) { pts.push(p); if (i < peaks.length - 1) pts.push([(p[0] + peaks[i + 1][0]) / 2, Math.min(p[1], peaks[i + 1][1]) * 0.72]); }); pts.push([75, 1]);
-      shape(x, 0, pts, '#6f7f96', { vgrad: [30, 0, '#7d8ea6', '#4f5f74'], noScale: true });
-      // shadowed faces
-      peaks.forEach(function (p, i) { if (i % 2) return; shape(x, 0, [[p[0], p[1]], [p[0] + 3.5, p[1] * 0.55], [p[0] + 0.8, p[1] * 0.45]], 'rgba(30,40,60,0.28)', { noScale: true }); });
-      // snow on the peaks and in gullies
-      peaks.forEach(function (p) {
-        if (p[1] < 12) return; var s = p[1] * 0.18;
-        shape(x, 0, [[p[0], p[1]], [p[0] + 1.6, p[1] - s], [p[0] + 0.6, p[1] - s * 0.7], [p[0] - 0.3, p[1] - s * 1.2], [p[0] - 1.4, p[1] - s * 0.9]], '#f4f7fb', { noScale: true });
-        shape(x, 0, [[p[0] + 0.4, p[1] - s * 1.4], [p[0] + 0.9, p[1] - s * 3], [p[0] + 0.2, p[1] - s * 2.6]], '#e6edf5', { noScale: true });
+      part('Teton Range', function () {
+        var peaks = [[-62, 9], [-50, 14], [-41, 12], [-32, 18], [-24, 16], [-15, 23], [-8, 21], [0, 30], [5, 26], [10, 27], [17, 21], [25, 19], [33, 15], [42, 13], [52, 10], [62, 7]];
+        var pts = [[-75, 1]]; peaks.forEach(function (p, i) { pts.push(p); if (i < peaks.length - 1) pts.push([(p[0] + peaks[i + 1][0]) / 2, Math.min(p[1], peaks[i + 1][1]) * 0.72]); }); pts.push([75, 1]);
+        shape(x, 0, pts, '#6f7f96', { vgrad: [30, 0, '#7d8ea6', '#4f5f74'], noScale: true });
+        // shadowed faces
+        peaks.forEach(function (p, i) { if (i % 2) return; shape(x, 0, [[p[0], p[1]], [p[0] + 3.5, p[1] * 0.55], [p[0] + 0.8, p[1] * 0.45]], 'rgba(30,40,60,0.28)', { noScale: true }); });
+        // snow on the peaks and in gullies
+        peaks.forEach(function (p) {
+          if (p[1] < 12) return; var s = p[1] * 0.18;
+          shape(x, 0, [[p[0], p[1]], [p[0] + 1.6, p[1] - s], [p[0] + 0.6, p[1] - s * 0.7], [p[0] - 0.3, p[1] - s * 1.2], [p[0] - 1.4, p[1] - s * 0.9]], '#f4f7fb', { noScale: true });
+          shape(x, 0, [[p[0] + 0.4, p[1] - s * 1.4], [p[0] + 0.9, p[1] - s * 3], [p[0] + 0.2, p[1] - s * 2.6]], '#e6edf5', { noScale: true });
+        });
       });
       // forest at the foot of the range, sagebrush hills elsewhere
-      trees(x, { seed: 22, from: -80, to: 80, base: 0.5, baseJitter: 2, count: 1400, hMin: 1.2, hMax: 2.8, color: '#2f4a35' });
-      ridge(x, { seed: 23, from: 70, to: 290, base: 0, amp: 3, color: '#9aa27a', terms: 6 });
-      trees(x, { seed: 24, from: 95, to: 265, base: 0.5, baseJitter: 2, count: 500, hMin: 1, hMax: 2.2, color: '#40593f' });
-      cloud(x, 140, 30, 13, 0.85); cloud(x, -150, 32, 11, 0.8);
+      part('Forest', function () {
+        trees(x, { seed: 22, from: -80, to: 80, base: 0.5, baseJitter: 2, count: 1400, hMin: 1.2, hMax: 2.8, color: '#2f4a35' });
+      });
+      part('Sagebrush hills', function () {
+        ridge(x, { seed: 23, from: 70, to: 290, base: 0, amp: 3, color: '#9aa27a', terms: 6 });
+        trees(x, { seed: 24, from: 95, to: 265, base: 0.5, baseJitter: 2, count: 500, hMin: 1, hMax: 2.2, color: '#40593f' });
+      });
+      part('Clouds', function () {
+        cloud(x, 140, 30, 13, 0.85); cloud(x, -150, 32, 11, 0.8);
+      });
     },
     yosemite: function (x) {
       setRange(40, -2);
-      ridge(x, { seed: 31, base: 4, amp: 10, color: '#9aa9b9', top: '#bccad8', terms: 6 });
+      part('Distant mountains', function () {
+        ridge(x, { seed: 31, base: 4, amp: 10, color: '#9aa9b9', top: '#bccad8', terms: 6 });
+      });
       // Half Dome: rounded back, sheer flat face
-      var hd = [[-14, 6], [-11, 12], [-8, 17], [-5, 20.5], [-2, 22.3], [0.5, 22.8], [2.4, 22.4], [3.4, 21.8], [3.6, 14], [4.2, 11], [7, 8], [10, 6]];
-      shape(x, 0, hd, null, { grad: [-14, 4, '#d9d4c8', '#a8a397'] });
-      shape(x, 0, [[3.4, 21.8], [3.6, 14], [4.2, 11], [5.5, 10.4], [4.6, 15], [4.1, 21.2]], '#8c877c');   // the shadowed sheer face
-      hlines(x, -8 * HS, 3 * HS, [16, 12.5], '#b8b2a5', 3);
+      part('Half Dome', function () {
+        var hd = [[-14, 6], [-11, 12], [-8, 17], [-5, 20.5], [-2, 22.3], [0.5, 22.8], [2.4, 22.4], [3.4, 21.8], [3.6, 14], [4.2, 11], [7, 8], [10, 6]];
+        shape(x, 0, hd, null, { grad: [-14, 4, '#d9d4c8', '#a8a397'] });
+        shape(x, 0, [[3.4, 21.8], [3.6, 14], [4.2, 11], [5.5, 10.4], [4.6, 15], [4.1, 21.2]], '#8c877c');   // the shadowed sheer face
+        hlines(x, -8 * HS, 3 * HS, [16, 12.5], '#b8b2a5', 3);
+      });
       // El Capitan
-      shape(x, -68, [[-12, 4], [-9, 16], [-6, 19.5], [-1, 20.5], [3, 20], [5, 18.5], [5.6, 6], [8, 4]], null, { grad: [-12, 8, '#e3ded2', '#aaa497'] });
-      shape(x, -68, [[3, 20], [5, 18.5], [5.6, 6], [4.4, 7], [3.8, 19]], '#948e82');
+      part('El Capitan', function () {
+        shape(x, -68, [[-12, 4], [-9, 16], [-6, 19.5], [-1, 20.5], [3, 20], [5, 18.5], [5.6, 6], [8, 4]], null, { grad: [-12, 8, '#e3ded2', '#aaa497'] });
+        shape(x, -68, [[3, 20], [5, 18.5], [5.6, 6], [4.4, 7], [3.8, 19]], '#948e82');
+      });
       // Yosemite Falls on a long cliff
-      shape(x, 62, [[-16, 4], [-12, 15], [-4, 17], [6, 16.5], [14, 13], [18, 4]], null, { grad: [-16, 18, '#d6d1c4', '#aaa498'] });
-      shape(x, 62, [[-0.5, 16.8], [0.5, 16.8], [0.7, 10], [1.6, 9.6], [1.8, 4], [0.4, 4], [0.2, 9.4], [-0.6, 10]], '#f6f9fc');
-      blob(x, 63, 4.2, 2.4, 1.6, '#ffffff', 0.6);
+      part('Yosemite Falls', function () {
+        shape(x, 62, [[-16, 4], [-12, 15], [-4, 17], [6, 16.5], [14, 13], [18, 4]], null, { grad: [-16, 18, '#d6d1c4', '#aaa498'] });
+        shape(x, 62, [[-0.5, 16.8], [0.5, 16.8], [0.7, 10], [1.6, 9.6], [1.8, 4], [0.4, 4], [0.2, 9.4], [-0.6, 10]], '#f6f9fc');
+        blob(x, 63, 4.2, 2.4, 1.6, '#ffffff', 0.6);
+      });
       // Sentinel and other domes behind
-      shape(x, 160, [[-14, 4], [-6, 13], [-2, 15], [2, 14.5], [9, 9], [14, 4]], null, { grad: [-14, 14, '#cfcabd', '#a29d91'] });
+      part('Sentinel Dome', function () {
+        shape(x, 160, [[-14, 4], [-6, 13], [-2, 15], [2, 14.5], [9, 9], [14, 4]], null, { grad: [-14, 14, '#cfcabd', '#a29d91'] });
+      });
       // conifer forest along the valley floor
-      trees(x, { seed: 32, base: 0.3, baseJitter: 3.5, count: 1600, hMin: 1.5, hMax: 4, color: '#2f4c35' });
-      trees(x, { seed: 33, base: 0, baseJitter: 1, count: 900, hMin: 2, hMax: 4.5, color: '#28412d' });
-      cloud(x, -120, 32, 12, 0.85); cloud(x, 110, 33, 10, 0.8);
+      part('Forest', function () {
+        trees(x, { seed: 32, base: 0.3, baseJitter: 3.5, count: 1600, hMin: 1.5, hMax: 4, color: '#2f4c35' });
+        trees(x, { seed: 33, base: 0, baseJitter: 1, count: 900, hMin: 2, hMax: 4.5, color: '#28412d' });
+      });
+      part('Clouds', function () {
+        cloud(x, -120, 32, 12, 0.85); cloud(x, 110, 33, 10, 0.8);
+      });
     },
     grandcanyon: function (x) {
       // seen from the South Rim: the far rim at eye level, buttes stepping down into the canyon
@@ -480,99 +521,151 @@
           shape(x, deg, [[-hw2, yb], [hw2, yb], [hw2 * 1.02, yb - 0.6], [-hw2 * 1.02, yb - 0.6]], mix(b % 2 ? '#b8552f' : '#e7d3ad', '#b9a7c6', haze), { noScale: true });
         }
       }
-      rim(1.0, 9, 41, 0.55);
+      part('Far rim', function () {
+        rim(1.0, 9, 41, 0.55);
+      });
       var r = ECO.rng(77);
       // far, middle, and near rows of buttes across the canyon (front half of the view)
-      for (var i = 0; i < 16; i++) butte(-115 + i * 15 + (r() - 0.5) * 8, 3 + r() * 3, -1.5 - r() * 1.5, 0.45, 100 + i);
-      for (var j = 0; j < 11; j++) butte(-105 + j * 21 + (r() - 0.5) * 10, 5 + r() * 4, -4.5 - r() * 2.5, 0.28, 200 + j);
-      for (var k = 0; k < 7; k++) butte(-90 + k * 30 + (r() - 0.5) * 12, 8 + r() * 5, -8.5 - r() * 3, 0.12, 300 + k);
+      part('Buttes', function () {
+        for (var i = 0; i < 16; i++) butte(-115 + i * 15 + (r() - 0.5) * 8, 3 + r() * 3, -1.5 - r() * 1.5, 0.45, 100 + i);
+        for (var j = 0; j < 11; j++) butte(-105 + j * 21 + (r() - 0.5) * 10, 5 + r() * 4, -4.5 - r() * 2.5, 0.28, 200 + j);
+        for (var k = 0; k < 7; k++) butte(-90 + k * 30 + (r() - 0.5) * 12, 8 + r() * 5, -8.5 - r() * 3, 0.12, 300 + k);
+      });
       // the inner gorge and the Colorado River at the bottom
-      ridge(x, { seed: 43, from: -125, to: 125, base: -29.5, amp: 5, color: '#5b3a2c', terms: 6 });
-      ridge(x, { seed: 44, from: -110, to: 110, base: -29.8, amp: 0.5, color: '#4f8a7a', terms: 3 });
+      part('Colorado River', function () {
+        ridge(x, { seed: 43, from: -125, to: 125, base: -29.5, amp: 5, color: '#5b3a2c', terms: 6 });
+        ridge(x, { seed: 44, from: -110, to: 110, base: -29.8, amp: 0.5, color: '#4f8a7a', terms: 3 });
+      });
       // behind you: ponderosa pine forest on the rim
-      trees(x, { seed: 45, from: 118, to: 242, base: 0, baseJitter: 1.5, count: 1200, hMin: 3, hMax: 7, color: '#3c5a3a' });
-      cloud(x, -30, 22, 12, 0.8); cloud(x, 70, 24, 10, 0.75);
+      part('Pine forest', function () {
+        trees(x, { seed: 45, from: 118, to: 242, base: 0, baseJitter: 1.5, count: 1200, hMin: 3, hMax: 7, color: '#3c5a3a' });
+      });
+      part('Clouds', function () {
+        cloud(x, -30, 22, 12, 0.8); cloud(x, 70, 24, 10, 0.75);
+      });
     },
     bigbend: function (x) {
       setRange(40, -2);
-      ridge(x, { seed: 61, base: 1, amp: 4, color: '#c6b08e', top: '#d8c7a8', terms: 6 });
+      part('Distant hills', function () {
+        ridge(x, { seed: 61, base: 1, amp: 4, color: '#c6b08e', top: '#d8c7a8', terms: 6 });
+      });
       // the Chisos Mountains with Casa Grande and the Window
-      var ch = [[-60, 2], [-50, 6], [-44, 9], [-38, 8], [-33, 12], [-27, 11], [-22, 15], [-17, 13.5], [-12, 16], [-8, 19.5], [-6, 20], [-2, 20], [0, 19.6], [2, 17], [5, 14],
-                [8, 10], [9.5, 7.5], [11, 10], [14, 13], [19, 15], [24, 12], [30, 13], [36, 9], [44, 7], [52, 4], [62, 2]];
-      shape(x, 0, ch, null, { vgrad: [20, 0, '#9a6d63', '#6f5148'], noScale: true });
-      shape(x, 0, [[-8, 19.5], [-6, 20], [-2, 20], [0, 19.6], [-1, 16], [-5, 15], [-7, 16.5]], '#b07f6c', { noScale: true });   // Casa Grande's sunlit cap
-      hlines(x, -9, 1, [18.2, 17], '#7d574b', 3);
-      trees(x, { seed: 62, from: -45, to: 45, base: 3, baseJitter: 8, count: 600, hMin: 0.6, hMax: 1.2, color: '#5b6b45', kind: 'round' });
+      part('Chisos Mountains', function () {
+        var ch = [[-60, 2], [-50, 6], [-44, 9], [-38, 8], [-33, 12], [-27, 11], [-22, 15], [-17, 13.5], [-12, 16], [-8, 19.5], [-6, 20], [-2, 20], [0, 19.6], [2, 17], [5, 14],
+                  [8, 10], [9.5, 7.5], [11, 10], [14, 13], [19, 15], [24, 12], [30, 13], [36, 9], [44, 7], [52, 4], [62, 2]];
+        shape(x, 0, ch, null, { vgrad: [20, 0, '#9a6d63', '#6f5148'], noScale: true });
+        shape(x, 0, [[-8, 19.5], [-6, 20], [-2, 20], [0, 19.6], [-1, 16], [-5, 15], [-7, 16.5]], '#b07f6c', { noScale: true });   // Casa Grande's sunlit cap
+        hlines(x, -9, 1, [18.2, 17], '#7d574b', 3);
+        trees(x, { seed: 62, from: -45, to: 45, base: 3, baseJitter: 8, count: 600, hMin: 0.6, hMax: 1.2, color: '#5b6b45', kind: 'round' });
+      });
       // Santa Elena Canyon: a tall cliff wall with a narrow gap
-      shape(x, 125, [[-30, 0], [-28, 11], [-3, 12], [-1.2, 12], [-0.6, 0.5], [0.6, 0.5], [1.2, 12], [3, 12.5], [28, 11], [30, 0]], null, { vgrad: [12.5, 0, '#c99a6c', '#946b4c'], noScale: true });
-      hlines(x, 97, 152, [10, 8.5, 6.5], '#a47a55', 3);
+      part('Santa Elena Canyon', function () {
+        shape(x, 125, [[-30, 0], [-28, 11], [-3, 12], [-1.2, 12], [-0.6, 0.5], [0.6, 0.5], [1.2, 12], [3, 12.5], [28, 11], [30, 0]], null, { vgrad: [12.5, 0, '#c99a6c', '#946b4c'], noScale: true });
+        hlines(x, 97, 152, [10, 8.5, 6.5], '#a47a55', 3);
+      });
       // desert mesas
-      shape(x, -125, [[-18, 0], [-15, 6], [-6, 6.3], [-4, 4], [6, 4.2], [9, 2], [16, 0]], '#b9936a');
-      trees(x, { seed: 63, base: 0, baseJitter: 1, count: 500, hMin: 0.6, hMax: 1.4, color: '#7c8150', kind: 'round' });
-      cloud(x, 60, 33, 12, 0.8);
+      part('Mesa', function () {
+        shape(x, -125, [[-18, 0], [-15, 6], [-6, 6.3], [-4, 4], [6, 4.2], [9, 2], [16, 0]], '#b9936a');
+      });
+      part('Desert shrubs', function () {
+        trees(x, { seed: 63, base: 0, baseJitter: 1, count: 500, hMin: 0.6, hMax: 1.4, color: '#7c8150', kind: 'round' });
+      });
+      part('Clouds', function () {
+        cloud(x, 60, 33, 12, 0.8);
+      });
     },
     everglades: function (x) {
       setRange(40, -2);
-      ridge(x, { seed: 71, base: 0, amp: 0.8, color: '#a8a65b', terms: 8 });
+      part('Distant sawgrass', function () {
+        ridge(x, { seed: 71, base: 0, amp: 0.8, color: '#a8a65b', terms: 8 });
+      });
       // tree islands (hammocks) and cypress domes on the flat horizon
-      var rand = ECO.rng(72);
-      for (var i = 0; i < 26; i++) {
-        var deg = -180 + rand() * 360, w = 3 + rand() * 9, h = 2 + rand() * 4;
-        for (var k = 0; k < 6; k++) blob(x, deg + (k - 2.5) * w * 0.16, 1 + rand() * h * 0.5, w * 0.22, h * 0.45, shade(rand() < 0.4 ? '#4d6a3c' : '#3a5833', (rand() - 0.5) * 0.15));
-      }
-      trees(x, { seed: 73, base: 0.6, baseJitter: 1, count: 180, hMin: 4, hMax: 6, color: '#40613a', kind: 'round' });
+      part('Tree islands', function () {
+        var rand = ECO.rng(72);
+        for (var i = 0; i < 26; i++) {
+          var deg = -180 + rand() * 360, w = 3 + rand() * 9, h = 2 + rand() * 4;
+          for (var k = 0; k < 6; k++) blob(x, deg + (k - 2.5) * w * 0.16, 1 + rand() * h * 0.5, w * 0.22, h * 0.45, shade(rand() < 0.4 ? '#4d6a3c' : '#3a5833', (rand() - 0.5) * 0.15));
+        }
+        trees(x, { seed: 73, base: 0.6, baseJitter: 1, count: 180, hMin: 4, hMax: 6, color: '#40613a', kind: 'round' });
+      });
       // a few palms
-      var rp = ECO.rng(74);
-      for (var p = 0; p < 10; p++) { var d = -180 + rp() * 360, ht = 5 + rp() * 3; shape(x, d, [[-0.08, 0.5], [0.05, ht], [0.12, ht], [0.04, 0.5]], '#5a4d3a'); for (var f = 0; f < 6; f++) { var a = f / 6 * Math.PI * 2; shape(x, d + 0.08, [[0, ht], [Math.cos(a) * 1.4, ht + Math.sin(a) * 0.9 - 0.4], [Math.cos(a) * 0.7, ht + Math.sin(a) * 0.5]], '#3f6b3a'); } }
+      part('Palms', function () {
+        var rp = ECO.rng(74);
+        for (var p = 0; p < 10; p++) { var d = -180 + rp() * 360, ht = 5 + rp() * 3; shape(x, d, [[-0.08, 0.5], [0.05, ht], [0.12, ht], [0.04, 0.5]], '#5a4d3a'); for (var f = 0; f < 6; f++) { var a = f / 6 * Math.PI * 2; shape(x, d + 0.08, [[0, ht], [Math.cos(a) * 1.4, ht + Math.sin(a) * 0.9 - 0.4], [Math.cos(a) * 0.7, ht + Math.sin(a) * 0.5]], '#3f6b3a'); } }
+      });
       // big summer clouds
-      cloud(x, -40, 18, 16, 0.92); cloud(x, 50, 22, 14, 0.9); cloud(x, 140, 17, 15, 0.9); cloud(x, -130, 21, 13, 0.88); cloud(x, 95, 30, 10, 0.8);
+      part('Clouds', function () {
+        cloud(x, -40, 18, 16, 0.92); cloud(x, 50, 22, 14, 0.9); cloud(x, 140, 17, 15, 0.9); cloud(x, -130, 21, 13, 0.88); cloud(x, 95, 30, 10, 0.8);
+      });
     },
     smokies: function (x) {
       setRange(40, -2);
-      var layers = [['#c3d1df', 14, 11, 81], ['#a9bdd2', 11, 9, 82], ['#8ea8c2', 8, 8, 83], ['#7493ab', 6, 7, 84], ['#5b7a8f', 4, 5, 85], ['#45624f', 2, 4, 86]];
-      layers.forEach(function (L, i) {
-        ridge(x, { seed: L[3], base: L[1] - L[2] * 0.5, amp: L[2], color: L[0], terms: 7 });
-        // valley mist between ridges
-        x.save(); var g = x.createLinearGradient(0, Y(L[1] - L[2] * 0.4), 0, Y(L[1] - L[2] * 0.9));
-        g.addColorStop(0, 'rgba(235,242,248,0)'); g.addColorStop(1, 'rgba(235,242,248,0.55)'); x.fillStyle = g;
-        x.fillRect(0, Y(L[1] - L[2] * 0.4), CW, Y(L[1] - L[2] * 0.9) - Y(L[1] - L[2] * 0.4)); x.restore();
+      part('Mountain ridges', function () {
+        var layers = [['#c3d1df', 14, 11, 81], ['#a9bdd2', 11, 9, 82], ['#8ea8c2', 8, 8, 83], ['#7493ab', 6, 7, 84], ['#5b7a8f', 4, 5, 85], ['#45624f', 2, 4, 86]];
+        layers.forEach(function (L, i) {
+          ridge(x, { seed: L[3], base: L[1] - L[2] * 0.5, amp: L[2], color: L[0], terms: 7 });
+          // valley mist between ridges
+          x.save(); var g = x.createLinearGradient(0, Y(L[1] - L[2] * 0.4), 0, Y(L[1] - L[2] * 0.9));
+          g.addColorStop(0, 'rgba(235,242,248,0)'); g.addColorStop(1, 'rgba(235,242,248,0.55)'); x.fillStyle = g;
+          x.fillRect(0, Y(L[1] - L[2] * 0.4), CW, Y(L[1] - L[2] * 0.9) - Y(L[1] - L[2] * 0.4)); x.restore();
+        });
       });
-      trees(x, { seed: 87, base: 0, baseJitter: 1.5, count: 1100, hMin: 1.2, hMax: 2.6, color: '#3c5a35', kind: 'round' });
-      trees(x, { seed: 88, base: 0, baseJitter: 1, count: 300, hMin: 2, hMax: 3.5, color: '#2c4630' });
+      part('Forest', function () {
+        trees(x, { seed: 87, base: 0, baseJitter: 1.5, count: 1100, hMin: 1.2, hMax: 2.6, color: '#3c5a35', kind: 'round' });
+        trees(x, { seed: 88, base: 0, baseJitter: 1, count: 300, hMin: 2, hMax: 3.5, color: '#2c4630' });
+      });
     },
     arches: function (x) {
       setRange(40, -2);
       // the snowy La Sal Mountains in the distance
-      ridge(x, { seed: 91, from: -60, to: 60, base: 2, amp: 9, color: '#8b9bb6', top: '#a9b6cc', terms: 5, envelope: 0.6 });
-      shape(x, 6, [[-6, 9.5], [-3, 10.6], [0, 11.2], [3, 10.4], [5, 9.3], [2, 9.6], [0, 9.9], [-3, 9.4]], '#f1f4f9', { noScale: true });
-      shape(x, -18, [[-4, 8.4], [-1.5, 9.2], [1, 9.0], [3, 8.1], [0, 8.4]], '#f1f4f9', { noScale: true });
-      // slickrock bowl, then Delicate Arch standing alone in front
-      ridge(x, { seed: 92, base: 0, amp: 3, color: '#c67a46', top: '#d58d58', terms: 6 });
-      var arch = [[-5.2, 1.5], [-4.6, 7], [-4.2, 10.5], [-3, 12.2], [-1, 12.9], [1, 12.8], [3, 12], [4.2, 10.2], [4.4, 7], [4.8, 1.5], [3.1, 1.5], [3, 6], [2.6, 9], [1, 10.4], [-1, 10.5], [-2.7, 9.2], [-3.2, 6], [-3.4, 1.5]];
-      shape(x, 0, arch, null, { grad: [-5, 5, '#e08a50', '#a8522c'] });
-      hlines(x, -4.5 * HS, 4.6 * HS, [11.5], '#b35d33', 2);
-      shape(x, 0, [[-7, 1.5], [7, 1.5], [6, 0], [-6, 0]], '#b9693c');
-      // Balanced Rock
-      shape(x, 92, [[-1.8, 0], [-1.2, 5], [-0.8, 6], [0.9, 6], [1.3, 5], [1.9, 0]], '#b65f35');
-      blob(x, 92, 7.6, 2.3, 1.7, '#cf7a46');
-      // fins and buttes all around
-      [[-110, 6, 9], [-150, 9, 12], [150, 7, 10], [125, 5, 7], [-75, 4, 6], [60, 5, 7]].forEach(function (b, i) {
-        shape(x, b[0], [[-b[1], 0], [-b[1] * 0.9, b[2] * 0.9], [-b[1] * 0.5, b[2]], [b[1] * 0.6, b[2] * 0.97], [b[1] * 0.9, b[2] * 0.85], [b[1], 0]], null, { vgrad: [b[2], 0, '#d9895a', '#9e4f2c'] });
-        hlines(x, b[0] - b[1] * 0.8 * HS, b[0] + b[1] * 0.8 * HS, [b[2] * 0.6, b[2] * 0.35], '#a45430', 3);
+      part('La Sal Mountains', function () {
+        ridge(x, { seed: 91, from: -60, to: 60, base: 2, amp: 9, color: '#8b9bb6', top: '#a9b6cc', terms: 5, envelope: 0.6 });
+        shape(x, 6, [[-6, 9.5], [-3, 10.6], [0, 11.2], [3, 10.4], [5, 9.3], [2, 9.6], [0, 9.9], [-3, 9.4]], '#f1f4f9', { noScale: true });
+        shape(x, -18, [[-4, 8.4], [-1.5, 9.2], [1, 9.0], [3, 8.1], [0, 8.4]], '#f1f4f9', { noScale: true });
       });
-      trees(x, { seed: 93, base: 0, baseJitter: 1, count: 420, hMin: 0.4, hMax: 1, color: '#6a7a46', kind: 'round' });
-      cloud(x, -100, 33, 11, 0.8); cloud(x, 40, 32, 12, 0.8);
+      // slickrock bowl, then Delicate Arch standing alone in front
+      part('Slickrock', function () {
+        ridge(x, { seed: 92, base: 0, amp: 3, color: '#c67a46', top: '#d58d58', terms: 6 });
+      });
+      part('Delicate Arch', function () {
+        var arch = [[-5.2, 1.5], [-4.6, 7], [-4.2, 10.5], [-3, 12.2], [-1, 12.9], [1, 12.8], [3, 12], [4.2, 10.2], [4.4, 7], [4.8, 1.5], [3.1, 1.5], [3, 6], [2.6, 9], [1, 10.4], [-1, 10.5], [-2.7, 9.2], [-3.2, 6], [-3.4, 1.5]];
+        shape(x, 0, arch, null, { grad: [-5, 5, '#e08a50', '#a8522c'] });
+        hlines(x, -4.5 * HS, 4.6 * HS, [11.5], '#b35d33', 2);
+        shape(x, 0, [[-7, 1.5], [7, 1.5], [6, 0], [-6, 0]], '#b9693c');
+      });
+      // Balanced Rock
+      part('Balanced Rock', function () {
+        shape(x, 92, [[-1.8, 0], [-1.2, 5], [-0.8, 6], [0.9, 6], [1.3, 5], [1.9, 0]], '#b65f35');
+        blob(x, 92, 7.6, 2.3, 1.7, '#cf7a46');
+      });
+      // fins and buttes all around
+      part('Fins and buttes', function () {
+        [[-110, 6, 9], [-150, 9, 12], [150, 7, 10], [125, 5, 7], [-75, 4, 6], [60, 5, 7]].forEach(function (b, i) {
+          shape(x, b[0], [[-b[1], 0], [-b[1] * 0.9, b[2] * 0.9], [-b[1] * 0.5, b[2]], [b[1] * 0.6, b[2] * 0.97], [b[1] * 0.9, b[2] * 0.85], [b[1], 0]], null, { vgrad: [b[2], 0, '#d9895a', '#9e4f2c'] });
+          hlines(x, b[0] - b[1] * 0.8 * HS, b[0] + b[1] * 0.8 * HS, [b[2] * 0.6, b[2] * 0.35], '#a45430', 3);
+      });
+      });
+      part('Desert shrubs', function () {
+        trees(x, { seed: 93, base: 0, baseJitter: 1, count: 420, hMin: 0.4, hMax: 1, color: '#6a7a46', kind: 'round' });
+      });
+      part('Clouds', function () {
+        cloud(x, -100, 33, 11, 0.8); cloud(x, 40, 32, 12, 0.8);
+      });
     }
   };
 
   var cache = {};
   function backdrop(key) {
-    if (cache[key]) return cache[key];
+    var hid = (ECO.HIDE && ECO.HIDE[key]) || [], ck = key + '|' + hid.join(',');
+    if (cache[ck]) return cache[ck];
     var c = document.createElement('canvas'); c.width = CW; c.height = CH;
     var x = c.getContext('2d'); x.lineJoin = 'round';
+    hideSet = hid; featureList = [];
     PAINT[key](x);
-    cache[key] = { canvas: c, top: yTop, bot: yBot };
-    return cache[key];
+    hideSet = [];
+    (ECO.FEATURES = ECO.FEATURES || {})[key] = featureList.slice();
+    cache[ck] = { canvas: c, top: yTop, bot: yBot };
+    return cache[ck];
   }
 
   // Small preview picture for the picker
@@ -635,26 +728,32 @@
   // Build the backdrop and foreground for a park (called from ECO.buildEnvironment)
   ECO.buildPark = function (g, P, key) {
     var b = backdrop(key), h = (b.top - b.bot) * HS;
+    // 3D features in front of the painting can be hidden too
+    function on(name) { var F = ECO.FEATURES[key]; if (F.indexOf(name) < 0) F.push(name); return ((ECO.HIDE && ECO.HIDE[key]) || []).indexOf(name) < 0; }
     var tex = ECO.canvasTex(b.canvas); tex.anisotropy = 8;
     var geo = new THREE.CylinderGeometry(R, R, h, 160, 1, true); geo.scale(-1, 1, 1);
     var wall = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.02, fog: false, side: THREE.FrontSide }));
     wall.position.y = (b.top + b.bot) / 2 * HS; wall.raycast = noRay; wall.renderOrder = -1; g.add(wall);
 
     if (key === 'yellowstone') {
+      if (on('Grand Prismatic Spring')) {
       flat(g, new THREE.CircleGeometry(15, 48), '#cdbf9f', 0.02, [0, -26], 0.75);
       var spring = new THREE.Mesh(new THREE.CircleGeometry(12, 64), new THREE.MeshBasicMaterial({ map: springTexture(), transparent: true, depthWrite: false }));
       spring.rotation.x = -Math.PI / 2; spring.position.set(0, 0.03, -26); spring.raycast = noRay; g.add(spring);
       steamPuffs(g, 0, -26, 10, 22);
-      rocks(g, '#b9b39f', 14, 20, 60, 0.3, 1.2, 9, true);
+      }
+      if (on('Rocks')) rocks(g, '#b9b39f', 14, 20, 60, 0.3, 1.2, 9, true);
     }
     if (key === 'grandteton') {
-      flat(g, new THREE.CircleGeometry(26, 64), '#4f86a8', 0.04, [0, -55], 0.95);
-      flat(g, new THREE.RingGeometry(26, 28, 64), '#b9b296', 0.035, [0, -55], 1);
-      rocks(g, '#9a9584', 12, 15, 60, 0.3, 1.0, 10, true);
+      if (on('Lake')) {
+        flat(g, new THREE.CircleGeometry(26, 64), '#4f86a8', 0.04, [0, -55], 0.95);
+        flat(g, new THREE.RingGeometry(26, 28, 64), '#b9b296', 0.035, [0, -55], 1);
+      }
+      if (on('Rocks')) rocks(g, '#9a9584', 12, 15, 60, 0.3, 1.0, 10, true);
     }
     if (key === 'yosemite') {
-      flat(g, new THREE.PlaneGeometry(6, 200), '#5b93a8', 0.04, [-30, 0], 0.9).rotation.z = 0.25;
-      rocks(g, '#bdb8ac', 16, 18, 65, 0.6, 2.2, 11, true);
+      if (on('Merced River')) flat(g, new THREE.PlaneGeometry(6, 200), '#5b93a8', 0.04, [-30, 0], 0.9).rotation.z = 0.25;
+      if (on('Rocks')) rocks(g, '#bdb8ac', 16, 18, 65, 0.6, 2.2, 11, true);
     }
     if (key === 'grandcanyon') {
       // you stand on the South Rim; the canyon drops away in front
@@ -664,17 +763,17 @@
       var cliff = new THREE.Mesh(new THREE.PlaneGeometry(200, 30), new THREE.MeshLambertMaterial({ color: '#b5703f', side: THREE.BackSide }));
       cliff.position.set(0, -15, rimEdge - 0.05); cliff.raycast = noRay; g.add(cliff);
       g.userData.noRocksBeyond = rimEdge;
-      rocks(g, '#cbbd9f', 26, 6, 70, 0.4, 1.6, 12, false);
+      if (on('Rocks')) rocks(g, '#cbbd9f', 26, 6, 70, 0.4, 1.6, 12, false);
       // a low wall of rocks along the rim
-      var rr = ECO.rng(21); for (var q = 0; q < 40; q++) { var rx = -60 + q * 3 + rr() * 2, rs = 0.25 + rr() * 0.45, rk = new THREE.Mesh(new THREE.DodecahedronGeometry(rs, 0), new THREE.MeshLambertMaterial({ color: '#c9b894', flatShading: true })); rk.position.set(rx, rs * 0.3, rimEdge + 0.4 + rr() * 0.6); rk.raycast = noRay; g.add(rk); }
+      var rr = ECO.rng(21); if (on('Rock wall at the rim')) for (var q = 0; q < 40; q++) { var rx = -60 + q * 3 + rr() * 2, rs = 0.25 + rr() * 0.45, rk = new THREE.Mesh(new THREE.DodecahedronGeometry(rs, 0), new THREE.MeshLambertMaterial({ color: '#c9b894', flatShading: true })); rk.position.set(rx, rs * 0.3, rimEdge + 0.4 + rr() * 0.6); rk.raycast = noRay; g.add(rk); }
     }
-    if (key === 'bigbend') rocks(g, '#a98a68', 22, 10, 70, 0.3, 1.4, 13, true);
+    if (key === 'bigbend' && on('Rocks')) rocks(g, '#a98a68', 22, 10, 70, 0.3, 1.4, 13, true);
     if (key === 'everglades') {
       var rw = ECO.rng(14);
-      for (var i = 0; i < 9; i++) { var a = rw() * Math.PI * 2, d = 12 + rw() * 50; flat(g, new THREE.CircleGeometry(3 + rw() * 7, 32), '#5f8f8a', 0.04, [Math.sin(a) * d, -Math.cos(a) * d], 0.85).scale.x = 1.6; }
+      if (on('Ponds')) for (var i = 0; i < 9; i++) { var a = rw() * Math.PI * 2, d = 12 + rw() * 50; flat(g, new THREE.CircleGeometry(3 + rw() * 7, 32), '#5f8f8a', 0.04, [Math.sin(a) * d, -Math.cos(a) * d], 0.85).scale.x = 1.6; }
     }
-    if (key === 'arches') rocks(g, '#c06a3c', 22, 12, 70, 0.5, 2.4, 15, true);
-    if (key === 'smokies') rocks(g, '#7d8277', 10, 15, 60, 0.3, 1.0, 16, true);
+    if (key === 'arches' && on('Rocks')) rocks(g, '#c06a3c', 22, 12, 70, 0.5, 2.4, 15, true);
+    if (key === 'smokies' && on('Rocks')) rocks(g, '#7d8277', 10, 15, 60, 0.3, 1.0, 16, true);
   };
 
   // In the Grand Canyon, the ground in front ends at the rim
@@ -717,6 +816,7 @@
   // ---------- Landmarks: flat, traced features from photos (made in the Landmark Studio) ----------
   // ECO.LANDMARKS[settingKey] = [{ img, aspect, angle (degrees, 0 = straight ahead, 90 = right), dist, h, y, flip }]
   ECO.LANDMARKS = ECO.LANDMARKS || {};
+  ECO.HIDE = ECO.HIDE || {};   // ECO.HIDE[settingKey] = names of painted or 3D features to leave out
   ECO.backdropCanvas = function (key) { return ECO.PRESETS[key] && ECO.PRESETS[key].park ? backdrop(key).canvas : null; };
   var lmTex = {};
   ECO.landmarkMesh = function (L) {
@@ -2415,6 +2515,11 @@ if(typeof define === 'function' && define.amd){
   .lmadd { width: 150px; min-height: 112px; border: 2px dashed #b9c4b5; background: #fbfcf9; color: var(--accent); font-weight: 650; }
   .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 12px; }
   .panel h3 { margin: 0 0 8px; font-size: 16px; }
+  .feats .fl { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .feats label { display: flex; align-items: center; gap: 6px; padding: 4px 0; }
+  .vhud.sel { left: auto; right: 10px; }
+  .vhud[hidden] { display: none; }
+  #view .a-enter-vr, #view .a-enter-ar, #view .a-fullscreen { display: none !important; }
   .ctl { display: grid; grid-template-columns: 150px 1fr 70px; gap: 10px; align-items: center; margin: 8px 0; max-width: 720px; }
   .ctl input[type=range] { width: 100%; }
   .ctl output { font-variant-numeric: tabular-nums; color: var(--muted); }
@@ -2468,14 +2573,17 @@ if(typeof define === 'function' && define.amd){
       </a-scene>
       <div class="vtip" id="vtip">Facing 0°</div>
       <div class="vhud"><button id="b-left">⟲ Turn left</button><button id="b-right">Turn right ⟳</button><button id="b-front">Face front</button></div>
+      <div class="vhud sel" id="selhud" hidden><button data-z="0.9">− Smaller</button><button data-z="1.1">+ Bigger</button><button data-d="-5">Nearer</button><button data-d="5">Farther</button></div>
     </div>
+    <div id="feats"></div>
     <div class="lms" id="lms"></div>
     <div id="panel"></div>
     <details class="help"><summary>How this works</summary><ol>
       <li>Choose a biome or park on the left. The view shows its background exactly as students see it.</li>
+      <li>Under <b>Already in this background</b>, untick any feature you want to remove, such as a drawn mountain you will replace with a traced one.</li>
       <li>Press <b>Add a landmark</b>, then pick a photo (or upload your own). Cut the feature out: <b>Draw a box</b> around it works best.</li>
       <li>The cut-out is traced into a few flat shapes and recoloured with this background's own colours. Use the sliders to make it simpler or more detailed, and to choose how closely it follows the scene's colours.</li>
-      <li>Press <b>Place it</b>. It appears where you are looking. Move it round the circle, nearer or farther, and make it bigger or smaller. Haze fades distant features like the far hills.</li>
+      <li>Press <b>Place it</b>. It appears where you are looking. Drag it in the view to move it, scroll over it to resize it (or use the buttons in the corner), or use the sliders. Haze fades distant features like the far hills.</li>
       <li>Your work stays in this browser. <b>Download landmarks</b> gives you a .zip to send; it includes the photo credits.</li>
     </ol></details>
   </section>
@@ -2509,10 +2617,14 @@ if(typeof define === 'function' && define.amd){
         var rq = indexedDB.open('ecobuild-landmarks', 1);
         rq.onupgradeneeded = function () { rq.result.createObjectStore('lm'); };
         rq.onsuccess = function () { db = rq.result; var c = db.transaction('lm').objectStore('lm').openCursor();
-          c.onsuccess = function () { var r = c.result; if (r) { saved[r.key] = r.value; r.continue(); } else res(); }; c.onerror = function () { res(); }; };
+          c.onsuccess = function () { var r = c.result; if (r) { if (String(r.key).indexOf('hide:') === 0) ECO.HIDE[r.key.slice(5)] = r.value; else saved[r.key] = r.value; r.continue(); } else res(); }; c.onerror = function () { res(); }; };
         rq.onerror = function () { res(); };
       } catch (e) { res(); }
     });
+  }
+  function persistHide(key) {
+    if (!db) return;
+    try { var st = db.transaction('lm', 'readwrite').objectStore('lm'), h = ECO.HIDE[key] || []; if (h.length) st.put(h, 'hide:' + key); else st.delete('hide:' + key); } catch (e) {}
   }
   function persist(key) {
     var list = (saved[key] || []).map(function (L) { var o = Object.assign({}, L); delete o.canvas; delete o.mesh; return o; });
@@ -2528,8 +2640,9 @@ if(typeof define === 'function' && define.amd){
     KEYS.forEach(function (k) {
       var P = ECO.PRESETS[k];
       if (P.park && first) { html += '<h3>National parks</h3>'; first = false; }
-      var n = (saved[k] || []).length;
-      html += '<button class="set" data-k="' + k + '" aria-current="' + (k === cur) + '"><b>' + esc(P.name) + '</b>' + (n ? '<span class="st">' + n + '</span>' : '') + '</button>';
+      var n = (saved[k] || []).length, hn = (ECO.HIDE[k] || []).length;
+      html += '<button class="set" data-k="' + k + '" aria-current="' + (k === cur) + '"><b>' + esc(P.name) + '</b>' + (hn ? '<span class="st" style="background:#f1e6c4;color:#6b5414" title="Features removed">−' + hn + '</span>' : '') +
+        (n ? '<span class="st" title="Landmarks added">+' + n + '</span>' : '') + '</button>';
     });
     $('#side').innerHTML = html;
     var total = KEYS.reduce(function (s, k) { return s + (saved[k] || []).length; }, 0);
@@ -2551,7 +2664,8 @@ if(typeof define === 'function' && define.amd){
       ECO.buildEnvironment(scene, { mode: 'preset', preset: cur });
       var meshes = []; var env = scene.object3D.getObjectByName('eco-env');
       env.traverse(function (o) { if (o.name === 'landmark') meshes.push(o); });
-      list().forEach(function (L, i) { L.mesh = meshes[i]; });
+      list().forEach(function (L, i) { L.mesh = meshes[i]; meshes[i].raycast = THREE.Mesh.prototype.raycast; meshes[i].userData.lm = L; });
+      markSelected(); renderFeatures();
     });
   }
   function ensureCanvas(L) {
@@ -2575,6 +2689,20 @@ if(typeof define === 'function' && define.amd){
   $('#b-right').onclick = function () { setYaw(yawDeg() - 45); };
   $('#b-front').onclick = function () { setYaw(0); };
 
+  // ---------- features already in the background: tick to keep, untick to remove ----------
+  function renderFeatures() {
+    var F = (ECO.FEATURES && ECO.FEATURES[cur]) || [], H = ECO.HIDE[cur] || [];
+    if (!F.length) { $('#feats').innerHTML = ''; return; }
+    $('#feats').innerHTML = '<div class="panel feats"><h3>Already in this background</h3><p class="muted" style="margin:0 0 8px">Untick a feature to remove it. Tick it again to bring it back.</p><div class="fl">' +
+      F.map(function (n) { return '<label><input type="checkbox" data-f="' + esc(n) + '"' + (H.indexOf(n) < 0 ? ' checked' : '') + '> ' + esc(n) + '</label>'; }).join('') + '</div></div>';
+    $('#feats').onchange = function (e) {
+      var c = e.target.closest('[data-f]'); if (!c) return;
+      var H2 = (ECO.HIDE[cur] || []).filter(function (n) { return n !== c.dataset.f; });
+      if (!c.checked) H2.push(c.dataset.f);
+      ECO.HIDE[cur] = H2; persistHide(cur); renderSide(); build();
+    };
+  }
+
   // ---------- landmark cards ----------
   function renderList() {
     $('#lms').innerHTML = list().map(function (L, i) {
@@ -2583,8 +2711,8 @@ if(typeof define === 'function' && define.amd){
   }
   $('#lms').addEventListener('click', function (e) {
     var b = e.target.closest('[data-i]');
-    if (b) { sel = +b.dataset.i; addState = null; renderList(); renderPanel(); setYaw(-list()[sel].angle); return; }
-    if (e.target.closest('#b-add')) { sel = -1; addState = { step: 'search', query: (IDEAS[cur] || [''])[0] || '' }; renderList(); renderPanel(); search(); }
+    if (b) { sel = +b.dataset.i; addState = null; renderList(); renderPanel(); markSelected(); setYaw(-list()[sel].angle); return; }
+    if (e.target.closest('#b-add')) { sel = -1; markSelected(); addState = { step: 'search', query: (IDEAS[cur] || [''])[0] || '' }; renderList(); renderPanel(); search(); }
   });
 
   // ---------- panels: search → trace → place / edit ----------
@@ -2795,6 +2923,7 @@ if(typeof define === 'function' && define.amd){
   function renderEdit() {
     var L = list()[sel];
     $('#panel').innerHTML = '<div class="panel"><h3>' + esc(L.name) + '</h3><p class="credit">' + creditHTML(L.credit) + '</p>' +
+      '<p class="muted" style="margin:0 0 6px">Tip: drag it in the view to move it round and up or down. Scroll over it to resize. Hold Shift while dragging up and down to move it nearer or farther.</p>' +
       ctl('angle', 'Direction', 0, 359, 1, Math.round(L.angle), '°') + ctl('dist', 'Distance', 12, ECO.PRESETS[cur].park ? 84 : 95, 1, L.dist, ' m') +
       ctl('h', 'Height', 1, 90, 0.5, L.h, ' m') + ctl('y', 'Up / down', -60, 30, 0.5, L.y || 0, ' m') + ctl('haze', 'Haze', 0, 80, 1, Math.round((L.haze || 0) * 100), '%') +
       '<div class="row"><button id="b-here">Move to where I am looking</button><button id="b-flip">Flip</button><button id="b-look">Change the shapes</button>' +
@@ -2812,9 +2941,93 @@ if(typeof define === 'function' && define.amd){
       renderPanel(); retrace();
     };
     $('#b-del').onclick = function () { list().splice(sel, 1); sel = -1; persist(cur); renderSide(); renderList(); renderPanel(); build(); };
-    $('#b-done').onclick = function () { sel = -1; renderList(); renderPanel(); };
+    $('#b-done').onclick = function () { sel = -1; renderList(); renderPanel(); markSelected(); };
   }
   function move(L) { if (L.mesh) ECO.placeLandmark(L.mesh, L); }
+  // a gold frame round the selected landmark
+  function markSelected() {
+    list().forEach(function (L, i) {
+      if (!L.mesh) return;
+      var f = L.mesh.getObjectByName('selframe');
+      if (i === sel && !f) {
+        f = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(1.02, 1.02)), new THREE.LineBasicMaterial({ color: '#f2c14e', depthTest: false, fog: false }));
+        f.name = 'selframe'; f.renderOrder = 10; f.raycast = function () {}; L.mesh.add(f);
+      } else if (i !== sel && f) { L.mesh.remove(f); f.geometry.dispose(); }
+    });
+    $('#selhud').hidden = sel < 0;
+  }
+  $('#selhud').onclick = function (e) {
+    var b = e.target.closest('button'), L = list()[sel]; if (!b || !L) return;
+    var maxD = ECO.PRESETS[cur].park ? 84 : 95;
+    if (b.dataset.z) L.h = Math.max(1, Math.min(90, Math.round(L.h * +b.dataset.z * 2) / 2));
+    if (b.dataset.d) L.dist = Math.max(12, Math.min(maxD, L.dist + (+b.dataset.d)));
+    move(L); persist(cur); syncSliders(L);
+  };
+  function syncSliders(L) {
+    [['angle', Math.round(L.angle), '°'], ['dist', L.dist, ' m'], ['h', L.h, ' m'], ['y', L.y || 0, ' m']].forEach(function (a) {
+      var c = $('#c-' + a[0]); if (c) { c.value = a[1]; $('#o-' + a[0]).textContent = (Math.round(a[1] * 10) / 10) + a[2]; }
+    });
+  }
+  // Click a landmark in the view to select it; drag it to move it round the circle and up or down; scroll to resize.
+  // Hold Shift while dragging up and down to move it nearer or farther.
+  (function () {
+    var view = $('#view'), ray = new THREE.Raycaster(), drag = null;
+    function aim(e) {
+      var r = view.getBoundingClientRect(), v = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      ray.setFromCamera(v, scene.camera);
+    }
+    // where the pointer points: its direction round the circle, and the height it reaches at a given distance
+    function pointAt(e, dist) {
+      aim(e); var d = ray.ray.direction, o = ray.ray.origin, flat = Math.max(1e-4, Math.hypot(d.x, d.z));
+      return { angle: THREE.MathUtils.radToDeg(Math.atan2(d.x, -d.z)), y: o.y + d.y / flat * dist };
+    }
+    function hit(e) {
+      aim(e);
+      var ms = list().map(function (L) { return L.mesh; }).filter(Boolean), hits = ray.intersectObjects(ms, false);
+      for (var i = 0; i < hits.length; i++) {
+        var L = hits[i].object.userData.lm, uv = hits[i].uv;
+        if (!L || !L.canvas || !uv) continue;
+        // only count clicks on the shape, not its see-through background
+        var u = L.flip ? 1 - uv.x : uv.x, px = L.canvas.getContext('2d').getImageData(Math.min(L.canvas.width - 1, u * L.canvas.width | 0), Math.min(L.canvas.height - 1, (1 - uv.y) * L.canvas.height | 0), 1, 1).data;
+        if (px[3] > 30) return L;
+      }
+      return null;
+    }
+    view.addEventListener('pointerdown', function (e) {
+      if (e.target.closest('button')) return;
+      var L = hit(e); if (!L) return;
+      e.stopPropagation(); e.preventDefault();
+      var i = list().indexOf(L);
+      if (sel !== i || addState) { sel = i; addState = null; renderList(); renderPanel(); markSelected(); }
+      var lc = cam.components['look-controls']; if (lc) lc.data.enabled = false;
+      var pa = pointAt(e, L.dist);
+      drag = { x: e.clientX, y: e.clientY, L: L, da: L.angle - pa.angle, dy: (L.y || 0) - pa.y, dist: L.dist };
+      view.setPointerCapture(e.pointerId); view.style.cursor = 'grabbing';
+    }, true);
+    view.addEventListener('pointermove', function (e) {
+      if (!drag) { view.style.cursor = hit(e) ? 'grab' : ''; return; }
+      var L = drag.L, pa;
+      if (e.shiftKey) { L.dist = Math.max(12, Math.min(ECO.PRESETS[cur].park ? 84 : 95, drag.dist + (e.clientY - drag.y) * 0.15)); pa = pointAt(e, L.dist); drag.dy = (L.y || 0) - pa.y; }
+      else { pa = pointAt(e, L.dist); L.y = Math.max(-60, Math.min(30, pa.y + drag.dy)); }
+      L.angle = ((pa.angle + drag.da) % 360 + 360) % 360;
+      move(L); syncSliders(L);
+    });
+    function end(e) {
+      if (!drag) return;
+      drag = null; view.style.cursor = '';
+      var lc = cam.components['look-controls']; if (lc) lc.data.enabled = true;
+      persist(cur);
+    }
+    view.addEventListener('pointerup', end); view.addEventListener('pointercancel', end);
+    view.addEventListener('wheel', function (e) {
+      var L = hit(e); if (!L) return;
+      e.preventDefault();
+      if (list().indexOf(L) !== sel) { sel = list().indexOf(L); addState = null; renderList(); renderPanel(); markSelected(); }
+      L.h = Math.max(1, Math.min(90, L.h * (e.deltaY < 0 ? 1.06 : 1 / 1.06)));
+      L.h = Math.round(L.h * 10) / 10; move(L); syncSliders(L);
+      clearTimeout(end.t); end.t = setTimeout(function () { persist(cur); }, 400);
+    }, { passive: false });
+  })();
   function rehaze(L) {
     clearTimeout(rehaze.t);
     rehaze.t = setTimeout(function () {
@@ -2879,10 +3092,11 @@ if(typeof define === 'function' && define.amd){
         }));
       });
     });
-    if (!jobs.length) { toast('Nothing to download yet. Add a landmark first.'); return; }
+    if (!jobs.length && !KEYS.some(function (k) { return (ECO.HIDE[k] || []).length; })) { toast('Nothing to download yet. Add a landmark or remove a feature first.'); return; }
     Promise.all(jobs).then(function () {
       cur = keyCur;
-      files.push({ name: 'landmarks.json', data: utf8(JSON.stringify({ made: new Date().toISOString(), settings: meta }, null, 1)) });
+      var hidden = {}; KEYS.forEach(function (k) { if ((ECO.HIDE[k] || []).length) hidden[k] = ECO.HIDE[k]; });
+      files.push({ name: 'landmarks.json', data: utf8(JSON.stringify({ made: new Date().toISOString(), hidden: hidden, settings: meta }, null, 1)) });
       files.push({ name: 'landmark-credits.csv', data: utf8('﻿' + rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n')) });
       var a = document.createElement('a'); a.href = URL.createObjectURL(zip(files)); a.download = 'ecobuild-landmarks.zip';
       document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
@@ -2895,7 +3109,8 @@ if(typeof define === 'function' && define.amd){
     f.arrayBuffer().then(function (buf) {
       var z = unzip(buf), m = z['landmarks.json'];
       if (!m) { toast('That is not a landmarks file from this page.'); return; }
-      var S = JSON.parse(new TextDecoder().decode(m)).settings || {}, n = 0;
+      var J = JSON.parse(new TextDecoder().decode(m)), S = J.settings || {}, n = 0;
+      Object.keys(J.hidden || {}).forEach(function (k) { ECO.HIDE[k] = J.hidden[k]; persistHide(k); });
       // the files have haze built in, so read the plain shapes back from the .svg when there is one
       var jobs = [];
       Object.keys(S).forEach(function (k) {
