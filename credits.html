@@ -23,7 +23,12 @@
 <header><a href="index.html">🌿 EcoBuild</a></header>
 <main>
   <h1>Picture credits</h1>
-  <p class="intro">Some of the landmarks in EcoBuild's national park backgrounds were traced from photographs and simplified into flat shapes.
+  <h2>Plants and animals</h2>
+  <p class="intro">The plant and animal pictures are drawings made from photographs. Photos from iNaturalist are credited below, under the licence each photographer chose;
+    the rest were supplied by the EcoBuild team.</p>
+  <ul id="pics"></ul>
+  <h2>Landmarks</h2>
+  <p class="intro" id="lm-intro">Some of the landmarks in EcoBuild's national park backgrounds were traced from photographs and simplified into flat shapes.
     We are grateful to the photographers who shared their work. Each landmark is a modified version of the photo named below, shared under the same licence.</p>
   <div id="list"></div>
 </main>
@@ -32,62 +37,53 @@
   var C = [
  {
   "setting": "arches",
-  "name": "Delicatearch",
-  "title": "Delicatearch",
-  "attribution": "National Park Service Photo",
-  "license": "Public domain",
-  "page": "https://commons.wikimedia.org/wiki/File:Delicatearch.png",
-  "source": "commons"
+  "name": "delicate arch vector",
+  "title": "delicate arch vector",
+  "attribution": "",
+  "license": "",
+  "page": "",
+  "source": "upload"
  },
  {
   "setting": "arches",
-  "name": "Balanced Rock sunset",
-  "title": "Balanced Rock sunset",
-  "attribution": "Thomas Wolf, www.foto-tw.de",
-  "license": "CC BY-SA 3.0",
-  "page": "https://commons.wikimedia.org/wiki/File:Balanced_Rock_sunset.jpg",
-  "source": "commons"
+  "name": "balancing rock vector",
+  "title": "balancing rock vector",
+  "attribution": "",
+  "license": "",
+  "page": "",
+  "source": "upload"
  },
  {
   "setting": "arches",
-  "name": "Courthouse Towers kz01",
-  "title": "Courthouse Towers kz01",
-  "attribution": "Krzysztof Ziarnek, Kenraiz",
-  "license": "CC BY-SA 4.0",
-  "page": "https://commons.wikimedia.org/wiki/File:Courthouse_Towers_kz01.jpg",
-  "source": "commons"
+  "name": "courthouse rock vector",
+  "title": "courthouse rock vector",
+  "attribution": "",
+  "license": "",
+  "page": "",
+  "source": "upload"
  },
  {
   "setting": "arches",
-  "name": "648b3d91548abe2fb1badda5 LR 04232023 Arc",
-  "title": "648b3d91548abe2fb1badda5_LR-04232023-Arches-National-Park-334",
-  "attribution": "https://cdn.prod.website-files.com/5eeb8921db40f42380b81ba5/648b3d91548abe2fb1badda5_LR-04232023-Arches-National-Park-334.jpg",
+  "name": "landscape arch vector",
+  "title": "landscape arch vector",
+  "attribution": "",
+  "license": "",
+  "page": "",
+  "source": "upload"
+ },
+ {
+  "setting": "arches",
+  "name": "three sisters vector",
+  "title": "three sisters vector",
+  "attribution": "",
   "license": "",
   "page": "",
   "source": "upload"
  },
  {
   "setting": "yellowstone",
-  "name": "Yellowstone National Park , Old Faithful",
-  "title": "Yellowstone National Park (WY, USA), Old Faithful Geyser -- 2022 -- 2599",
-  "attribution": "Dietmar Rabich",
-  "license": "CC BY-SA 4.0",
-  "page": "https://commons.wikimedia.org/wiki/File:Yellowstone_National_Park_(WY,_USA),_Old_Faithful_Geyser_--_2022_--_2599.jpg",
-  "source": "commons"
- },
- {
-  "setting": "grandteton",
-  "name": "Sheep Mountain Jackson WY1",
-  "title": "Sheep Mountain Jackson WY1",
-  "attribution": "Acroterion",
-  "license": "CC BY-SA 4.0",
-  "page": "https://commons.wikimedia.org/wiki/File:Sheep_Mountain_Jackson_WY1.jpg",
-  "source": "commons"
- },
- {
-  "setting": "grandteton",
-  "name": "teton range panorama photograph by micha",
-  "title": "teton-range-panorama-photograph-by-michael-schwab",
+  "name": "old faithful vector",
+  "title": "old faithful vector",
   "attribution": "",
   "license": "",
   "page": "",
@@ -95,70 +91,3107 @@
  },
  {
   "setting": "grandteton",
-  "name": "gettyimages 999955260 612x612",
-  "title": "gettyimages-999955260-612x612",
-  "attribution": "https://media.gettyimages.com/id/999955260/photo/towards-mt-moran.jpg?s=612x612&w=gi&k=20&c=gc2FNorGsmldaR4yTSDC6_N9aP-hIX_C71G6Qr7ObAY=",
+  "name": "teton range vector",
+  "title": "teton range vector",
+  "attribution": "",
+  "license": "",
+  "page": "",
+  "source": "upload"
+ },
+ {
+  "setting": "grandteton",
+  "name": "moran vector",
+  "title": "moran vector",
+  "attribution": "",
+  "license": "",
+  "page": "",
+  "source": "upload"
+ },
+ {
+  "setting": "grandteton",
+  "name": "sleeping indian vector",
+  "title": "sleeping indian vector",
+  "attribution": "",
   "license": "",
   "page": "",
   "source": "upload"
  },
  {
   "setting": "yosemite",
-  "name": "Yosemite Half Dome from Valley 2013",
-  "title": "Yosemite Half Dome from Valley 2013",
-  "attribution": "Tuxyso",
-  "license": "CC BY-SA 3.0",
-  "page": "https://commons.wikimedia.org/wiki/File:Yosemite_Half_Dome_from_Valley_2013.jpg",
-  "source": "commons"
+  "name": "half dome vector",
+  "title": "half dome vector",
+  "attribution": "",
+  "license": "",
+  "page": "",
+  "source": "upload"
  },
  {
   "setting": "yosemite",
-  "name": "Yosemite El Capitan",
-  "title": "Yosemite El Capitan",
-  "attribution": "Mike Murphy (talk \u00b7 contribs)",
-  "license": "CC BY-SA 3.0",
-  "page": "https://commons.wikimedia.org/wiki/File:Yosemite_El_Capitan.jpg",
-  "source": "commons"
+  "name": "el capitan vector",
+  "title": "el capitan vector",
+  "attribution": "",
+  "license": "",
+  "page": "",
+  "source": "upload"
  },
  {
   "setting": "yosemite",
-  "name": "Sentinel Dome from Trail 0615",
-  "title": "Sentinel Dome from Trail 0615",
-  "attribution": "Adavyd",
-  "license": "CC BY-SA 3.0",
-  "page": "https://commons.wikimedia.org/wiki/File:Sentinel_Dome_from_Trail_0615.jpg",
-  "source": "commons"
+  "name": "yosemite falls vector",
+  "title": "yosemite falls vector",
+  "attribution": "",
+  "license": "",
+  "page": "",
+  "source": "upload"
  },
  {
   "setting": "yosemite",
-  "name": "Yosemite Falls from trail, Yosemite NP, ",
-  "title": "Yosemite Falls from trail, Yosemite NP, CA, US - Diliff",
-  "attribution": "Diliff",
-  "license": "CC BY-SA 3.0",
-  "page": "https://commons.wikimedia.org/wiki/File:Yosemite_Falls_from_trail,_Yosemite_NP,_CA,_US_-_Diliff.jpg",
-  "source": "commons"
+  "name": "sentinel dome vector",
+  "title": "sentinel dome vector",
+  "attribution": "",
+  "license": "",
+  "page": "",
+  "source": "upload"
  },
  {
   "setting": "bigbend",
-  "name": "Santa Elena Canyon Oct 2013 4",
-  "title": "Santa Elena Canyon Oct 2013 4",
-  "attribution": "Fredlyfish4",
-  "license": "CC BY-SA 3.0",
-  "page": "https://commons.wikimedia.org/wiki/File:Santa_Elena_Canyon_Oct_2013_4.JPG",
-  "source": "commons"
+  "name": "santa elena canyon vector",
+  "title": "santa elena canyon vector",
+  "attribution": "",
+  "license": "",
+  "page": "",
+  "source": "upload"
  },
  {
   "setting": "bigbend",
-  "name": "Chisos Mountains Vernon Bailey Peak",
-  "title": "Chisos Mountains - Vernon Bailey Peak",
-  "attribution": "Will Roman",
-  "license": "CC BY-SA 4.0",
-  "page": "https://commons.wikimedia.org/wiki/File:Chisos_Mountains_-_Vernon_Bailey_Peak.jpg",
+  "name": "Casa Grande Peak from Chisos Basin Visit",
+  "title": "Casa Grande Peak from Chisos Basin Visitors Center",
+  "attribution": "jaygannett",
+  "license": "CC BY-SA 2.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Casa_Grande_Peak_from_Chisos_Basin_Visitors_Center.jpg",
   "source": "commons"
+ }
+];
+  var PICS = [
+ {
+  "name": "A\u00e7a\u00ed palm",
+  "sci": "Euterpe oleracea",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "American lotus",
+  "sci": "Nelumbo lutea",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Arctic cottongrass",
+  "sci": "Eriophorum scheuchzeri",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Arctic willow",
+  "sci": "Salix arctica",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Arrowleaf balsamroot",
+  "sci": "Balsamorhiza sagittata",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Bald cypress",
+  "sci": "Taxodium distichum",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Bamboo",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Banana yucca",
+  "sci": "Yucca baccata",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Big Bend bluebonnet",
+  "sci": "Lupinus havardii",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Big bluestem",
+  "sci": "Andropogon gerardii",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Big sagebrush",
+  "sci": "Artemisia tridentata",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Blackbrush",
+  "sci": "Coleogyne ramosissima",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Blossom",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) W Rao, some rights reserved (CC BY)",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/366717203",
+  "observation": "https://www.inaturalist.org/observations/207339838",
+  "who": "W Rao",
+  "taxon": "Prunus serrulata",
+  "taxonCommon": "Japanese Cherry"
+ },
+ {
+  "name": "Blue palo verde",
+  "sci": "Parkinsonia florida",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Broadleaf cattail",
+  "sci": "Typha latifolia",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Bur oak",
+  "sci": "Quercus macrocarpa",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Cabbage palm",
+  "sci": "Sabal palmetto",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Cactus",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "California black oak",
+  "sci": "Quercus kelloggii",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Cattleya orchid",
+  "sci": "Cattleya labiata",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Christmas fern",
+  "sci": "Polystichum acrostichoides",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Clover",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Common duckweed",
+  "sci": "Lemna minor",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Common sunflower",
+  "sci": "Helianthus annuus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Corn",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Corn stalk",
+  "sci": "Zea mays",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Creosote bush",
+  "sci": "Larrea tridentata",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Deciduous tree",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Desert marigold",
+  "sci": "Baileya multiradiata",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Eastern hemlock",
+  "sci": "Tsuga canadensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Eastern white pine",
+  "sci": "Pinus strobus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Engelmann prickly pear",
+  "sci": "Opuntia engelmannii",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Engelmann spruce",
+  "sci": "Picea engelmannii",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Evergreen tree",
+  "sci": "Juniperus virginiana",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Fern",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Fireweed",
+  "sci": "Chamerion angustifolium",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Fragrant water lily",
+  "sci": "Nymphaea odorata",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Fremont cottonwood",
+  "sci": "Populus fremontii",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Geyer willow",
+  "sci": "Salix geyeriana",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Giant sequoia",
+  "sci": "Sequoiadendron giganteum",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Grass",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Greenleaf manzanita",
+  "sci": "Arctostaphylos patula",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Hibiscus",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Hyacinth",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Kapok tree",
+  "sci": "Ceiba pentandra",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Lechuguilla",
+  "sci": "Agave lechuguilla",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Leichtlin's mariposa lily",
+  "sci": "Calochortus leichtlinii",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Lodgepole pine",
+  "sci": "Pinus contorta",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Lotus",
+  "sci": "Nelumbo nucifera",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Mountain laurel",
+  "sci": "Kalmia latifolia",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Narrowleaf cottonwood",
+  "sci": "Populus angustifolia",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Ocotillo",
+  "sci": "Fouquieria splendens",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Pacific dogwood",
+  "sci": "Cornus nuttallii",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Paddle weed seagrass",
+  "sci": "Halophila ovalis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Palm tree",
+  "sci": "Cocos nucifera",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Philodendron",
+  "sci": "Philodendron bipinnatifidum",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Pickerelweed",
+  "sci": "Pontederia cordata",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Pink lady's slipper",
+  "sci": "Cypripedium acaule",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Ponderosa pine",
+  "sci": "Pinus ponderosa",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Purple coneflower",
+  "sci": "Echinacea purpurea",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Purple saxifrage",
+  "sci": "Saxifraga oppositifolia",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Quaking aspen",
+  "sci": "Populus tremuloides",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Red mangrove",
+  "sci": "Rhizophora mangle",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Red oak",
+  "sci": "Quercus rubra",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Rosebay rhododendron",
+  "sci": "Rhododendron maximum",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Sacred datura",
+  "sci": "Datura wrightii",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Saguaro",
+  "sci": "Carnegiea gigantea",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Saguaro cactus",
+  "sci": "Carnegiea gigantea",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Sawgrass",
+  "sci": "Cladium jamaicense",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Seedling",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Silvery lupine",
+  "sci": "Lupinus argenteus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Strangler fig",
+  "sci": "Ficus americana",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Subalpine fir",
+  "sci": "Abies lasiocarpa",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Sugar maple",
+  "sci": "Acer saccharum",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Sunflower",
+  "sci": "Helianthus annuus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Switchgrass",
+  "sci": "Panicum virgatum",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Texas madrone",
+  "sci": "Arbutus xalapensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Tulip",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Tulip tree",
+  "sci": "Liriodendron tulipifera",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Two-needle pinyon",
+  "sci": "Pinus edulis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Utah juniper",
+  "sci": "Juniperus osteosperma",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "White trillium",
+  "sci": "Trillium grandiflorum",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Wildflower",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Abert's squirrel",
+  "sci": "Sciurus aberti",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Agassiz's desert tortoise",
+  "sci": "Gopherus agassizii",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Alligator",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "American alligator",
+  "sci": "Alligator mississippiensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "American badger",
+  "sci": "Taxidea taxus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "American bison",
+  "sci": "Bison bison",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "American black bear",
+  "sci": "Ursus americanus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "American bullfrog",
+  "sci": "Lithobates catesbeianus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "American crocodile",
+  "sci": "Crocodylus acutus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "American flamingo",
+  "sci": "Phoenicopterus ruber",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "American pika",
+  "sci": "Ochotona princeps",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Ant",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Arctic fox",
+  "sci": "Vulpes lagopus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Arctic hare",
+  "sci": "Lepus arcticus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Arctic wolf",
+  "sci": "Canis lupus arctos",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Arizona bark scorpion",
+  "sci": "Centruroides sculpturatus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Badger",
+  "sci": "Taxidea taxus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Bald eagle",
+  "sci": "Haliaeetus leucocephalus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Barred owl",
+  "sci": "Strix varia",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Bat",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Bear",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Beaver",
+  "sci": "Castor canadensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Bee",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Beetle",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Big brown bat",
+  "sci": "Eptesicus fuscus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Bison",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Black ant",
+  "sci": "Camponotus pennsylvanicus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Black spider monkey",
+  "sci": "Ateles paniscus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Black-tailed jackrabbit",
+  "sci": "Lepus californicus",
+  "source": "inaturalist",
+  "attribution": "(c) Susan E Adams, some rights reserved (CC BY-SA)",
+  "license": "CC BY-SA",
+  "page": "https://www.inaturalist.org/photos/15013277",
+  "observation": "",
+  "who": "",
+  "taxon": "Lepus californicus",
+  "taxonCommon": "Black-tailed Jackrabbit"
+ },
+ {
+  "name": "Black-tailed prairie dog",
+  "sci": "Cynomys ludovicianus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Blue morpho butterfly",
+  "sci": "Morpho menelaus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Brown lemming",
+  "sci": "Lemmus trimucronatus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Brown-throated three-toed sloth",
+  "sci": "Bradypus variegatus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Bullfrog",
+  "sci": "Lithobates catesbeianus",
+  "source": "inaturalist",
+  "attribution": "(c) Jag Athwal, some rights reserved (CC BY-NC), uploaded by Jag Athwal",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/519633752",
+  "observation": "",
+  "who": "",
+  "taxon": "Lithobates catesbeianus",
+  "taxonCommon": "American Bullfrog"
+ },
+ {
+  "name": "Bumblebee",
+  "sci": "Bombus impatiens",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Butterfly",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Sue Stutzman, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/461671643",
+  "observation": "https://www.inaturalist.org/observations/257369421",
+  "who": "Sue Stutzman",
+  "taxon": "Danaus plexippus",
+  "taxonCommon": "Monarch"
+ },
+ {
+  "name": "Camel",
+  "sci": "Camelus dromedarius",
+  "source": "inaturalist",
+  "attribution": "(c) Philipp salzgeber, some rights reserved (CC BY-NC), uploaded by Philipp salzgeber",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/70717528",
+  "observation": "",
+  "who": "",
+  "taxon": "Camelus dromedarius",
+  "taxonCommon": "Dromedary Camel"
+ },
+ {
+  "name": "Canyon bat",
+  "sci": "Parastrellus hesperus",
+  "source": "inaturalist",
+  "attribution": "(c) Tom Mills, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/135899453",
+  "observation": "https://www.inaturalist.org/observations/82783362",
+  "who": "Tom Mills",
+  "taxon": "Parastrellus hesperus",
+  "taxonCommon": "Canyon Bat"
+ },
+ {
+  "name": "Caribou",
+  "sci": "Rangifer tarandus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Caterpillar",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Chimpanzee",
+  "sci": "Pan troglodytes",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Collared peccary (javelina)",
+  "sci": "Pecari tajacu",
+  "source": "inaturalist",
+  "attribution": "(c) Gustavo Masuzzo, some rights reserved (CC BY)",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/32909126",
+  "observation": "",
+  "who": "",
+  "taxon": "Pecari tajacu",
+  "taxonCommon": "Collared Peccary"
+ },
+ {
+  "name": "Common chuckwalla",
+  "sci": "Sauromalus ater",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Common collared lizard",
+  "sci": "Crotaphytus collaris",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Common garter snake",
+  "sci": "Thamnophis sirtalis",
+  "source": "inaturalist",
+  "attribution": "(c) Kevin, some rights reserved (CC BY-NC), uploaded by Kevin",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/385020469",
+  "observation": "",
+  "who": "",
+  "taxon": "Thamnophis sirtalis",
+  "taxonCommon": "Common Garter Snake"
+ },
+ {
+  "name": "Common snapping turtle",
+  "sci": "Chelydra serpentina",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Cottontail rabbit",
+  "sci": "Sylvilagus floridanus",
+  "source": "inaturalist",
+  "attribution": "(c) Andrew Murray, some rights reserved (CC BY), uploaded by Andrew Murray",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/277644122",
+  "observation": "",
+  "who": "",
+  "taxon": "Sylvilagus floridanus",
+  "taxonCommon": "Eastern Cottontail"
+ },
+ {
+  "name": "Coyote",
+  "sci": "Canis latrans",
+  "source": "inaturalist",
+  "attribution": "(c) Kevin Lynch, some rights reserved (CC BY)",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/61403730",
+  "observation": "https://www.inaturalist.org/observations/38619550",
+  "who": "Kevin Lynch",
+  "taxon": "Canis latrans",
+  "taxonCommon": "Coyote"
+ },
+ {
+  "name": "Cricket",
+  "sci": "Gryllus species",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Deer",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Desert bighorn sheep",
+  "sci": "Ovis canadensis nelsoni",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Desert cottontail",
+  "sci": "Sylvilagus audubonii",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Desert tarantula",
+  "sci": "Aphonopelma chalcodes",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Differential grasshopper",
+  "sci": "Melanoplus differentialis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Duck",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Dyeing poison dart frog",
+  "sci": "Dendrobates tinctorius",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Eagle",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Robin Gwen Agarwal, some rights reserved (CC BY-NC), uploaded by Robin Gwen Agarwal",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/111169141",
+  "observation": "",
+  "who": "",
+  "taxon": "Haliaeetus leucocephalus",
+  "taxonCommon": "Bald Eagle"
+ },
+ {
+  "name": "Earthworm",
+  "sci": "Lumbricus terrestris",
+  "source": "inaturalist",
+  "attribution": "(c) thirty_legs, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/498405148",
+  "observation": "https://www.inaturalist.org/observations/277569669",
+  "who": "thirty_legs",
+  "taxon": "Lumbricus terrestris",
+  "taxonCommon": "Nightcrawler"
+ },
+ {
+  "name": "Eastern bluebird",
+  "sci": "Sialia sialis",
+  "source": "inaturalist",
+  "attribution": "(c) Shreybae, some rights reserved (CC BY-NC), uploaded by Shreybae",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/356151567",
+  "observation": "",
+  "who": "",
+  "taxon": "Sialia sialis",
+  "taxonCommon": "Eastern Bluebird"
+ },
+ {
+  "name": "Eastern box turtle",
+  "sci": "Terrapene carolina",
+  "source": "inaturalist",
+  "attribution": "(c) Ryan Jones, some rights reserved (CC BY-NC), uploaded by Ryan Jones",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/18191877",
+  "observation": "",
+  "who": "",
+  "taxon": "Terrapene carolina",
+  "taxonCommon": "Common Box Turtle"
+ },
+ {
+  "name": "Eastern gray squirrel",
+  "sci": "Sciurus carolinensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Elephant",
+  "sci": "Loxodonta africana",
+  "source": "inaturalist",
+  "attribution": "(c) Joshua Rains, some rights reserved (CC BY-NC), uploaded by Joshua Rains",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/180826561",
+  "observation": "",
+  "who": "",
+  "taxon": "Loxodonta africana",
+  "taxonCommon": "African Savanna Elephant"
+ },
+ {
+  "name": "Elf owl",
+  "sci": "Micrathene whitneyi",
+  "source": "inaturalist",
+  "attribution": "(c) Terry Sohl, some rights reserved (CC BY-NC), uploaded by Terry Sohl",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/45691213",
+  "observation": "",
+  "who": "",
+  "taxon": "Micrathene whitneyi",
+  "taxonCommon": "Elf Owl"
+ },
+ {
+  "name": "Elk",
+  "sci": "Cervus canadensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Field mouse",
+  "sci": "Peromyscus maniculatus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Flamingo",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Florida apple snail",
+  "sci": "Pomacea paludosa",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Florida panther",
+  "sci": "Puma concolor coryi",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Florida softshell turtle",
+  "sci": "Apalone ferox",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Fox",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Frog",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) bubbacho, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/4654051",
+  "observation": "https://www.inaturalist.org/observations/3949893",
+  "who": "bubbacho",
+  "taxon": "Lithobates catesbeianus",
+  "taxonCommon": "American Bullfrog"
+ },
+ {
+  "name": "Garter snake",
+  "sci": "Thamnophis sirtalis",
+  "source": "inaturalist",
+  "attribution": "(c) Kevin, some rights reserved (CC BY-NC), uploaded by Kevin",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/433756458",
+  "observation": "",
+  "who": "",
+  "taxon": "Thamnophis sirtalis",
+  "taxonCommon": "Common Garter Snake"
+ },
+ {
+  "name": "Gila monster",
+  "sci": "Heloderma suspectum",
+  "source": "inaturalist",
+  "attribution": "(c) Yinan Li, some rights reserved (CC BY-NC), uploaded by Yinan Li",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/348193424",
+  "observation": "",
+  "who": "",
+  "taxon": "Heloderma suspectum",
+  "taxonCommon": "Gila Monster"
+ },
+ {
+  "name": "Giraffe",
+  "sci": "Giraffa camelopardalis",
+  "source": "inaturalist",
+  "attribution": "(c) thadroller, some rights reserved (CC BY-NC), uploaded by thadroller",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/106131161",
+  "observation": "",
+  "who": "",
+  "taxon": "Giraffa",
+  "taxonCommon": "Giraffes"
+ },
+ {
+  "name": "Golden eagle",
+  "sci": "Aquila chrysaetos",
+  "source": "inaturalist",
+  "attribution": "(c) Jef-B, some rights reserved (CC BY-NC), uploaded by Jef-B",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/465326450",
+  "observation": "",
+  "who": "",
+  "taxon": "Aquila chrysaetos",
+  "taxonCommon": "Golden Eagle"
+ },
+ {
+  "name": "Gorilla",
+  "sci": "Gorilla gorilla gorilla",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Grand Canyon rattlesnake",
+  "sci": "Crotalus oreganus abyssus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Gray seal",
+  "sci": "Halichoerus grypus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Gray squirrel",
+  "sci": "Sciurus carolinensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Gray wolf",
+  "sci": "Canis lupus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Great gray owl",
+  "sci": "Strix nebulosa",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Great horned owl",
+  "sci": "Bubo virginianus",
+  "source": "inaturalist",
+  "attribution": "(c) Alvaro Monter Pozos, some rights reserved (CC BY-NC), uploaded by Alvaro Monter Pozos",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/80572766",
+  "observation": "",
+  "who": "",
+  "taxon": "Bubo virginianus",
+  "taxonCommon": "Great Horned Owl"
+ },
+ {
+  "name": "Green anaconda",
+  "sci": "Eunectes murinus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Green anole",
+  "sci": "Anolis carolinensis",
+  "source": "inaturalist",
+  "attribution": "(c) TexasEagle, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/2108586",
+  "observation": "",
+  "who": "",
+  "taxon": "Anolis carolinensis",
+  "taxonCommon": "Green Anole"
+ },
+ {
+  "name": "Grizzly bear",
+  "sci": "Ursus arctos horribilis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Harpy eagle",
+  "sci": "Harpia harpyja",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Hedgehog",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Hippopotamus",
+  "sci": "Hippopotamus amphibius",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Iguana",
+  "sci": "Iguana iguana",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Jackrabbit",
+  "sci": "Lepus californicus",
+  "source": "inaturalist",
+  "attribution": "(c) filton18, some rights reserved (CC BY-NC), uploaded by filton18",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/30699544",
+  "observation": "",
+  "who": "",
+  "taxon": "Lepus californicus",
+  "taxonCommon": "Black-tailed Jackrabbit"
+ },
+ {
+  "name": "Jaguar",
+  "sci": "Panthera onca",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Japanese beetle",
+  "sci": "Popillia japonica",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Kangaroo",
+  "sci": "Osphranter rufus",
+  "source": "inaturalist",
+  "attribution": "(c) Nik Borrow, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/164668615",
+  "observation": "",
+  "who": "",
+  "taxon": "Osphranter rufus",
+  "taxonCommon": "Red Kangaroo"
+ },
+ {
+  "name": "Kit fox",
+  "sci": "Vulpes macrotis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Ladybug",
+  "sci": "Coccinella septempunctata",
+  "source": "inaturalist",
+  "attribution": "(c) Nora De Angelli, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/598795087",
+  "observation": "https://www.inaturalist.org/observations/330241889",
+  "who": "Nora De Angelli",
+  "taxon": "Coccinella septempunctata",
+  "taxonCommon": "Seven-spotted Lady Beetle"
+ },
+ {
+  "name": "Leafcutter ant",
+  "sci": "Atta cephalotes",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Leopard",
+  "sci": "Panthera pardus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Lesser long-nosed bat",
+  "sci": "Leptonycteris yerbabuenae",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Lion",
+  "sci": "Panthera leo",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Lizard",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Mallard",
+  "sci": "Anas platyrhynchos",
+  "source": "inaturalist",
+  "attribution": "(c) Mark Peck, some rights reserved (CC BY-NC-SA)",
+  "license": "CC BY-NC-SA",
+  "page": "https://www.inaturalist.org/photos/94435436",
+  "observation": "",
+  "who": "",
+  "taxon": "Anas platyrhynchos",
+  "taxonCommon": "Mallard"
+ },
+ {
+  "name": "Mallard duck",
+  "sci": "Anas platyrhynchos",
+  "source": "inaturalist",
+  "attribution": "(c) Mark Peck, some rights reserved (CC BY-NC-SA)",
+  "license": "CC BY-NC-SA",
+  "page": "https://www.inaturalist.org/photos/94435436",
+  "observation": "",
+  "who": "",
+  "taxon": "Anas platyrhynchos",
+  "taxonCommon": "Mallard"
+ },
+ {
+  "name": "Mexican free-tailed bat",
+  "sci": "Tadarida brasiliensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Midget faded rattlesnake",
+  "sci": "Crotalus oreganus concolor",
+  "source": "inaturalist",
+  "attribution": "(c) Terry Lee Crane, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/152216503",
+  "observation": "https://www.inaturalist.org/observations/91977941",
+  "who": "Terry Lee Crane",
+  "taxon": "Crotalus oreganus concolor",
+  "taxonCommon": "Midget Faded Rattlesnake"
+ },
+ {
+  "name": "Monarch butterfly",
+  "sci": "Danaus plexippus",
+  "source": "inaturalist",
+  "attribution": "(c) Ad Konings, some rights reserved (CC BY-NC), uploaded by Ad Konings",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/139018762",
+  "observation": "",
+  "who": "",
+  "taxon": "Danaus plexippus",
+  "taxonCommon": "Monarch"
+ },
+ {
+  "name": "Monkey",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Moose",
+  "sci": "Alces alces",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Mountain bluebird",
+  "sci": "Sialia currucoides",
+  "source": "inaturalist",
+  "attribution": "(c) christrent, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/245267194",
+  "observation": "",
+  "who": "",
+  "taxon": "Sialia currucoides",
+  "taxonCommon": "Mountain Bluebird"
+ },
+ {
+  "name": "Mountain lion",
+  "sci": "Puma concolor",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Mouse",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Joe Bartok, some rights reserved (CC BY-NC), uploaded by Joe Bartok",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/14118934",
+  "observation": "",
+  "who": "",
+  "taxon": "Peromyscus maniculatus",
+  "taxonCommon": "Eastern Deer Mouse"
+ },
+ {
+  "name": "Mule deer",
+  "sci": "Odocoileus hemionus",
+  "source": "inaturalist",
+  "attribution": "(c) rbbrummitt, some rights reserved (CC BY-NC), uploaded by rbbrummitt",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/424001754",
+  "observation": "",
+  "who": "",
+  "taxon": "Odocoileus hemionus",
+  "taxonCommon": "Mule Deer"
+ },
+ {
+  "name": "Muskox",
+  "sci": "Ovibos moschatus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "North American beaver",
+  "sci": "Castor canadensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "North American river otter",
+  "sci": "Lontra canadensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Northern house mosquito",
+  "sci": "Culex pipiens",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Osprey",
+  "sci": "Pandion haliaetus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Owl",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Paul G. Johnson, some rights reserved (CC BY-NC-SA), uploaded by Paul G. Johnson",
+  "license": "CC BY-NC-SA",
+  "page": "https://www.inaturalist.org/photos/14549085",
+  "observation": "",
+  "who": "",
+  "taxon": "Bubo virginianus",
+  "taxonCommon": "Great Horned Owl"
+ },
+ {
+  "name": "Parrot",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Jos\u00e9 Antonio Linage Espinosa, some rights reserved (CC BY-NC), uploaded by Jos\u00e9 Antonio Linage Espinosa",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/30793273",
+  "observation": "",
+  "who": "",
+  "taxon": "Ara macao",
+  "taxonCommon": "Scarlet Macaw"
+ },
+ {
+  "name": "Penguin",
+  "sci": "Aptenodytes forsteri",
+  "source": "inaturalist",
+  "attribution": "(c) Greg Lasley, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/220189",
+  "observation": "https://www.inaturalist.org/observations/163459",
+  "who": "Greg Lasley",
+  "taxon": "Aptenodytes forsteri",
+  "taxonCommon": "Emperor Penguin"
+ },
+ {
+  "name": "Peregrine falcon",
+  "sci": "Falco peregrinus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Polar bear",
+  "sci": "Ursus maritimus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Prairie rattlesnake",
+  "sci": "Crotalus viridis",
+  "source": "inaturalist",
+  "attribution": "(c) markc666, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/316652161",
+  "observation": "",
+  "who": "",
+  "taxon": "Crotalus viridis",
+  "taxonCommon": "Prairie Rattlesnake"
+ },
+ {
+  "name": "Pronghorn",
+  "sci": "Antilocapra americana",
+  "source": "inaturalist",
+  "attribution": "(c) biomule, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/487160294",
+  "observation": "",
+  "who": "",
+  "taxon": "Antilocapra americana",
+  "taxonCommon": "Pronghorn"
+ },
+ {
+  "name": "Rabbit",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Raccoon",
+  "sci": "Procyon lotor",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Rattlesnake",
+  "sci": "Crotalus atrox",
+  "source": "inaturalist",
+  "attribution": "(c) Gerson Herrera, some rights reserved (CC BY-NC), uploaded by Gerson Herrera",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/3113494",
+  "observation": "",
+  "who": "",
+  "taxon": "Crotalus atrox",
+  "taxonCommon": "Western Diamond-backed Rattlesnake"
+ },
+ {
+  "name": "Red fox",
+  "sci": "Vulpes vulpes",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Red-cheeked salamander",
+  "sci": "Plethodon jordani",
+  "source": "inaturalist",
+  "attribution": "(c) John Matthew Erickson, some rights reserved (CC BY)",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/301189577",
+  "observation": "https://www.inaturalist.org/observations/173435929",
+  "who": "John Matthew Erickson",
+  "taxon": "Plethodon jordani",
+  "taxonCommon": "Red-cheeked Salamander"
+ },
+ {
+  "name": "Red-eared slider turtle",
+  "sci": "Trachemys scripta elegans",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Red-eyed tree frog",
+  "sci": "Agalychnis callidryas",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Red-spotted toad",
+  "sci": "Anaxyrus punctatus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Red-tailed hawk",
+  "sci": "Buteo jamaicensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Rhinoceros",
+  "sci": "Ceratotherium simum",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Ringed seal",
+  "sci": "Pusa hispida",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Ringtail",
+  "sci": "Bassariscus astutus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "River otter",
+  "sci": "Lontra canadensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Robin",
+  "sci": "Turdus migratorius",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Saltmarsh mosquito",
+  "sci": "Aedes taeniorhynchus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Scarlet macaw",
+  "sci": "Ara macao",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Scorpion",
+  "sci": "Centruroides vittatus",
+  "source": "inaturalist",
+  "attribution": "(c) Judy Gallagher, some rights reserved (CC BY)",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/130842518",
+  "observation": "",
+  "who": "",
+  "taxon": "Centruroides vittatus",
+  "taxonCommon": "Striped Bark Scorpion"
+ },
+ {
+  "name": "Seal",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Siberian tiger",
+  "sci": "Panthera tigris altaica",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Sierra Nevada yellow-legged frog",
+  "sci": "Rana sierrae",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Skunk",
+  "sci": "Mephitis mephitis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Sloth",
+  "sci": "Bradypus variegatus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Snail",
+  "sci": "Cornu aspersum",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Snake",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Kevin, some rights reserved (CC BY-NC), uploaded by Kevin",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/385020469",
+  "observation": "",
+  "who": "",
+  "taxon": "Thamnophis sirtalis",
+  "taxonCommon": "Common Garter Snake"
+ },
+ {
+  "name": "Snow goose",
+  "sci": "Anser caerulescens",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Snowy owl",
+  "sci": "Bubo scandiacus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Songbird",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Spider",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Spider monkey",
+  "sci": "Ateles geoffroyi",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Squirrel",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Striped bark scorpion",
+  "sci": "Centruroides vittatus",
+  "source": "inaturalist",
+  "attribution": "(c) Linda Jo Conn, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/155711938",
+  "observation": "https://www.inaturalist.org/observations/93911672",
+  "who": "Linda Jo Conn",
+  "taxon": "Centruroides vittatus",
+  "taxonCommon": "Striped Bark Scorpion"
+ },
+ {
+  "name": "Striped skunk",
+  "sci": "Mephitis mephitis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Swan",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) liana_joy04, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/69291361",
+  "observation": "https://www.inaturalist.org/observations/43683640",
+  "who": "liana_joy04",
+  "taxon": "Cygnus olor",
+  "taxonCommon": "Mute Swan"
+ },
+ {
+  "name": "Swift fox",
+  "sci": "Vulpes velox",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Synchronous firefly",
+  "sci": "Photinus carolinus",
+  "source": "inaturalist",
+  "attribution": "(c) Patrick Coin, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/293278749",
+  "observation": "",
+  "who": "",
+  "taxon": "Photinus carolinus",
+  "taxonCommon": "Smokies Synchronous Firefly"
+ },
+ {
+  "name": "Texas brown tarantula",
+  "sci": "Aphonopelma hentzi",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Tiger",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Timber rattlesnake",
+  "sci": "Crotalus horridus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Timber wolf",
+  "sci": "Canis lupus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Trumpeter swan",
+  "sci": "Cygnus buccinator",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Turtle",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Uinta ground squirrel",
+  "sci": "Urocitellus armatus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Western bluebird",
+  "sci": "Sialia mexicana",
+  "source": "inaturalist",
+  "attribution": "(c) uzun, some rights reserved (CC BY-NC), uploaded by uzun",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/16748149",
+  "observation": "",
+  "who": "",
+  "taxon": "Sialia mexicana",
+  "taxonCommon": "Western Bluebird"
+ },
+ {
+  "name": "Western diamondback rattlesnake",
+  "sci": "Crotalus atrox",
+  "source": "inaturalist",
+  "attribution": "(c) Gerson Herrera, some rights reserved (CC BY-NC), uploaded by Gerson Herrera",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/3113494",
+  "observation": "",
+  "who": "",
+  "taxon": "Crotalus atrox",
+  "taxonCommon": "Western Diamond-backed Rattlesnake"
+ },
+ {
+  "name": "Western gray squirrel",
+  "sci": "Sciurus griseus",
+  "source": "inaturalist",
+  "attribution": "(c) juliamarkey, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/246511558",
+  "observation": "https://www.inaturalist.org/observations/143710490",
+  "who": "juliamarkey",
+  "taxon": "Sciurus griseus",
+  "taxonCommon": "Western Gray Squirrel"
+ },
+ {
+  "name": "White-tailed deer",
+  "sci": "Odocoileus virginianus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Wild turkey",
+  "sci": "Meleagris gallopavo",
+  "source": "inaturalist",
+  "attribution": "(c) Judy Gallagher, some rights reserved (CC BY)",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/114655826",
+  "observation": "",
+  "who": "",
+  "taxon": "Meleagris gallopavo",
+  "taxonCommon": "Wild Turkey"
+ },
+ {
+  "name": "Wolf",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Wolf spider",
+  "sci": "Hogna carolinensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Zebra",
+  "sci": "Equus quagga",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Angelfish",
+  "sci": "Holacanthus ciliaris",
+  "source": "inaturalist",
+  "attribution": "(c) desertnaturalist, some rights reserved (CC BY), uploaded by desertnaturalist",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/100570488",
+  "observation": "",
+  "who": "",
+  "taxon": "Holacanthus ciliaris",
+  "taxonCommon": "Queen Angelfish"
+ },
+ {
+  "name": "Arctic char",
+  "sci": "Salvelinus alpinus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Bigfin reef squid",
+  "sci": "Sepioteuthis lessoniana",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Blacktip reef shark",
+  "sci": "Carcharhinus melanopterus",
+  "source": "inaturalist",
+  "attribution": "(c) Fran\u00e7ois Libert, some rights reserved (CC BY-NC-SA), uploaded by Fran\u00e7ois Libert",
+  "license": "CC BY-NC-SA",
+  "page": "https://www.inaturalist.org/photos/236362778",
+  "observation": "",
+  "who": "",
+  "taxon": "Carcharhinus melanopterus",
+  "taxonCommon": "Blacktip Reef Shark"
+ },
+ {
+  "name": "Blue tang",
+  "sci": "Paracanthurus hepatus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Blue whale",
+  "sci": "Balaenoptera musculus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Bottlenose dolphin",
+  "sci": "Tursiops truncatus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Brain coral",
+  "sci": "Platygyra daedalea",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Brook trout",
+  "sci": "Salvelinus fontinalis",
+  "source": "inaturalist",
+  "attribution": "(c) Emilio Concari, some rights reserved (CC BY-NC), uploaded by Emilio Concari",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/596818478",
+  "observation": "",
+  "who": "",
+  "taxon": "Salvelinus fontinalis",
+  "taxonCommon": "Brook Trout"
+ },
+ {
+  "name": "Clown anemonefish",
+  "sci": "Amphiprion ocellaris",
+  "source": "upload",
+  "attribution": "ORA",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Clownfish",
+  "sci": "Amphiprion ocellaris",
+  "source": "inaturalist",
+  "attribution": "(c) Francois Libert, some rights reserved (CC BY-NC-SA)",
+  "license": "CC BY-NC-SA",
+  "page": "https://www.inaturalist.org/photos/106318566",
+  "observation": "",
+  "who": "",
+  "taxon": "Amphiprion ocellaris",
+  "taxonCommon": "Ocellaris Anemonefish"
+ },
+ {
+  "name": "Coral",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Crab",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Day octopus",
+  "sci": "Octopus cyanea",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Dolphin",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Frank Krasovec, some rights reserved (CC BY-NC), uploaded by Frank Krasovec",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/611231392",
+  "observation": "",
+  "who": "",
+  "taxon": "Tursiops truncatus",
+  "taxonCommon": "Common Bottlenose Dolphin"
+ },
+ {
+  "name": "Fish",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Phil's 1stPix, some rights reserved (CC BY-NC-SA)",
+  "license": "CC BY-NC-SA",
+  "page": "https://www.inaturalist.org/photos/368133977",
+  "observation": "",
+  "who": "",
+  "taxon": "Micropterus salmoides",
+  "taxonCommon": "Largemouth Bass Complex"
+ },
+ {
+  "name": "Florida largemouth bass",
+  "sci": "Micropterus floridanus",
+  "source": "inaturalist",
+  "attribution": "(c) rewild2thrive, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/569502600",
+  "observation": "https://www.inaturalist.org/observations/315262152",
+  "who": "rewild2thrive",
+  "taxon": "Micropterus salmoides",
+  "taxonCommon": "Florida Bass"
+ },
+ {
+  "name": "Giant Pacific octopus",
+  "sci": "Enteroctopus dofleini",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Giant squid",
+  "sci": "Architeuthis dux",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Great white shark",
+  "sci": "Carcharodon carcharias",
+  "source": "upload",
+  "attribution": "Shark Science Requin",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Green sea turtle",
+  "sci": "Chelonia mydas",
+  "source": "upload",
+  "attribution": "NOAA",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Humpback chub",
+  "sci": "Gila cypha",
+  "source": "upload",
+  "attribution": "National Park Service",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Humpback whale",
+  "sci": "Megaptera novaeangliae",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Jellyfish",
+  "sci": "Aurelia aurita",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Killer whale (orca)",
+  "sci": "Orcinus orca",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "King crab",
+  "sci": "Paralithodes camtschaticus",
+  "source": "inaturalist",
+  "attribution": "(c) mags49, some rights reserved (CC BY-NC), uploaded by mags49",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/60019074",
+  "observation": "",
+  "who": "",
+  "taxon": "Paralithodes camtschaticus",
+  "taxonCommon": "Red King Crab"
+ },
+ {
+  "name": "King prawn",
+  "sci": "Penaeus latisulcatus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Largemouth bass",
+  "sci": "Micropterus salmoides",
+  "source": "inaturalist",
+  "attribution": "(c) Oak Ridge National Laboratory, some rights reserved (CC BY)",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/140615018",
+  "observation": "",
+  "who": "",
+  "taxon": "Micropterus salmoides",
+  "taxonCommon": "Largemouth Bass Complex"
+ },
+ {
+  "name": "Lobster",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Moon jellyfish",
+  "sci": "Aurelia aurita",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Octopus",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) alexandros_gleich, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/588994874",
+  "observation": "https://www.inaturalist.org/observations/325322832",
+  "who": "alexandros_gleich",
+  "taxon": "Octopus vulgaris",
+  "taxonCommon": "Common Octopus"
+ },
+ {
+  "name": "Otter",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "no rights reserved, uploaded by Adam Jackson",
+  "license": "CC0",
+  "page": "https://www.inaturalist.org/photos/172440134",
+  "observation": "",
+  "who": "",
+  "taxon": "Lontra canadensis",
+  "taxonCommon": "North American River Otter"
+ },
+ {
+  "name": "Pacific cleaner shrimp",
+  "sci": "Lysmata amboinensis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Painted spiny lobster",
+  "sci": "Panulirus versicolor",
+  "source": "upload",
+  "attribution": "Joel Sartore",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Pufferfish",
+  "sci": "Arothron hispidus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Rainbow trout",
+  "sci": "Oncorhynchus mykiss",
+  "source": "inaturalist",
+  "attribution": "(c) fuzzy little duckling, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/630803558",
+  "observation": "https://www.inaturalist.org/observations/346084039",
+  "who": "fuzzy little duckling",
+  "taxon": "Oncorhynchus mykiss",
+  "taxonCommon": "Rainbow Trout"
+ },
+ {
+  "name": "Red lobster",
+  "sci": "Homarus americanus",
+  "source": "inaturalist",
+  "attribution": "(c) alicia penney, some rights reserved (CC BY), uploaded by alicia penney",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/4672168",
+  "observation": "",
+  "who": "",
+  "taxon": "Homarus americanus",
+  "taxonCommon": "American Lobster"
+ },
+ {
+  "name": "Reef shark",
+  "sci": "Carcharhinus melanopterus",
+  "source": "inaturalist",
+  "attribution": "(c) Fran\u00e7ois Libert, some rights reserved (CC BY-NC-SA), uploaded by Fran\u00e7ois Libert",
+  "license": "CC BY-NC-SA",
+  "page": "https://www.inaturalist.org/photos/236362778",
+  "observation": "",
+  "who": "",
+  "taxon": "Carcharhinus melanopterus",
+  "taxonCommon": "Blacktip Reef Shark"
+ },
+ {
+  "name": "Shark",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Ren\u00e9 Campbell, some rights reserved (CC BY-NC), uploaded by Ren\u00e9 Campbell",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/31212995",
+  "observation": "",
+  "who": "",
+  "taxon": "Carcharodon carcharias",
+  "taxonCommon": "Great White Shark"
+ },
+ {
+  "name": "Shrimp",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Snake River cutthroat trout",
+  "sci": "Oncorhynchus clarkii behnkei",
+  "source": "inaturalist",
+  "attribution": "(c) Ben, some rights reserved (CC BY-NC), uploaded by Ben",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/21971876",
+  "observation": "",
+  "who": "",
+  "taxon": "Oncorhynchus virginalis behnkei",
+  "taxonCommon": "Snake River Fine-spotted Cutthroat Trout"
+ },
+ {
+  "name": "Squid",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Jean-Paul Cassez, some rights reserved (CC BY-NC), uploaded by Jean-Paul Cassez",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/115066463",
+  "observation": "",
+  "who": "",
+  "taxon": "Sepioteuthis lessoniana",
+  "taxonCommon": "Bigfin Reef Squid"
+ },
+ {
+  "name": "Staghorn coral",
+  "sci": "Acropora cervicornis",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Stars-and-stripes pufferfish",
+  "sci": "Arothron hispidus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Steephead parrotfish",
+  "sci": "Chlorurus microrhinos",
+  "source": "inaturalist",
+  "attribution": "(c) Wayne and Pam Osborn, some rights reserved (CC BY-NC), uploaded by Wayne and Pam Osborn",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/256037665",
+  "observation": "",
+  "who": "",
+  "taxon": "Chlorurus microrhinos",
+  "taxonCommon": "Steephead Parrotfish"
+ },
+ {
+  "name": "Tiger shark",
+  "sci": "Galeocerdo cuvier",
+  "source": "inaturalist",
+  "attribution": "(c) Kris-Mikael Krister, some rights reserved (CC BY)",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/19051907",
+  "observation": "",
+  "who": "",
+  "taxon": "Galeocerdo cuvier",
+  "taxonCommon": "Tiger Shark"
+ },
+ {
+  "name": "Tropical fish",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Fran\u00e7ois Libert, some rights reserved (CC BY-NC-SA), uploaded by Fran\u00e7ois Libert",
+  "license": "CC BY-NC-SA",
+  "page": "https://www.inaturalist.org/photos/231970034",
+  "observation": "",
+  "who": "",
+  "taxon": "Pomacanthus imperator",
+  "taxonCommon": "Emperor Angelfish"
+ },
+ {
+  "name": "Trout",
+  "sci": "Oncorhynchus mykiss",
+  "source": "inaturalist",
+  "attribution": "(c) Vince Golder, some rights reserved (CC BY-NC), uploaded by Vince Golder",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/416365949",
+  "observation": "",
+  "who": "",
+  "taxon": "Oncorhynchus mykiss",
+  "taxonCommon": "Rainbow Trout"
+ },
+ {
+  "name": "Whale",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Scott Plume, some rights reserved (CC BY-NC), uploaded by Scott Plume",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/490490385",
+  "observation": "",
+  "who": "",
+  "taxon": "Megaptera novaeangliae",
+  "taxonCommon": "Humpback Whale"
+ },
+ {
+  "name": "Widemouth bass",
+  "sci": "Micropterus salmoides",
+  "source": "inaturalist",
+  "attribution": "(c) Oak Ridge National Laboratory, some rights reserved (CC BY)",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/140615018",
+  "observation": "",
+  "who": "",
+  "taxon": "Micropterus salmoides",
+  "taxonCommon": "Largemouth Bass Complex"
+ },
+ {
+  "name": "Yellowstone cutthroat trout",
+  "sci": "Oncorhynchus clarkii bouvieri",
+  "source": "inaturalist",
+  "attribution": "(c) Jacob Jones, some rights reserved (CC BY-NC), uploaded by Jacob Jones",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/231067857",
+  "observation": "",
+  "who": "",
+  "taxon": "Oncorhynchus virginalis bouvieri",
+  "taxonCommon": "Yellowstone Cutthroat Trout"
+ },
+ {
+  "name": "Bacteria",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Biological soil crust",
+  "sci": "Microcoleus vaginatus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Heat-loving bacteria (thermophiles)",
+  "sci": "Thermus aquaticus",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Honey mushroom",
+  "sci": "Armillaria mellea",
+  "source": "inaturalist",
+  "attribution": "(c) Nathan Wilson, some rights reserved (CC BY-SA)",
+  "license": "CC BY-SA",
+  "page": "https://www.inaturalist.org/photos/10028",
+  "observation": "",
+  "who": "",
+  "taxon": "Armillaria mellea",
+  "taxonCommon": "Honey Mushroom"
+ },
+ {
+  "name": "Log",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Mushroom",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Borja Fierro-Leva, some rights reserved (CC BY), uploaded by Borja Fierro-Leva",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/448681419",
+  "observation": "",
+  "who": "",
+  "taxon": "Amanita muscaria",
+  "taxonCommon": "Fly Agaric"
+ },
+ {
+  "name": "Nest",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Reindeer lichen",
+  "sci": "Cladonia rangiferina",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Rock",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Sunlight",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Water source",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Acorn",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Butterfly egg",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Chick",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Chrysalis",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Susan Elliott, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/50074612",
+  "observation": "https://www.inaturalist.org/observations/31959082",
+  "who": "Susan Elliott",
+  "taxon": "Danaus plexippus",
+  "taxonCommon": "Monarch"
+ },
+ {
+  "name": "Egg",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Frog eggs",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Alex Abair, some rights reserved (CC BY)",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/279943973",
+  "observation": "https://www.inaturalist.org/observations/161931259",
+  "who": "Alex Abair",
+  "taxon": "Anura",
+  "taxonCommon": "Frogs and Toads"
+ },
+ {
+  "name": "Froglet",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Fruit",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Hatching chick",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Hen",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Larva (grub)",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) lmarino, some rights reserved (CC BY)",
+  "license": "CC BY",
+  "page": "https://www.inaturalist.org/photos/119922616",
+  "observation": "https://www.inaturalist.org/observations/73454437",
+  "who": "lmarino",
+  "taxon": "Scarabaeidae",
+  "taxonCommon": "Scarabs"
+ },
+ {
+  "name": "Nest with eggs",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Pupa",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Sue Jaggar, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/500399082",
+  "observation": "https://www.inaturalist.org/observations/278679702",
+  "who": "Sue Jaggar",
+  "taxon": "Coleoptera",
+  "taxonCommon": "Beetles"
+ },
+ {
+  "name": "Rooster",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Seed",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Sprouting seed",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
+ },
+ {
+  "name": "Tadpole",
+  "sci": "",
+  "source": "inaturalist",
+  "attribution": "(c) Kenny Long, some rights reserved (CC BY-NC)",
+  "license": "CC BY-NC",
+  "page": "https://www.inaturalist.org/photos/89434792",
+  "observation": "https://www.inaturalist.org/observations/56136477",
+  "who": "Kenny Long",
+  "taxon": "Anura",
+  "taxonCommon": "Frogs and Toads"
+ },
+ {
+  "name": "Tadpole with legs",
+  "sci": "",
+  "source": "upload",
+  "attribution": "",
+  "license": "",
+  "page": ""
  }
 ];
   var NAMES = { yellowstone: 'Yellowstone', grandteton: 'Grand Teton', yosemite: 'Yosemite', grandcanyon: 'Grand Canyon', bigbend: 'Big Bend', everglades: 'Everglades', smokies: 'Great Smoky Mountains', arches: 'Arches' };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  document.getElementById('pics').innerHTML = PICS.filter(function (c) { return c.source === 'inaturalist'; })
+    .sort(function (a, b) { return a.name.localeCompare(b.name); }).map(function (c) {
+      var who = String(c.attribution || ('by ' + (c.who || 'unknown'))).replace(/^\(c\)\s*/i, '');
+      return '<li><b>' + esc(c.name) + '</b>' + (c.sci ? ' <i>(' + esc(c.sci) + ')</i>' : '') + ': photo ' + esc(who) +
+        (c.page ? ' · <a href="' + esc(c.page) + '" target="_blank" rel="noopener">iNaturalist</a>' : '') + '</li>';
+    }).join('');
+  // only landmarks that came from someone else's photo need a credit
+  C = C.filter(function (c) { return c.source !== 'upload' || c.attribution || c.page; });
+  if (!C.length) { document.getElementById('lm-intro').textContent = "The landmarks in the national park backgrounds were drawn for EcoBuild."; }
   var by = {}; C.forEach(function (c) { (by[c.setting] = by[c.setting] || []).push(c); });
   document.getElementById('list').innerHTML = Object.keys(by).map(function (k) {
     return '<h2>' + esc((NAMES[k] || k) + (NAMES[k] ? ' National Park' : '')) + '</h2><ul>' + by[k].map(function (c) {
