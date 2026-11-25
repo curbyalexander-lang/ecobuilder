@@ -2526,6 +2526,15 @@ if(typeof define === 'function' && define.amd){
   .feats label { display: flex; align-items: center; gap: 6px; padding: 4px 0; }
   .vhud.sel { left: auto; right: 10px; }
   .vhud[hidden] { display: none; }
+  .er-wrap { position: fixed; inset: 0; background: rgba(10,18,14,.6); z-index: 1500; display: grid; place-items: center; padding: 16px; }
+  .er { background: #fff; border-radius: 14px; padding: 14px; width: min(1000px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 10px; }
+  .er-top { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .er-stage { position: relative; border-radius: 10px; overflow: hidden; display: grid; place-items: center; padding: 10px; min-height: 240px; }
+  .er-stage canvas { max-width: 100%; max-height: 62vh; cursor: none; touch-action: none; }
+  .er-ring { position: absolute; border: 2px solid #fff; outline: 1px solid rgba(0,0,0,.5); border-radius: 50%; pointer-events: none; display: none; }
+  .er-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .er-tools label { display: flex; gap: 6px; align-items: center; }
+  .er-tools [aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
   #view .a-enter-vr, #view .a-enter-ar, #view .a-fullscreen { display: none !important; }
   .ctl { display: grid; grid-template-columns: 150px 1fr 70px; gap: 10px; align-items: center; margin: 8px 0; max-width: 720px; }
   .ctl input[type=range] { width: 100%; }
@@ -2591,6 +2600,7 @@ if(typeof define === 'function' && define.amd){
       <li>Press <b>Add a landmark</b>, then pick a photo (or upload your own). Cut the feature out: <b>Draw a box</b> around it works best.</li>
       <li>The cut-out is traced into a few flat shapes and recoloured with this background's own colours. Use the sliders to make it simpler or more detailed, and to choose how closely it follows the scene's colours.</li>
       <li>Press <b>Place it</b>. It appears where you are looking. Drag it in the view to move it, scroll over it to resize it (or use the buttons in the corner), or use the sliders. Haze fades distant features like the far hills.</li>
+      <li>If a landmark ends with a hard, straight edge, use the <b>Fade</b> sliders for that edge, or the <b>Soft eraser</b> to rub out corners and leftovers.</li>
       <li>Your work stays in this browser. <b>Download landmarks</b> gives you a .zip to send; it includes the photo credits.</li>
     </ol></details>
   </section>
@@ -2677,11 +2687,37 @@ if(typeof define === 'function' && define.amd){
   }
   function ensureCanvas(L) {
     if (L.canvas) return Promise.resolve();
-    return imgFrom(L.img).then(function (im) { L.canvas = hazeCanvas(im, L.haze || 0); });
+    return compose(L, cur).then(function (c) { L.canvas = c; });
   }
   function imgFrom(u) { return new Promise(function (res, rej) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = rej; im.src = u; }); }
   // the haze: blend the feature toward the scene's fog colour, like the distant hills
-  function fogColor() { var P = ECO.PRESETS[cur]; return P.fog ? P.fog[0] : (P.sky && P.sky[1]) || '#dde6ea'; }
+  function fogColor(k) { var P = ECO.PRESETS[k || cur]; return P.fog ? P.fog[0] : (P.sky && P.sky[1]) || '#dde6ea'; }
+  // The finished picture: the traced shapes, minus anything rubbed out with the soft eraser,
+  // with soft fades on the chosen edges, then the haze.
+  function compose(L, k) {
+    return Promise.all([imgFrom(L.img), L.mask ? imgFrom(L.mask) : null]).then(function (r) {
+      var im = r[0], W = im.naturalWidth, H = im.naturalHeight, c = document.createElement('canvas'); c.width = W; c.height = H;
+      var x = c.getContext('2d'); x.drawImage(im, 0, 0);
+      if (r[1]) { x.globalCompositeOperation = 'destination-in'; x.drawImage(r[1], 0, 0, W, H); x.globalCompositeOperation = 'source-over'; }
+      var f = L.fade || {};
+      if (f.l || f.r || f.t || f.b) {
+        var m = document.createElement('canvas'); m.width = W; m.height = H; var mx = m.getContext('2d');
+        mx.fillStyle = '#000'; mx.fillRect(0, 0, W, H); mx.globalCompositeOperation = 'destination-in';
+        [['l', 0, 0, W, 0, W], ['r', W, 0, 0, 0, W], ['t', 0, 0, 0, H, H], ['b', 0, H, 0, 0, H]].forEach(function (a) {
+          var amt = f[a[0]] || 0; if (amt <= 0) return;
+          var g = mx.createLinearGradient(a[1], a[2], a[3], a[4]), e = Math.min(1, amt);
+          // an eased ramp: gentle at both ends
+          [[0, 0], [0.25, 0.08], [0.5, 0.42], [0.75, 0.85], [1, 1]].forEach(function (st) { g.addColorStop(st[0] * e, 'rgba(0,0,0,' + st[1] + ')'); });
+          g.addColorStop(1, 'rgba(0,0,0,1)');
+          mx.fillStyle = g; mx.fillRect(0, 0, W, H);
+        });
+        x.globalCompositeOperation = 'destination-in'; x.drawImage(m, 0, 0); x.globalCompositeOperation = 'source-over';
+      }
+      var haze = L.haze || 0;
+      if (haze > 0) { x.globalCompositeOperation = 'source-atop'; x.globalAlpha = haze; x.fillStyle = fogColor(k); x.fillRect(0, 0, W, H); x.globalAlpha = 1; }
+      return c;
+    });
+  }
   function hazeCanvas(im, haze) {
     var c = document.createElement('canvas'); c.width = im.naturalWidth || im.width; c.height = im.naturalHeight || im.height;
     var x = c.getContext('2d'); x.drawImage(im, 0, 0);
@@ -2933,6 +2969,10 @@ if(typeof define === 'function' && define.amd){
       '<p class="muted" style="margin:0 0 6px">Tip: drag it in the view to move it round and up or down. Scroll over it to resize. Hold Shift while dragging up and down to move it nearer or farther.</p>' +
       ctl('angle', 'Direction', 0, 359, 1, Math.round(L.angle), '°') + ctl('dist', 'Distance', 12, ECO.PRESETS[cur].park ? 84 : 95, 1, L.dist, ' m') +
       ctl('h', 'Height', 1, 90, 0.5, L.h, ' m') + ctl('y', 'Up / down', -60, 30, 0.5, L.y || 0, ' m') + ctl('haze', 'Haze', 0, 80, 1, Math.round((L.haze || 0) * 100), '%') +
+      '<h4 style="margin:14px 0 2px">Soft edges</h4><p class="muted" style="margin:0 0 4px">Fade an edge that ends abruptly so the background shows through.</p>' +
+      ctl('fl', 'Fade left edge', 0, 50, 1, Math.round(((L.fade || {}).l || 0) * 100), '%') + ctl('fr', 'Fade right edge', 0, 50, 1, Math.round(((L.fade || {}).r || 0) * 100), '%') +
+      ctl('fb', 'Fade bottom edge', 0, 50, 1, Math.round(((L.fade || {}).b || 0) * 100), '%') + ctl('ft', 'Fade top edge', 0, 50, 1, Math.round(((L.fade || {}).t || 0) * 100), '%') +
+      '<div class="row"><button id="b-erase">🧽 Soft eraser…</button>' + (L.mask ? '<button id="b-unerase">Undo all erasing</button>' : '') + '</div>' +
       '<div class="row"><button id="b-here">Move to where I am looking</button><button id="b-flip">Flip</button><button id="b-look">Change the shapes</button>' +
       '<button id="b-del">Delete</button><button id="b-done" class="primary">Done</button></div></div>';
     ['angle', 'dist', 'h', 'y'].forEach(function (k) {
@@ -2941,6 +2981,12 @@ if(typeof define === 'function' && define.amd){
     });
     $('#c-haze').oninput = function () { L.haze = this.value / 100; $('#o-haze').textContent = this.value + '%'; rehaze(L); };
     $('#c-haze').onchange = function () { persist(cur); };
+    ['fl', 'fr', 'fb', 'ft'].forEach(function (id) {
+      $('#c-' + id).oninput = function () { L.fade = L.fade || {}; L.fade[id[1]] = this.value / 100; $('#o-' + id).textContent = this.value + '%'; rehaze(L); };
+      $('#c-' + id).onchange = function () { persist(cur); };
+    });
+    $('#b-erase').onclick = function () { eraser(L); };
+    if ($('#b-unerase')) $('#b-unerase').onclick = function () { delete L.mask; persist(cur); rehaze(L); renderEdit(); };
     $('#b-here').onclick = function () { L.angle = Math.round(facing()); $('#c-angle').value = L.angle; $('#o-angle').textContent = L.angle + '°'; move(L); persist(cur); };
     $('#b-flip').onclick = function () { L.flip = !L.flip; move(L); persist(cur); };
     $('#b-look').onclick = function () {
@@ -3035,11 +3081,78 @@ if(typeof define === 'function' && define.amd){
       clearTimeout(end.t); end.t = setTimeout(function () { persist(cur); }, 400);
     }, { passive: false });
   })();
+  // ---------- soft eraser: rub out hard corners or leftovers with a soft brush ----------
+  function eraser(L) {
+    imgFrom(L.img).then(function (im) {
+      var W = im.naturalWidth, H = im.naturalHeight, mask = document.createElement('canvas'); mask.width = W; mask.height = H;
+      var mx = mask.getContext('2d');
+      var ready = L.mask ? imgFrom(L.mask).then(function (m) { mx.drawImage(m, 0, 0, W, H); }) : Promise.resolve(mx.fillRect(0, 0, W, H));
+      ready.then(function () {
+        var P = ECO.PRESETS[cur], undo = [], tool = 'erase', size = 0.08, soft = 0.7, painting = false, last = null;
+        var wrap = document.createElement('div'); wrap.className = 'er-wrap';
+        wrap.innerHTML = '<div class="er"><div class="er-top"><b>Soft eraser · ' + esc(L.name) + '</b><span class="muted">Rub out hard edges. Bring back paints them back.</span></div>' +
+          '<div class="er-stage" style="background:linear-gradient(' + P.sky[0] + ',' + P.sky[1] + ' 75%,' + P.ground + ' 75%)"><canvas></canvas><div class="er-ring"></div></div>' +
+          '<div class="er-tools"><button data-t="erase" aria-pressed="true">🧽 Erase</button><button data-t="restore" aria-pressed="false">🖌️ Bring back</button>' +
+          '<label>Size <input type="range" id="er-size" min="2" max="30" value="8"></label><label>Softness <input type="range" id="er-soft" min="0" max="100" value="70"></label>' +
+          '<button id="er-undo" disabled>↶ Undo</button><span style="flex:1"></span><button id="er-cancel">Cancel</button><button class="primary" id="er-done">Done</button></div></div>';
+        document.body.appendChild(wrap);
+        var cv = wrap.querySelector('canvas'), ring = wrap.querySelector('.er-ring'), stage = wrap.querySelector('.er-stage');
+        cv.width = W; cv.height = H; var x = cv.getContext('2d');
+        var fadeOnly = Object.assign({}, L, { mask: null, haze: 0 });
+        var faded = null;
+        compose(fadeOnly, cur).then(function (c) { faded = c; draw(); });
+        function draw() {
+          if (!faded) return;
+          x.clearRect(0, 0, W, H); x.drawImage(faded, 0, 0);
+          x.globalCompositeOperation = 'destination-in'; x.drawImage(mask, 0, 0); x.globalCompositeOperation = 'source-over';
+          // show what is rubbed out, faintly, so it can be brought back
+          x.globalAlpha = 0.18; x.globalCompositeOperation = 'destination-over'; x.drawImage(faded, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+        }
+        function pos(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H, k: r.width / W }; }
+        function dab(p) {
+          var R = size * Math.max(W, H) / 2, g = mx.createRadialGradient(p.x, p.y, R * (1 - soft) * 0.95, p.x, p.y, R);
+          g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+          mx.globalCompositeOperation = tool === 'erase' ? 'destination-out' : 'source-over';
+          mx.fillStyle = g; mx.beginPath(); mx.arc(p.x, p.y, R, 0, 7); mx.fill(); mx.globalCompositeOperation = 'source-over';
+        }
+        function stroke(p) {
+          if (last) { var d = Math.hypot(p.x - last.x, p.y - last.y), st = Math.max(1, size * Math.max(W, H) / 8), n = Math.ceil(d / st);
+            for (var i = 1; i <= n; i++) dab({ x: last.x + (p.x - last.x) * i / n, y: last.y + (p.y - last.y) * i / n }); }
+          else dab(p);
+          last = p; draw();
+        }
+        function showRing(e) {
+          var r = cv.getBoundingClientRect(), sr = stage.getBoundingClientRect(), d = size * Math.max(r.width, r.height);
+          ring.style.display = 'block'; ring.style.width = ring.style.height = d + 'px';
+          ring.style.left = (e.clientX - sr.left - d / 2) + 'px'; ring.style.top = (e.clientY - sr.top - d / 2) + 'px';
+        }
+        cv.addEventListener('pointerdown', function (e) { painting = true; cv.setPointerCapture(e.pointerId); undo.push(mx.getImageData(0, 0, W, H)); if (undo.length > 25) undo.shift(); wrap.querySelector('#er-undo').disabled = false; last = null; stroke(pos(e)); });
+        cv.addEventListener('pointermove', function (e) { showRing(e); if (painting) stroke(pos(e)); });
+        cv.addEventListener('pointerup', function () { painting = false; last = null; });
+        cv.addEventListener('pointerleave', function () { ring.style.display = 'none'; });
+        wrap.querySelector('.er-tools').addEventListener('click', function (e) {
+          var b = e.target.closest('button'); if (!b) return;
+          if (b.dataset.t) { tool = b.dataset.t; wrap.querySelectorAll('[data-t]').forEach(function (z) { z.setAttribute('aria-pressed', z === b); }); }
+          if (b.id === 'er-undo' && undo.length) { mx.putImageData(undo.pop(), 0, 0); b.disabled = !undo.length; draw(); }
+          if (b.id === 'er-cancel') wrap.remove();
+          if (b.id === 'er-done') {
+            // keep the eraser's work as a mask (white = keep), stored with the landmark
+            var d = mx.getImageData(0, 0, W, H).data, any = false;
+            for (var i = 3; i < d.length; i += 4 * 7) if (d[i] < 250) { any = true; break; }
+            if (any) L.mask = mask.toDataURL('image/png'); else delete L.mask;
+            wrap.remove(); persist(cur); rehaze(L); renderEdit();
+          }
+        });
+        wrap.querySelector('#er-size').oninput = function () { size = this.value / 100; };
+        wrap.querySelector('#er-soft').oninput = function () { soft = this.value / 100; };
+      });
+    });
+  }
   function rehaze(L) {
     clearTimeout(rehaze.t);
     rehaze.t = setTimeout(function () {
-      imgFrom(L.img).then(function (im) {
-        L.canvas = hazeCanvas(im, L.haze);
+      compose(L, cur).then(function (c) {
+        L.canvas = c;
         if (L.mesh) { var old = L.mesh.material.map; L.mesh.material.map = ECO.canvasTex(L.canvas); L.mesh.material.map.colorSpace = THREE.SRGBColorSpace; L.mesh.material.needsUpdate = true; if (old) old.dispose(); }
       });
     }, 60);
@@ -3083,16 +3196,16 @@ if(typeof define === 'function' && define.amd){
     var jobs = [];
     KEYS.forEach(function (k) {
       (saved[k] || []).forEach(function (L, i) {
-        jobs.push(imgFrom(L.img).then(function (im) {
-          // the file has its haze built in, so it looks the same in the builders
-          var prevCur = cur; cur = k; var c = hazeCanvas(im, L.haze || 0); cur = prevCur;
+        jobs.push(compose(L, k).then(function (c) {
+          // the file has its fades, erasing and haze built in, so it looks the same in the builders
           var u = c.toDataURL('image/webp', 0.92); if (u.indexOf('data:image/webp') !== 0) u = c.toDataURL('image/png');
           var base = 'landmarks/' + k + '-' + (i + 1), file = base + (u.indexOf('image/png') > 0 ? '.png' : '.webp');
           files.push({ name: file, data: dataToBytes(u) });
           if (L.svg) files.push({ name: base + '.svg', data: utf8(L.svg) });
+          if (L.mask) files.push({ name: 'landmarks/masks/' + k + '-' + (i + 1) + '.png', data: dataToBytes(L.mask) });
           if (L.cut) files.push({ name: 'landmarks/cutouts/' + k + '-' + (i + 1) + (L.cut.indexOf('image/png') > 0 ? '.png' : '.webp'), data: dataToBytes(L.cut) });
           (meta[k] = meta[k] || [])[i] = { name: L.name, file: file, svg: L.svg ? base + '.svg' : '', aspect: +L.aspect.toFixed(4), angle: L.angle, dist: L.dist, h: L.h, y: L.y || 0,
-            haze: L.haze || 0, flip: !!L.flip, colors: L.colors, simple: L.simple, match: L.match, credit: L.credit,
+            haze: L.haze || 0, fade: L.fade || null, mask: L.mask ? 'landmarks/masks/' + k + '-' + (i + 1) + '.png' : '', flip: !!L.flip, colors: L.colors, simple: L.simple, match: L.match, credit: L.credit,
             cut: L.cut ? 'landmarks/cutouts/' + k + '-' + (i + 1) + (L.cut.indexOf('image/png') > 0 ? '.png' : '.webp') : '' };
           rows.push([ECO.PRESETS[k].name, L.name, file, L.credit && L.credit.attribution, L.credit && L.credit.license, L.credit && L.credit.page]);
           n++;
@@ -3126,6 +3239,8 @@ if(typeof define === 'function' && define.amd){
           if (!it) return;
           var L = Object.assign({ id: 'lm' + Math.random().toString(36).slice(2) }, it);
           var svg = it.svg && z[it.svg] ? new TextDecoder().decode(z[it.svg]) : '';
+          if (it.mask && z[it.mask]) L.mask = bytesToData(z[it.mask], 'image/png'); else delete L.mask;
+          if (!L.fade) delete L.fade;
           L.svg = svg; L.cut = it.cut && z[it.cut] ? bytesToData(z[it.cut], /\.png$/.test(it.cut) ? 'image/png' : 'image/webp') : '';
           saved[k].push(L); n++;
           var W = 1000, H = Math.round(W / (it.aspect || 1));
