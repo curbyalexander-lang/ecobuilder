@@ -1,0 +1,22 @@
+EcoBuild: Qatar update
+======================
+
+Replace these 6 files in the GitHub repo (curbyalexander-lang/ecobuilder). Nothing else changes.
+
+  ecosystem-builder.html
+  game-builder.html
+  lifecycle-builder.html
+  landmark-studio.html
+  sizeup.html
+  picture-picker.html
+
+What's new
+- A "Qatar: national park & nature reserves" group in the environment picker (Ecosystem and Game builders):
+  Umm Tais National Park, Khor Al Adaid, Al Thakira, and Ras Abrouq nature reserves.
+- Each has a painted 360 backdrop plus 3D features: open water and shorelines, Khor Al Adaid's dunes,
+  mangrove trees with pencil roots at Al Thakira and Umm Tais, and mushroom rocks at Ras Abrouq.
+- A "Native here" list for each one, with scientific names. New drawings for the grey mangrove, dugong,
+  Arabian oryx, sand gazelle, hawksbill turtle, greater flamingo, Socotra cormorant, western reef heron,
+  and spiny-tailed lizard. The other species use emoji until you give them art in the Picture Picker.
+- Landmark Studio lists the four Qatar settings, so you can trace landmarks from real photos or hide
+  any painted or 3D feature.

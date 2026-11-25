@@ -300,11 +300,20 @@
     smokies: { name: 'Great Smoky Mountains', state: 'Tennessee & North Carolina', sky: ['#6d9ccc', '#e3ebf2', '#c3cdc7'], ground: '#53703a', fog: ['#cfdbe6', 0.018],
       blurb: 'Ancient, forest-covered ridges wrapped in the blue haze that gives the mountains their name.' },
     arches: { name: 'Arches', state: 'Utah', sky: ['#3a83d6', '#f2e6d6', '#dcbf9c'], ground: '#c47a48', fog: ['#efdccb', 0.004],
-      blurb: 'More than 2,000 natural stone arches, like Delicate Arch, carved in red sandstone.' }
+      blurb: 'More than 2,000 natural stone arches, like Delicate Arch, carved in red sandstone.' },
+    // Qatar (pilot site): Umm Tais National Park and three nature reserves
+    ummtais: { name: 'Umm Tais', label: 'National Park', region: 'qatar', state: 'Qatar', sky: ['#5b9bd8', '#e6eff2', '#dcd5bf'], ground: '#c9b588', fog: ['#e4ebe8', 0.004], thumbH: 12,
+      blurb: 'A low barrier island off Qatar’s northern tip, with beaches, sand bars, mangroves, and one of the country’s main hawksbill sea turtle nesting sites.' },
+    khoraladaid: { name: 'Khor Al Adaid', label: 'Nature Reserve', region: 'qatar', state: 'Qatar', sky: ['#4c93d9', '#eaf0ef', '#e4d2ac'], ground: '#cda66d', fog: ['#efe2c8', 0.003], thumbH: 20, thumbDeg: 62,
+      blurb: 'The “Inland Sea”: a tidal lagoon in the far southeast, surrounded by moving sand dunes up to 40 m tall. A UNESCO World Heritage candidate.' },
+    althakira: { name: 'Al Thakira', label: 'Nature Reserve', region: 'qatar', state: 'Qatar', sky: ['#5a9ad6', '#e8eff0', '#d6d3bc'], ground: '#b5a57e', fog: ['#e3e8e2', 0.006], thumbH: 12,
+      blurb: 'One of Qatar’s oldest and largest mangrove forests of grey mangrove, with tidal channels and salt flats where flamingos stop each winter.' },
+    rasabrouq: { name: 'Ras Abrouq', label: 'Nature Reserve', region: 'qatar', state: 'Qatar', sky: ['#4a90d8', '#eceee9', '#e4d6bd'], ground: '#c4b693', fog: ['#efe6d6', 0.004], thumbH: 14,
+      blurb: 'White limestone cliffs, mesas, and wind-carved “mushroom” rocks on the west coast, inside the Al Reem Biosphere Reserve, home to Arabian oryx and gazelles.' }
   };
   Object.keys(PARKS).forEach(function (k) {
     var p = PARKS[k];
-    ECO.PRESETS[k] = { name: p.name, park: k, state: p.state, blurb: p.blurb, sky: p.sky, ground: p.ground, fog: p.fog, hills: { type: 'none' } };
+    ECO.PRESETS[k] = { name: p.name, park: k, label: p.label || 'National Park', region: p.region || 'us', state: p.state, blurb: p.blurb, sky: p.sky, ground: p.ground, fog: p.fog, hills: { type: 'none' } };
   });
 
   // ---------- painting helpers ----------
@@ -401,7 +410,75 @@
   var hideSet = [], featureList = [];
   function part(name, fn) { if (featureList.indexOf(name) < 0) featureList.push(name); if (hideSet.indexOf(name) < 0) fn(); }
 
-  // ---------- the eight parks ----------
+  // ---------- Qatar painting helpers ----------
+  // Flat water from the bottom of the backdrop up to the horizon, between two directions
+  function sea(x, from, to, top, cTop, cBot) {
+    shape(x, 0, [[from, -2], [from, top], [to, top], [to, -2]], null, { vgrad: [top, -2, cTop, cBot], noScale: true });
+    shape(x, 0, [[from, top - 0.07], [from, top], [to, top], [to, top - 0.07]], shade(cTop, 0.25), { noScale: true });
+  }
+  // A dune: long sunlit windward slope, sharp crest, steep shaded slip face (w = half-width in degrees)
+  function dune(x, deg, w, h, lit, dark, base) {
+    // the crest sits past the middle; the long windward slope is lit, the short slip face is in shade
+    var crest = w * 0.3, pts = [], slip = [], i, u, n = 24;
+    base = base == null ? 0 : base;
+    for (i = 0; i <= n; i++) { var s = i / n; u = -w + (crest + w) * s; pts.push([u, base + h * (1 - Math.pow(1 - s, 2.2)) * (0.35 + 0.65 * s)]); }
+    for (i = 1; i <= n; i++) { var r = i / n; u = crest + (w - crest) * r; slip.push([u, base + h * Math.pow(1 - r, 0.75) * (1 - 0.15 * r)]); }
+    shape(x, deg, [[-w, base - 2]].concat(pts, slip, [[w, base - 2]]), null, { vgrad: [base + h, base, shade(lit, 0.14), lit], noScale: true });
+    shape(x, deg, [[crest, base + h]].concat(slip, [[w, base - 2], [crest + (w - crest) * 0.1, base - 2]]), null, { vgrad: [base + h, base, dark, shade(dark, 0.12)], noScale: true });
+    x.save(); x.strokeStyle = shade(lit, 0.35); x.lineWidth = 2;
+    [0, 360, -360].forEach(function (sh) {   // drawn unwrapped, then shifted, so it never jumps across the seam
+      x.beginPath();
+      pts.slice(Math.floor(n * 0.7)).forEach(function (p, k) { var px = (0.5 + (deg + p[0] + sh) / 360) * CW, py = Y(p[1]); if (k) x.lineTo(px, py); else x.moveTo(px, py); });
+      x.stroke();
+    });
+    x.restore();
+  }
+  // A wind-carved limestone "mushroom": a narrow, pinched stem under a wide, flat cap
+  function mushroom(x, deg, h, capW, stemW) {
+    shape(x, deg, [[-stemW * 1.3, 0], [-stemW * 0.75, h * 0.45], [-stemW * 0.6, h * 0.62], [-stemW * 0.9, h * 0.78], [stemW * 0.9, h * 0.78], [stemW * 0.6, h * 0.62], [stemW * 0.75, h * 0.45], [stemW * 1.3, 0]], null, { vgrad: [h, 0, '#d9caa6', '#bfae88'] });
+    shape(x, deg, [[-capW, h * 0.76], [-capW * 1.06, h * 0.86], [-capW * 0.94, h], [capW * 0.9, h * 1.02], [capW * 1.05, h * 0.88], [capW * 0.96, h * 0.76]], '#efe7d4');
+    shape(x, deg, [[-capW, h * 0.76], [capW * 0.96, h * 0.76], [capW * 0.9, h * 0.81], [-capW * 0.95, h * 0.81]], '#c9b892');
+  }
+  // Rounded grey-green mangrove crowns (Avicennia marina) along the water
+  function mangroves(x, o) {
+    var rand = ECO.rng(o.seed), from = o.from == null ? -180 : o.from, to = o.to == null ? 180 : o.to;
+    for (var i = 0; i < o.count; i++) {
+      var deg = from + (to - from) * rand(), h = o.hMin + rand() * (o.hMax - o.hMin), c = o.colors[Math.floor(rand() * o.colors.length)];
+      blob(x, deg, o.base + h * 0.45, h * 0.55, h * 0.48, shade(c, (rand() - 0.5) * 0.12));
+      blob(x, deg - h * 0.12, o.base + h * 0.62, h * 0.32, h * 0.3, shade(c, 0.1));
+    }
+  }
+  // A long, low line of seabirds flying over the water
+  function birdLine(x, from, to, y, n, seed, color) {
+    var rand = ECO.rng(seed);
+    x.save(); x.strokeStyle = color; x.lineWidth = 2.2; x.lineCap = 'round';
+    for (var i = 0; i < n; i++) {
+      var deg = from + (to - from) * i / n + (rand() - 0.5) * 0.4, yy = y + Math.sin(i * 0.35) * 0.35 + (rand() - 0.5) * 0.3, cx = X(deg), cy = Y(yy), s = 4 + rand() * 2;
+      x.beginPath(); x.moveTo(cx - s, cy - s * 0.4); x.quadraticCurveTo(cx - s * 0.4, cy - s * 0.5, cx, cy); x.quadraticCurveTo(cx + s * 0.4, cy - s * 0.5, cx + s, cy - s * 0.4); x.stroke();
+    }
+    x.restore();
+  }
+  // A soaring bird of prey seen from below (long, crooked wings like an osprey)
+  function soar(x, deg, y, s) {
+    var cx = X(deg), cy = Y(y), k = 14 * s;
+    x.save(); x.fillStyle = '#3b3530';
+    x.beginPath(); x.moveTo(cx, cy);
+    x.quadraticCurveTo(cx - k * 1.2, cy - k * 0.55, cx - k * 2.6, cy + k * 0.15); x.quadraticCurveTo(cx - k * 1.3, cy - k * 0.1, cx, cy + k * 0.25);
+    x.quadraticCurveTo(cx + k * 1.3, cy - k * 0.1, cx + k * 2.6, cy + k * 0.15); x.quadraticCurveTo(cx + k * 1.2, cy - k * 0.55, cx, cy); x.fill();
+    x.fillRect(cx - k * 0.12, cy - k * 0.1, k * 0.24, k * 0.75); x.restore();
+  }
+  // A small wading flamingo
+  function flamingo(x, deg, y, s) {
+    var cx = X(deg), cy = Y(y), k = 9 * s;
+    x.save(); x.strokeStyle = '#e48aa4'; x.lineWidth = 1.6;
+    x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx, cy - k * 2.2); x.moveTo(cx + k * 0.25, cy); x.lineTo(cx + k * 0.2, cy - k * 2.2); x.stroke();
+    x.fillStyle = '#f2c6d1'; x.beginPath(); x.ellipse(cx + k * 0.1, cy - k * 2.6, k * 0.75, k * 0.42, 0, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = '#f2c6d1'; x.lineWidth = 2.4; x.beginPath(); x.moveTo(cx - k * 0.5, cy - k * 2.7); x.quadraticCurveTo(cx - k * 1.1, cy - k * 3.6, cx - k * 0.6, cy - k * 4.3); x.stroke();
+    x.fillStyle = '#1d1b1d'; x.beginPath(); x.arc(cx - k * 0.75, cy - k * 4.2, k * 0.22, 0, Math.PI * 2); x.fill();
+    x.restore();
+  }
+
+  // ---------- the parks ----------
   var PAINT = {
     yellowstone: function (x) {
       setRange(40, -2);
@@ -651,6 +728,122 @@
       part('Clouds', function () {
         cloud(x, -100, 33, 11, 0.8); cloud(x, 40, 32, 12, 0.8);
       });
+    },
+    // ---------- Qatar: Umm Tais National Park and three nature reserves ----------
+    // Umm Tais: a low barrier island. Open Gulf in front, beach dunes on the sides, a mangrove lagoon behind you.
+    ummtais: function (x) {
+      setRange(40, -2);
+      part('Arabian Gulf', function () {
+        sea(x, -100, 100, 0.75, '#3d86ad', '#62b1c2');
+      });
+      part('Sandbars and islets', function () {
+        [[-38, 5], [52, 3.5], [-74, 2.5]].forEach(function (s, i) {
+          shape(x, s[0], [[-s[1], 0.62], [-s[1] * 0.6, 0.86], [s[1] * 0.6, 0.88], [s[1], 0.62]], '#e6d7b0', { noScale: true });
+          for (var k = 0; k < 5; k++) blob(x, s[0] + (k - 2) * s[1] * 0.22, 1.05, s[1] * 0.09, 0.32, i === 1 ? '#5f7b56' : '#6a8660');
+        });
+      });
+      part('Socotra cormorants', function () {
+        birdLine(x, 14, 34, 2.2, 26, 31, '#33363a');
+      });
+      part('Mangrove lagoon', function () {
+        sea(x, 110, 250, 0.7, '#5e9fa6', '#7fb7b4');
+        mangroves(x, { seed: 32, from: 112, to: 248, base: 0.68, count: 120, hMin: 0.9, hMax: 2.2, colors: ['#5d7650', '#6b8659', '#77925f'] });
+      });
+      part('Beach dunes', function () {
+        ridge(x, { seed: 33, from: 96, to: 116, base: 0, amp: 1.4, color: '#e1cf9f', terms: 4 });
+        ridge(x, { seed: 34, from: -116, to: -96, base: 0, amp: 1.4, color: '#e1cf9f', terms: 4 });
+        ridge(x, { seed: 35, from: 245, to: 265, base: 0, amp: 1.2, color: '#e1cf9f', terms: 4 });
+        trees(x, { seed: 36, from: 92, to: 118, base: 0.2, baseJitter: 0.8, count: 900, hMin: 0.3, hMax: 0.7, color: '#8f9a5a', kind: 'round' });
+        trees(x, { seed: 37, from: -118, to: -92, base: 0.2, baseJitter: 0.8, count: 900, hMin: 0.3, hMax: 0.7, color: '#8f9a5a', kind: 'round' });
+      });
+      part('Clouds', function () {
+        cloud(x, -60, 26, 9, 0.7); cloud(x, 140, 30, 8, 0.65);
+      });
+    },
+    // Khor Al Adaid: the "Inland Sea", a tidal lagoon ringed by tall golden dunes that spill into the water
+    khoraladaid: function (x) {
+      setRange(40, -2);
+      part('Inland Sea', function () {
+        sea(x, -105, 105, 0.7, '#2c86b4', '#55b3c5');
+      });
+      part('Far shore dunes', function () {
+        ridge(x, { seed: 41, from: -70, to: 70, base: 0.6, amp: 2.2, color: '#e9cfa3', top: '#f0dcb8', terms: 5, envelope: 0.5 });
+        [-44, -16, 14, 40].forEach(function (d, i) { dune(x, d, 11 + i, 1.8 + (i % 2) * 0.6, '#ecd4aa', '#d9b986', 0.6); });
+      });
+      part('Sand dunes', function () {
+        var back = [[96, 34, 5], [134, 40, 6.5], [174, 38, 7.5], [212, 40, 7], [248, 34, 5.5], [-88, 28, 4.5]];
+        back.forEach(function (d) { dune(x, d[0], d[1], d[2], '#ebcd9c', '#d2ad7a', 2); });
+        var front = [[80, 24, 5], [114, 28, 7], [152, 30, 8.5], [192, 28, 8], [230, 26, 7], [264, 22, 5], [-78, 20, 4.5]];
+        front.forEach(function (d) { dune(x, d[0], d[1], d[2], '#e2b97c', '#b88a52', 0.5); });
+      });
+      part('Ospreys', function () {
+        soar(x, 30, 16, 1.2); soar(x, -55, 19, 1);
+      });
+      part('Clouds', function () {
+        cloud(x, 0, 30, 8, 0.6); cloud(x, 160, 33, 9, 0.6);
+      });
+    },
+    // Al Thakira: Qatar's oldest mangrove forest, with tidal channels and salt flats (sabkha)
+    althakira: function (x) {
+      setRange(40, -2);
+      part('Tidal channels', function () {
+        sea(x, -70, 70, 0.6, '#5f9aa3', '#82b6b2');
+        sea(x, 150, 215, 0.6, '#5f9aa3', '#82b6b2');
+      });
+      part('Sabkha (salt flats)', function () {
+        [[70, 150], [215, 290]].forEach(function (r, i) {
+          shape(x, 0, [[r[0], -2], [r[0], 0.45], [r[1], 0.45], [r[1], -2]], '#ddd2b6', { noScale: true });
+          var rs = ECO.rng(50 + i);
+          for (var k = 0; k < 30; k++) blob(x, r[0] + rs() * (r[1] - r[0]), 0.15 + rs() * 0.25, 0.4 + rs() * 1.4, 0.06, '#f1ece0', 0.9);
+        });
+      });
+      part('Mangrove forest', function () {
+        mangroves(x, { seed: 51, base: 0.55, count: 420, hMin: 1.4, hMax: 3, colors: ['#87a083', '#91a98b'] });
+        mangroves(x, { seed: 52, from: -80, to: 80, base: 0.5, count: 160, hMin: 1.6, hMax: 3.6, colors: ['#5d7650', '#6b8659', '#76915f'] });
+        mangroves(x, { seed: 53, from: 140, to: 225, base: 0.5, count: 110, hMin: 1.6, hMax: 3.6, colors: ['#5d7650', '#6b8659', '#76915f'] });
+      });
+      part('Flamingos', function () {
+        [[-24, 1], [-21, 0.9], [-19, 1.05], [-16, 0.95], [10, 1], [13, 0.9], [181, 1]].forEach(function (f) { flamingo(x, f[0], 0.15, f[1]); });
+      });
+      part('Clouds', function () {
+        cloud(x, 40, 28, 9, 0.7); cloud(x, -120, 31, 8, 0.65);
+      });
+    },
+    // Ras Abrouq: white limestone cliffs, mesas, and wind-carved "mushroom" rocks beside Zekreet Bay
+    rasabrouq: function (x) {
+      setRange(40, -2);
+      part('Zekreet Bay', function () {
+        sea(x, -150, -70, 0.7, '#3f93b4', '#6bbac6');
+        shape(x, -120, [[-6, 0.62], [-4, 0.95], [4, 1], [6, 0.62]], '#e3d8bd', { noScale: true });
+      });
+      part('White cliffs', function () {
+        // a long escarpment: flat cap rock, steep chalky face, and a slope of fallen rock below
+        var pts = [[-45, 0], [-43, 4], [-41, 8.2], [-30, 8.5], [-28, 7.2], [-26, 8.6], [-12, 8.9], [-10, 7.6], [-8, 9], [8, 9.3], [10, 8], [12, 9.4], [30, 9.5], [32, 8.2], [34, 9.3], [52, 9], [55, 4.5], [58, 0]];
+        shape(x, 0, pts, null, { vgrad: [9.5, 0, '#efe6d4', '#c9b58e'], noScale: true });
+        shape(x, 0, [[-41, 8.2], [-30, 8.5], [-26, 8.6], [-8, 9], [12, 9.4], [34, 9.3], [52, 9], [52, 8.4], [-41, 7.6]], '#f7f2e8', { noScale: true });
+        hlines(x, -40, 52, [7.4, 6.3, 5.1, 3.9], '#c4b18a', 2);
+        shape(x, 0, [[-46, 0], [-44, 2.4], [-20, 2.8], [10, 2.5], [40, 2.9], [56, 2.4], [59, 0]], '#c2b08a', { noScale: true });
+        [-35, -19, -2, 21, 43].forEach(function (d) { shape(x, d, [[-1.4, 2.4], [-0.5, 6.8], [0, 7.4], [0.5, 6.8], [1.4, 2.4]], '#d4c29d', { noScale: true }); });
+        shape(x, 0, [[-24, 8.6], [-22, 6.6], [-16, 6.4], [-14, 8.8]], '#e2d5b9', { noScale: true });
+        shape(x, 0, [[16, 9.4], [18, 7.2], [26, 7], [28, 9.5]], '#e2d5b9', { noScale: true });
+      });
+      part('Mushroom rocks', function () {
+        [[70, 4.5, 3, 1], [84, 3.2, 2.2, 0.8], [95, 5.2, 3.4, 1.1], [118, 3.8, 2.6, 0.9], [133, 4.6, 2.8, 1], [160, 3.4, 2.4, 0.8], [176, 5, 3.2, 1.1], [205, 4, 2.6, 0.9], [-60, 3.6, 2.4, 0.8]].forEach(function (m) {
+          mushroom(x, m[0], m[1], m[2], m[3]);
+        });
+      });
+      part('Mesas', function () {
+        [[145, 9, 3.4], [190, 12, 4.2], [228, 10, 3.6], [250, 7, 2.6]].forEach(function (m) {
+          shape(x, m[0], [[-m[1], 0], [-m[1] * 0.8, m[2] * 0.7], [-m[1] * 0.7, m[2]], [m[1] * 0.7, m[2]], [m[1] * 0.8, m[2] * 0.7], [m[1], 0]], null, { vgrad: [m[2], 0, '#ece2cc', '#cfbf9b'], noScale: true });
+          hlines(x, m[0] - m[1] * 0.75, m[0] + m[1] * 0.75, [m[2] * 0.75], '#c6b590', 2);
+        });
+      });
+      part('Desert shrubs', function () {
+        trees(x, { seed: 61, from: -60, to: 260, base: 0, baseJitter: 0.6, count: 500, hMin: 0.25, hMax: 0.6, color: '#8e9466', kind: 'round' });
+      });
+      part('Clouds', function () {
+        cloud(x, -20, 30, 9, 0.7); cloud(x, 120, 27, 8, 0.65);
+      });
     }
   };
 
@@ -675,7 +868,7 @@
     var P = PARKS[key], b = backdrop(key), c = document.createElement('canvas'); c.width = 240; c.height = 120;
     var x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 120);
     g.addColorStop(0, P.sky[0]); g.addColorStop(0.75, P.sky[1]); x.fillStyle = g; x.fillRect(0, 0, 240, 120);
-    var span = 0.26, sx = (0.5 - span / 2) * CW, sw = span * CW, rowTop = (b.top - 34) / (b.top - b.bot) * CH, rowH = CH * 0.98 - rowTop;
+    var span = 0.26, sx = (0.5 + (P.thumbDeg || 0) / 360 - span / 2) * CW, sw = span * CW, rowTop = (b.top - (P.thumbH || 34)) / (b.top - b.bot) * CH, rowH = CH * 0.98 - rowTop;
     if (P === PARKS.grandcanyon) { rowTop = 0.18 * CH; rowH = 0.8 * CH; }
     var dh = 240 * rowH / sw;
     x.drawImage(b.canvas, sx, rowTop, sw, rowH, 0, 120 - dh - 12, 240, dh);
@@ -723,6 +916,120 @@
         p.s.position.set(p.x + Math.sin(k * 6 + p.ph * 9) * 1.5, 0.5 + k * 12, p.z); p.s.scale.set(size, size, 1); p.s.material.opacity = 0.55 * (1 - k) * Math.min(1, k * 6);
       });
     });
+  }
+
+  // ---------- Qatar: 3D features in front of the painting ----------
+  // water/sand bands as ring sectors: a = direction of the middle (0 = ahead, 90 = right), span in degrees
+  function band(g, inner, outer, a, span, color, y, opacity) {
+    var t = THREE.MathUtils.degToRad(90 - a - span / 2);
+    var m = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 96, 1, t, THREE.MathUtils.degToRad(span)),
+      new THREE.MeshLambertMaterial({ color: color, transparent: opacity < 1, opacity: opacity == null ? 1 : opacity, depthWrite: opacity == null || opacity >= 1 }));
+    m.rotation.x = -Math.PI / 2; m.position.y = y; m.raycast = noRay; g.add(m); return m;
+  }
+  function shore(g, inner, a, span, wet, shallow, deep) {
+    band(g, inner - 2.5, inner, a, span, wet, 0.02);
+    band(g, inner, inner + 6, a, span, shallow, 0.035);
+    band(g, inner + 6, R - 0.5, a, span, deep, 0.04);
+  }
+  function mat(c) { return new THREE.MeshLambertMaterial({ color: c, flatShading: true }); }
+  // spots around you, kept clear of the space straight ahead where students usually start building
+  function spots(seed, n, dMin, dMax, aFrom, aTo) {
+    var rand = ECO.rng(seed), out = [];
+    for (var i = 0; i < n * 4 && out.length < n; i++) {
+      var a = aFrom + rand() * (aTo - aFrom), d = dMin + rand() * (dMax - dMin), ar = THREE.MathUtils.degToRad(a);
+      if (Math.abs(((a + 540) % 360) - 180) < 28 && d < 26) continue;
+      out.push({ x: Math.sin(ar) * d, z: -Math.cos(ar) * d, r: rand() });
+    }
+    return out;
+  }
+  function mangroveTree(g, px, pz, s, rand) {
+    var t = new THREE.Group(); t.position.set(px, 0, pz); t.scale.setScalar(s); t.rotation.y = rand() * 6.3;
+    var bark = mat('#8a8478');
+    for (var i = 0; i < 5; i++) {
+      var stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.1, 1.1, 5), bark), a = i / 5 * Math.PI * 2 + rand();
+      stem.position.set(Math.cos(a) * 0.3, 0.45, Math.sin(a) * 0.3); stem.rotation.set(Math.sin(a) * 0.6, 0, -Math.cos(a) * 0.6); t.add(stem);
+    }
+    var greens = ['#5d7650', '#6b8659', '#77925f', '#819a6d'];
+    for (var k = 0; k < 9; k++) {
+      var r = 0.6 + rand() * 0.45, leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), mat(greens[k % 4]));
+      var b = rand() * Math.PI * 2, rr = k ? 0.7 + rand() * 0.8 : 0;
+      leaf.position.set(Math.cos(b) * rr, 1.05 + rand() * 0.55 + (k ? 0 : 0.4), Math.sin(b) * rr); leaf.scale.y = 0.62; t.add(leaf);
+    }
+    t.traverse(function (o) { o.raycast = noRay; }); g.add(t);
+  }
+  // pencil roots (pneumatophores) poking up out of the mud around the mangroves
+  function pencilRoots(g, pts, seed) {
+    var geo = new THREE.ConeGeometry(0.018, 0.26, 4), m = new THREE.InstancedMesh(geo, mat('#6f665a'), pts.length * 40), rand = ECO.rng(seed), q = new THREE.Object3D(), n = 0;
+    pts.forEach(function (p) {
+      for (var i = 0; i < 40; i++) {
+        var a = rand() * Math.PI * 2, d = 0.6 + rand() * 3.2, h = 0.5 + rand() * 0.9;
+        q.position.set(p.x + Math.cos(a) * d, 0.13 * h, p.z + Math.sin(a) * d); q.scale.set(1, h, 1); q.updateMatrix(); m.setMatrixAt(n++, q.matrix);
+      }
+    });
+    m.raycast = noRay; g.add(m);
+  }
+  function mushroomRock(g, px, pz, h, rand) {
+    var t = new THREE.Group(); t.position.set(px, 0, pz); t.rotation.y = rand() * 6.3;
+    var r = h * 0.32, prof = [[r * 1.25, 0], [r, h * 0.3], [r * 0.7, h * 0.55], [r * 0.62, h * 0.7], [r * 0.9, h * 0.8], [r * 0.9, h * 0.8]].map(function (p) { return new THREE.Vector2(p[0], p[1]); });
+    var stem = new THREE.Mesh(new THREE.LatheGeometry(prof, 9), mat('#cdbb98')); t.add(stem);
+    var capR = h * (0.55 + rand() * 0.25), cap = new THREE.Mesh(new THREE.CylinderGeometry(capR, capR * 0.88, h * 0.24, 10), mat('#efe6d2'));
+    cap.position.y = h * 0.9; cap.scale.z = 0.75 + rand() * 0.3; cap.rotation.z = (rand() - 0.5) * 0.12; t.add(cap);
+    for (var i = 0; i < 4; i++) {
+      var bo = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2 + rand() * 0.35, 0), mat('#d8ccb0')), a = rand() * 6.3, d = r * 1.4 + rand() * 1.2;
+      bo.position.set(Math.cos(a) * d, 0.1, Math.sin(a) * d); bo.scale.y = 0.6; t.add(bo);
+    }
+    t.traverse(function (o) { o.raycast = noRay; }); g.add(t);
+  }
+  // a dune whose steep slip face (local +z) looks back toward the middle of the scene
+  function duneGeometry(W, D, H) {
+    var geo = new THREE.PlaneGeometry(W * 2, D * 2, 48, 32); geo.rotateX(-Math.PI / 2);
+    var pos = geo.attributes.position;
+    for (var i = 0; i < pos.count; i++) {
+      var x = pos.getX(i) / W, z = pos.getZ(i) / D, side = Math.max(0, 1 - x * x), zc = 0.45 - 0.5 * x * x, y;
+      if (z > zc) y = Math.pow(Math.max(0, (1 - z) / (1 - zc)), 0.8);        // slip face: away from the wind, steep
+      else y = Math.pow(Math.max(0, (z + 1) / (zc + 1)), 1.7);                // windward slope: long and gentle
+      pos.setY(i, H * y * Math.pow(side, 0.7));
+    }
+    geo.computeVertexNormals(); return geo;
+  }
+  function buildQatar(g, key, on) {
+    var rand = ECO.rng(key.length * 97 + 5);
+    if (key === 'ummtais') {
+      if (on('Arabian Gulf')) shore(g, 18, 0, 200, '#b3a072', '#72b3b6', '#4a95b0');
+      if (on('Mangrove lagoon')) shore(g, 30, 180, 120, '#bfae85', '#86bbb3', '#6aa6a8');
+      // low sand hummocks held in place by small shrubs
+      if (on('Sand hummocks')) spots(71, 22, 7, 40, 95, 265).concat(spots(72, 6, 7, 16, -120, 120)).forEach(function (p) {
+        var s = 0.8 + p.r * 1.6, hm = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 8), mat('#dac79b'));
+        hm.scale.set(s * 1.4, s * 0.5, s * 1.2); hm.position.set(p.x, 0, p.z); hm.raycast = noRay; g.add(hm);
+        var bush = new THREE.Mesh(new THREE.IcosahedronGeometry(s * 0.55, 0), mat('#7f9152')); bush.scale.y = 0.6; bush.position.set(p.x, s * 0.5, p.z); bush.raycast = noRay; g.add(bush);
+      });
+      if (on('Mangrove trees')) { var lm = spots(73, 7, 24, 29, 135, 225); lm.forEach(function (p) { mangroveTree(g, p.x, p.z, 1 + p.r * 0.5, rand); }); pencilRoots(g, lm, 74); }
+    }
+    if (key === 'khoraladaid') {
+      if (on('Inland Sea')) shore(g, 20, 0, 210, '#b8935e', '#6aaeb7', '#3f8db0');
+      // big dunes close behind you: long gentle windward slope, a curved crest, and a steep slip face
+      if (on('Sand dunes')) [[110, 60, 20, 16, 7], [158, 58, 24, 18, 9], [206, 60, 22, 17, 8], [252, 62, 18, 14, 6], [-98, 64, 15, 12, 5]].forEach(function (d) {
+        var a = THREE.MathUtils.degToRad(d[0]), m = new THREE.Mesh(duneGeometry(d[2], d[3], d[4]), new THREE.MeshLambertMaterial({ color: '#d9b077' }));
+        m.position.set(Math.sin(a) * d[1], -0.2, -Math.cos(a) * d[1]); m.rotation.y = -a; m.raycast = noRay; g.add(m);
+      });
+    }
+    if (key === 'althakira') {
+      if (on('Tidal channels')) { shore(g, 14, 0, 130, '#a89a78', '#7fb2ae', '#5f9aa1'); shore(g, 34, 182, 60, '#a89a78', '#7fb2ae', '#5f9aa1'); }
+      if (on('Sabkha (salt flats)')) spots(76, 14, 10, 50, 75, 285).forEach(function (p) {
+        var c = flat(g, new THREE.CircleGeometry(1.5 + p.r * 4, 24), '#e6e0d0', 0.06, [p.x, p.z], 0.85); c.scale.x = 1.6; c.material.depthWrite = false;
+      });
+      if (on('Mangrove trees')) {
+        var mt = spots(77, 9, 11, 13, -72, 72).concat(spots(78, 7, 16, 32, 60, 120), spots(79, 7, 16, 32, -120, -60));
+        mt.forEach(function (p) { mangroveTree(g, p.x, p.z, 1.1 + p.r * 0.7, rand); });
+        pencilRoots(g, mt, 80);
+      }
+    }
+    if (key === 'rasabrouq') {
+      if (on('Zekreet Bay')) shore(g, 34, -110, 80, '#b3a47f', '#70b4bb', '#4893b2');
+      if (on('Mushroom rocks')) spots(81, 7, 16, 42, 40, 230).forEach(function (p) { mushroomRock(g, p.x, p.z, 2.8 + p.r * 3.2, rand); });
+      if (on('Salt crust')) spots(82, 8, 12, 40, -150, -60).forEach(function (p) { var c = flat(g, new THREE.CircleGeometry(1.5 + p.r * 3, 20), '#e6e0d0', 0.06, [p.x, p.z], 0.8); c.scale.x = 1.5; c.material.depthWrite = false; });
+      if (on('Rocks')) rocks(g, '#d8ccb0', 26, 8, 70, 0.2, 0.9, 83, true);
+    }
   }
 
   // Build the backdrop and foreground for a park (called from ECO.buildEnvironment)
@@ -774,6 +1081,7 @@
     }
     if (key === 'arches' && on('Rocks')) rocks(g, '#c06a3c', 22, 12, 70, 0.5, 2.4, 15, true);
     if (key === 'smokies' && on('Rocks')) rocks(g, '#7d8277', 10, 15, 60, 0.3, 1.0, 16, true);
+    if (P.region === 'qatar') buildQatar(g, key, on);
   };
 
   // In the Grand Canyon, the ground in front ends at the rim
@@ -783,10 +1091,12 @@
     function tile(k) {
       var P = ECO.PRESETS[k], on = current === k;
       var bg = P.park ? 'background:url(' + ECO.parkThumb(k) + ') center/cover' : 'background:linear-gradient(' + P.sky[0] + ',' + P.sky[1] + ' 55%,' + P.ground + ' 56%)';
-      return '<button class="preset" data-preset="' + k + '" aria-pressed="' + on + '" title="' + esc(P.park ? P.name + ' National Park, ' + P.state : P.name) + '"><div class="sw" style="' + bg + '"></div><span>' + esc(P.name) + '</span></button>';
+      return '<button class="preset" data-preset="' + k + '" aria-pressed="' + on + '" title="' + esc(P.park ? P.name + ' ' + P.label + ', ' + P.state : P.name) + '"><div class="sw" style="' + bg + '"></div><span>' + esc(P.name) + '</span></button>';
     }
-    var keys = Object.keys(ECO.PRESETS), biomes = keys.filter(function (k) { return !ECO.PRESETS[k].park; }), parks = keys.filter(function (k) { return ECO.PRESETS[k].park; });
-    return biomes.map(tile).join('') + '<h3 class="park-head">National parks</h3>' + parks.map(tile).join('');
+    var keys = Object.keys(ECO.PRESETS), biomes = keys.filter(function (k) { return !ECO.PRESETS[k].park; }), parks = keys.filter(function (k) { return ECO.PRESETS[k].park && ECO.PRESETS[k].region !== 'qatar'; }),
+      qatar = keys.filter(function (k) { return ECO.PRESETS[k].region === 'qatar'; });
+    return biomes.map(tile).join('') + '<h3 class="park-head">National parks</h3>' + parks.map(tile).join('') +
+      '<h3 class="park-head">Qatar: national park &amp; nature reserves</h3>' + qatar.map(tile).join('');
   };
 
   // Adds a "Setting" line to a project's opening card when it uses a national park
@@ -795,7 +1105,7 @@
     if (!P || !P.park || !afterEl) return;
     var p = document.createElement('p'); p.className = 'park-line';
     p.style.cssText = 'margin:8px 0;padding:8px 12px;background:#eef3ea;border-radius:10px;font-size:14px;line-height:1.45';
-    p.innerHTML = '<b>Setting:</b> ' + P.name + ' National Park, ' + P.state + '. ' + P.blurb;
+    p.innerHTML = '<b>Setting:</b> ' + P.name + ' ' + (P.label || 'National Park') + ', ' + P.state + '. ' + P.blurb;
     afterEl.parentNode.insertBefore(p, afterEl.nextSibling);
   };
 
