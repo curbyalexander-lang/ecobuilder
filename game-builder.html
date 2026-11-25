@@ -300,20 +300,11 @@
     smokies: { name: 'Great Smoky Mountains', state: 'Tennessee & North Carolina', sky: ['#6d9ccc', '#e3ebf2', '#c3cdc7'], ground: '#53703a', fog: ['#cfdbe6', 0.018],
       blurb: 'Ancient, forest-covered ridges wrapped in the blue haze that gives the mountains their name.' },
     arches: { name: 'Arches', state: 'Utah', sky: ['#3a83d6', '#f2e6d6', '#dcbf9c'], ground: '#c47a48', fog: ['#efdccb', 0.004],
-      blurb: 'More than 2,000 natural stone arches, like Delicate Arch, carved in red sandstone.' },
-    // Qatar (pilot site): Umm Tais National Park and three nature reserves
-    ummtais: { name: 'Umm Tais', label: 'National Park', region: 'qatar', state: 'Qatar', sky: ['#5b9bd8', '#e6eff2', '#dcd5bf'], ground: '#c9b588', fog: ['#e4ebe8', 0.004], thumbH: 12,
-      blurb: 'A low barrier island off Qatar’s northern tip, with beaches, sand bars, mangroves, and one of the country’s main hawksbill sea turtle nesting sites.' },
-    khoraladaid: { name: 'Khor Al Adaid', label: 'Nature Reserve', region: 'qatar', state: 'Qatar', sky: ['#4c93d9', '#eaf0ef', '#e4d2ac'], ground: '#cda66d', fog: ['#efe2c8', 0.003], thumbH: 20, thumbDeg: 62,
-      blurb: 'The “Inland Sea”: a tidal lagoon in the far southeast, surrounded by moving sand dunes up to 40 m tall. A UNESCO World Heritage candidate.' },
-    althakira: { name: 'Al Thakira', label: 'Nature Reserve', region: 'qatar', state: 'Qatar', sky: ['#5a9ad6', '#e8eff0', '#d6d3bc'], ground: '#b5a57e', fog: ['#e3e8e2', 0.006], thumbH: 12,
-      blurb: 'One of Qatar’s oldest and largest mangrove forests of grey mangrove, with tidal channels and salt flats where flamingos stop each winter.' },
-    rasabrouq: { name: 'Ras Abrouq', label: 'Nature Reserve', region: 'qatar', state: 'Qatar', sky: ['#4a90d8', '#eceee9', '#e4d6bd'], ground: '#c4b693', fog: ['#efe6d6', 0.004], thumbH: 14,
-      blurb: 'White limestone cliffs, mesas, and wind-carved “mushroom” rocks on the west coast, inside the Al Reem Biosphere Reserve, home to Arabian oryx and gazelles.' }
+      blurb: 'More than 2,000 natural stone arches, like Delicate Arch, carved in red sandstone.' }
   };
   Object.keys(PARKS).forEach(function (k) {
     var p = PARKS[k];
-    ECO.PRESETS[k] = { name: p.name, park: k, label: p.label || 'National Park', region: p.region || 'us', state: p.state, blurb: p.blurb, sky: p.sky, ground: p.ground, fog: p.fog, hills: { type: 'none' } };
+    ECO.PRESETS[k] = { name: p.name, park: k, state: p.state, blurb: p.blurb, sky: p.sky, ground: p.ground, fog: p.fog, hills: { type: 'none' } };
   });
 
   // ---------- painting helpers ----------
@@ -410,75 +401,7 @@
   var hideSet = [], featureList = [];
   function part(name, fn) { if (featureList.indexOf(name) < 0) featureList.push(name); if (hideSet.indexOf(name) < 0) fn(); }
 
-  // ---------- Qatar painting helpers ----------
-  // Flat water from the bottom of the backdrop up to the horizon, between two directions
-  function sea(x, from, to, top, cTop, cBot) {
-    shape(x, 0, [[from, -2], [from, top], [to, top], [to, -2]], null, { vgrad: [top, -2, cTop, cBot], noScale: true });
-    shape(x, 0, [[from, top - 0.07], [from, top], [to, top], [to, top - 0.07]], shade(cTop, 0.25), { noScale: true });
-  }
-  // A dune: long sunlit windward slope, sharp crest, steep shaded slip face (w = half-width in degrees)
-  function dune(x, deg, w, h, lit, dark, base) {
-    // the crest sits past the middle; the long windward slope is lit, the short slip face is in shade
-    var crest = w * 0.3, pts = [], slip = [], i, u, n = 24;
-    base = base == null ? 0 : base;
-    for (i = 0; i <= n; i++) { var s = i / n; u = -w + (crest + w) * s; pts.push([u, base + h * (1 - Math.pow(1 - s, 2.2)) * (0.35 + 0.65 * s)]); }
-    for (i = 1; i <= n; i++) { var r = i / n; u = crest + (w - crest) * r; slip.push([u, base + h * Math.pow(1 - r, 0.75) * (1 - 0.15 * r)]); }
-    shape(x, deg, [[-w, base - 2]].concat(pts, slip, [[w, base - 2]]), null, { vgrad: [base + h, base, shade(lit, 0.14), lit], noScale: true });
-    shape(x, deg, [[crest, base + h]].concat(slip, [[w, base - 2], [crest + (w - crest) * 0.1, base - 2]]), null, { vgrad: [base + h, base, dark, shade(dark, 0.12)], noScale: true });
-    x.save(); x.strokeStyle = shade(lit, 0.35); x.lineWidth = 2;
-    [0, 360, -360].forEach(function (sh) {   // drawn unwrapped, then shifted, so it never jumps across the seam
-      x.beginPath();
-      pts.slice(Math.floor(n * 0.7)).forEach(function (p, k) { var px = (0.5 + (deg + p[0] + sh) / 360) * CW, py = Y(p[1]); if (k) x.lineTo(px, py); else x.moveTo(px, py); });
-      x.stroke();
-    });
-    x.restore();
-  }
-  // A wind-carved limestone "mushroom": a narrow, pinched stem under a wide, flat cap
-  function mushroom(x, deg, h, capW, stemW) {
-    shape(x, deg, [[-stemW * 1.3, 0], [-stemW * 0.75, h * 0.45], [-stemW * 0.6, h * 0.62], [-stemW * 0.9, h * 0.78], [stemW * 0.9, h * 0.78], [stemW * 0.6, h * 0.62], [stemW * 0.75, h * 0.45], [stemW * 1.3, 0]], null, { vgrad: [h, 0, '#d9caa6', '#bfae88'] });
-    shape(x, deg, [[-capW, h * 0.76], [-capW * 1.06, h * 0.86], [-capW * 0.94, h], [capW * 0.9, h * 1.02], [capW * 1.05, h * 0.88], [capW * 0.96, h * 0.76]], '#efe7d4');
-    shape(x, deg, [[-capW, h * 0.76], [capW * 0.96, h * 0.76], [capW * 0.9, h * 0.81], [-capW * 0.95, h * 0.81]], '#c9b892');
-  }
-  // Rounded grey-green mangrove crowns (Avicennia marina) along the water
-  function mangroves(x, o) {
-    var rand = ECO.rng(o.seed), from = o.from == null ? -180 : o.from, to = o.to == null ? 180 : o.to;
-    for (var i = 0; i < o.count; i++) {
-      var deg = from + (to - from) * rand(), h = o.hMin + rand() * (o.hMax - o.hMin), c = o.colors[Math.floor(rand() * o.colors.length)];
-      blob(x, deg, o.base + h * 0.45, h * 0.55, h * 0.48, shade(c, (rand() - 0.5) * 0.12));
-      blob(x, deg - h * 0.12, o.base + h * 0.62, h * 0.32, h * 0.3, shade(c, 0.1));
-    }
-  }
-  // A long, low line of seabirds flying over the water
-  function birdLine(x, from, to, y, n, seed, color) {
-    var rand = ECO.rng(seed);
-    x.save(); x.strokeStyle = color; x.lineWidth = 2.2; x.lineCap = 'round';
-    for (var i = 0; i < n; i++) {
-      var deg = from + (to - from) * i / n + (rand() - 0.5) * 0.4, yy = y + Math.sin(i * 0.35) * 0.35 + (rand() - 0.5) * 0.3, cx = X(deg), cy = Y(yy), s = 4 + rand() * 2;
-      x.beginPath(); x.moveTo(cx - s, cy - s * 0.4); x.quadraticCurveTo(cx - s * 0.4, cy - s * 0.5, cx, cy); x.quadraticCurveTo(cx + s * 0.4, cy - s * 0.5, cx + s, cy - s * 0.4); x.stroke();
-    }
-    x.restore();
-  }
-  // A soaring bird of prey seen from below (long, crooked wings like an osprey)
-  function soar(x, deg, y, s) {
-    var cx = X(deg), cy = Y(y), k = 14 * s;
-    x.save(); x.fillStyle = '#3b3530';
-    x.beginPath(); x.moveTo(cx, cy);
-    x.quadraticCurveTo(cx - k * 1.2, cy - k * 0.55, cx - k * 2.6, cy + k * 0.15); x.quadraticCurveTo(cx - k * 1.3, cy - k * 0.1, cx, cy + k * 0.25);
-    x.quadraticCurveTo(cx + k * 1.3, cy - k * 0.1, cx + k * 2.6, cy + k * 0.15); x.quadraticCurveTo(cx + k * 1.2, cy - k * 0.55, cx, cy); x.fill();
-    x.fillRect(cx - k * 0.12, cy - k * 0.1, k * 0.24, k * 0.75); x.restore();
-  }
-  // A small wading flamingo
-  function flamingo(x, deg, y, s) {
-    var cx = X(deg), cy = Y(y), k = 9 * s;
-    x.save(); x.strokeStyle = '#e48aa4'; x.lineWidth = 1.6;
-    x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx, cy - k * 2.2); x.moveTo(cx + k * 0.25, cy); x.lineTo(cx + k * 0.2, cy - k * 2.2); x.stroke();
-    x.fillStyle = '#f2c6d1'; x.beginPath(); x.ellipse(cx + k * 0.1, cy - k * 2.6, k * 0.75, k * 0.42, 0, 0, Math.PI * 2); x.fill();
-    x.strokeStyle = '#f2c6d1'; x.lineWidth = 2.4; x.beginPath(); x.moveTo(cx - k * 0.5, cy - k * 2.7); x.quadraticCurveTo(cx - k * 1.1, cy - k * 3.6, cx - k * 0.6, cy - k * 4.3); x.stroke();
-    x.fillStyle = '#1d1b1d'; x.beginPath(); x.arc(cx - k * 0.75, cy - k * 4.2, k * 0.22, 0, Math.PI * 2); x.fill();
-    x.restore();
-  }
-
-  // ---------- the parks ----------
+  // ---------- the eight parks ----------
   var PAINT = {
     yellowstone: function (x) {
       setRange(40, -2);
@@ -728,122 +651,6 @@
       part('Clouds', function () {
         cloud(x, -100, 33, 11, 0.8); cloud(x, 40, 32, 12, 0.8);
       });
-    },
-    // ---------- Qatar: Umm Tais National Park and three nature reserves ----------
-    // Umm Tais: a low barrier island. Open Gulf in front, beach dunes on the sides, a mangrove lagoon behind you.
-    ummtais: function (x) {
-      setRange(40, -2);
-      part('Arabian Gulf', function () {
-        sea(x, -100, 100, 0.75, '#3d86ad', '#62b1c2');
-      });
-      part('Sandbars and islets', function () {
-        [[-38, 5], [52, 3.5], [-74, 2.5]].forEach(function (s, i) {
-          shape(x, s[0], [[-s[1], 0.62], [-s[1] * 0.6, 0.86], [s[1] * 0.6, 0.88], [s[1], 0.62]], '#e6d7b0', { noScale: true });
-          for (var k = 0; k < 5; k++) blob(x, s[0] + (k - 2) * s[1] * 0.22, 1.05, s[1] * 0.09, 0.32, i === 1 ? '#5f7b56' : '#6a8660');
-        });
-      });
-      part('Socotra cormorants', function () {
-        birdLine(x, 14, 34, 2.2, 26, 31, '#33363a');
-      });
-      part('Mangrove lagoon', function () {
-        sea(x, 110, 250, 0.7, '#5e9fa6', '#7fb7b4');
-        mangroves(x, { seed: 32, from: 112, to: 248, base: 0.68, count: 120, hMin: 0.9, hMax: 2.2, colors: ['#5d7650', '#6b8659', '#77925f'] });
-      });
-      part('Beach dunes', function () {
-        ridge(x, { seed: 33, from: 96, to: 116, base: 0, amp: 1.4, color: '#e1cf9f', terms: 4 });
-        ridge(x, { seed: 34, from: -116, to: -96, base: 0, amp: 1.4, color: '#e1cf9f', terms: 4 });
-        ridge(x, { seed: 35, from: 245, to: 265, base: 0, amp: 1.2, color: '#e1cf9f', terms: 4 });
-        trees(x, { seed: 36, from: 92, to: 118, base: 0.2, baseJitter: 0.8, count: 900, hMin: 0.3, hMax: 0.7, color: '#8f9a5a', kind: 'round' });
-        trees(x, { seed: 37, from: -118, to: -92, base: 0.2, baseJitter: 0.8, count: 900, hMin: 0.3, hMax: 0.7, color: '#8f9a5a', kind: 'round' });
-      });
-      part('Clouds', function () {
-        cloud(x, -60, 26, 9, 0.7); cloud(x, 140, 30, 8, 0.65);
-      });
-    },
-    // Khor Al Adaid: the "Inland Sea", a tidal lagoon ringed by tall golden dunes that spill into the water
-    khoraladaid: function (x) {
-      setRange(40, -2);
-      part('Inland Sea', function () {
-        sea(x, -105, 105, 0.7, '#2c86b4', '#55b3c5');
-      });
-      part('Far shore dunes', function () {
-        ridge(x, { seed: 41, from: -70, to: 70, base: 0.6, amp: 2.2, color: '#e9cfa3', top: '#f0dcb8', terms: 5, envelope: 0.5 });
-        [-44, -16, 14, 40].forEach(function (d, i) { dune(x, d, 11 + i, 1.8 + (i % 2) * 0.6, '#ecd4aa', '#d9b986', 0.6); });
-      });
-      part('Sand dunes', function () {
-        var back = [[96, 34, 5], [134, 40, 6.5], [174, 38, 7.5], [212, 40, 7], [248, 34, 5.5], [-88, 28, 4.5]];
-        back.forEach(function (d) { dune(x, d[0], d[1], d[2], '#ebcd9c', '#d2ad7a', 2); });
-        var front = [[80, 24, 5], [114, 28, 7], [152, 30, 8.5], [192, 28, 8], [230, 26, 7], [264, 22, 5], [-78, 20, 4.5]];
-        front.forEach(function (d) { dune(x, d[0], d[1], d[2], '#e2b97c', '#b88a52', 0.5); });
-      });
-      part('Ospreys', function () {
-        soar(x, 30, 16, 1.2); soar(x, -55, 19, 1);
-      });
-      part('Clouds', function () {
-        cloud(x, 0, 30, 8, 0.6); cloud(x, 160, 33, 9, 0.6);
-      });
-    },
-    // Al Thakira: Qatar's oldest mangrove forest, with tidal channels and salt flats (sabkha)
-    althakira: function (x) {
-      setRange(40, -2);
-      part('Tidal channels', function () {
-        sea(x, -70, 70, 0.6, '#5f9aa3', '#82b6b2');
-        sea(x, 150, 215, 0.6, '#5f9aa3', '#82b6b2');
-      });
-      part('Sabkha (salt flats)', function () {
-        [[70, 150], [215, 290]].forEach(function (r, i) {
-          shape(x, 0, [[r[0], -2], [r[0], 0.45], [r[1], 0.45], [r[1], -2]], '#ddd2b6', { noScale: true });
-          var rs = ECO.rng(50 + i);
-          for (var k = 0; k < 30; k++) blob(x, r[0] + rs() * (r[1] - r[0]), 0.15 + rs() * 0.25, 0.4 + rs() * 1.4, 0.06, '#f1ece0', 0.9);
-        });
-      });
-      part('Mangrove forest', function () {
-        mangroves(x, { seed: 51, base: 0.55, count: 420, hMin: 1.4, hMax: 3, colors: ['#87a083', '#91a98b'] });
-        mangroves(x, { seed: 52, from: -80, to: 80, base: 0.5, count: 160, hMin: 1.6, hMax: 3.6, colors: ['#5d7650', '#6b8659', '#76915f'] });
-        mangroves(x, { seed: 53, from: 140, to: 225, base: 0.5, count: 110, hMin: 1.6, hMax: 3.6, colors: ['#5d7650', '#6b8659', '#76915f'] });
-      });
-      part('Flamingos', function () {
-        [[-24, 1], [-21, 0.9], [-19, 1.05], [-16, 0.95], [10, 1], [13, 0.9], [181, 1]].forEach(function (f) { flamingo(x, f[0], 0.15, f[1]); });
-      });
-      part('Clouds', function () {
-        cloud(x, 40, 28, 9, 0.7); cloud(x, -120, 31, 8, 0.65);
-      });
-    },
-    // Ras Abrouq: white limestone cliffs, mesas, and wind-carved "mushroom" rocks beside Zekreet Bay
-    rasabrouq: function (x) {
-      setRange(40, -2);
-      part('Zekreet Bay', function () {
-        sea(x, -150, -70, 0.7, '#3f93b4', '#6bbac6');
-        shape(x, -120, [[-6, 0.62], [-4, 0.95], [4, 1], [6, 0.62]], '#e3d8bd', { noScale: true });
-      });
-      part('White cliffs', function () {
-        // a long escarpment: flat cap rock, steep chalky face, and a slope of fallen rock below
-        var pts = [[-45, 0], [-43, 4], [-41, 8.2], [-30, 8.5], [-28, 7.2], [-26, 8.6], [-12, 8.9], [-10, 7.6], [-8, 9], [8, 9.3], [10, 8], [12, 9.4], [30, 9.5], [32, 8.2], [34, 9.3], [52, 9], [55, 4.5], [58, 0]];
-        shape(x, 0, pts, null, { vgrad: [9.5, 0, '#efe6d4', '#c9b58e'], noScale: true });
-        shape(x, 0, [[-41, 8.2], [-30, 8.5], [-26, 8.6], [-8, 9], [12, 9.4], [34, 9.3], [52, 9], [52, 8.4], [-41, 7.6]], '#f7f2e8', { noScale: true });
-        hlines(x, -40, 52, [7.4, 6.3, 5.1, 3.9], '#c4b18a', 2);
-        shape(x, 0, [[-46, 0], [-44, 2.4], [-20, 2.8], [10, 2.5], [40, 2.9], [56, 2.4], [59, 0]], '#c2b08a', { noScale: true });
-        [-35, -19, -2, 21, 43].forEach(function (d) { shape(x, d, [[-1.4, 2.4], [-0.5, 6.8], [0, 7.4], [0.5, 6.8], [1.4, 2.4]], '#d4c29d', { noScale: true }); });
-        shape(x, 0, [[-24, 8.6], [-22, 6.6], [-16, 6.4], [-14, 8.8]], '#e2d5b9', { noScale: true });
-        shape(x, 0, [[16, 9.4], [18, 7.2], [26, 7], [28, 9.5]], '#e2d5b9', { noScale: true });
-      });
-      part('Mushroom rocks', function () {
-        [[70, 4.5, 3, 1], [84, 3.2, 2.2, 0.8], [95, 5.2, 3.4, 1.1], [118, 3.8, 2.6, 0.9], [133, 4.6, 2.8, 1], [160, 3.4, 2.4, 0.8], [176, 5, 3.2, 1.1], [205, 4, 2.6, 0.9], [-60, 3.6, 2.4, 0.8]].forEach(function (m) {
-          mushroom(x, m[0], m[1], m[2], m[3]);
-        });
-      });
-      part('Mesas', function () {
-        [[145, 9, 3.4], [190, 12, 4.2], [228, 10, 3.6], [250, 7, 2.6]].forEach(function (m) {
-          shape(x, m[0], [[-m[1], 0], [-m[1] * 0.8, m[2] * 0.7], [-m[1] * 0.7, m[2]], [m[1] * 0.7, m[2]], [m[1] * 0.8, m[2] * 0.7], [m[1], 0]], null, { vgrad: [m[2], 0, '#ece2cc', '#cfbf9b'], noScale: true });
-          hlines(x, m[0] - m[1] * 0.75, m[0] + m[1] * 0.75, [m[2] * 0.75], '#c6b590', 2);
-        });
-      });
-      part('Desert shrubs', function () {
-        trees(x, { seed: 61, from: -60, to: 260, base: 0, baseJitter: 0.6, count: 500, hMin: 0.25, hMax: 0.6, color: '#8e9466', kind: 'round' });
-      });
-      part('Clouds', function () {
-        cloud(x, -20, 30, 9, 0.7); cloud(x, 120, 27, 8, 0.65);
-      });
     }
   };
 
@@ -868,7 +675,7 @@
     var P = PARKS[key], b = backdrop(key), c = document.createElement('canvas'); c.width = 240; c.height = 120;
     var x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 120);
     g.addColorStop(0, P.sky[0]); g.addColorStop(0.75, P.sky[1]); x.fillStyle = g; x.fillRect(0, 0, 240, 120);
-    var span = 0.26, sx = (0.5 + (P.thumbDeg || 0) / 360 - span / 2) * CW, sw = span * CW, rowTop = (b.top - (P.thumbH || 34)) / (b.top - b.bot) * CH, rowH = CH * 0.98 - rowTop;
+    var span = 0.26, sx = (0.5 - span / 2) * CW, sw = span * CW, rowTop = (b.top - 34) / (b.top - b.bot) * CH, rowH = CH * 0.98 - rowTop;
     if (P === PARKS.grandcanyon) { rowTop = 0.18 * CH; rowH = 0.8 * CH; }
     var dh = 240 * rowH / sw;
     x.drawImage(b.canvas, sx, rowTop, sw, rowH, 0, 120 - dh - 12, 240, dh);
@@ -916,120 +723,6 @@
         p.s.position.set(p.x + Math.sin(k * 6 + p.ph * 9) * 1.5, 0.5 + k * 12, p.z); p.s.scale.set(size, size, 1); p.s.material.opacity = 0.55 * (1 - k) * Math.min(1, k * 6);
       });
     });
-  }
-
-  // ---------- Qatar: 3D features in front of the painting ----------
-  // water/sand bands as ring sectors: a = direction of the middle (0 = ahead, 90 = right), span in degrees
-  function band(g, inner, outer, a, span, color, y, opacity) {
-    var t = THREE.MathUtils.degToRad(90 - a - span / 2);
-    var m = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 96, 1, t, THREE.MathUtils.degToRad(span)),
-      new THREE.MeshLambertMaterial({ color: color, transparent: opacity < 1, opacity: opacity == null ? 1 : opacity, depthWrite: opacity == null || opacity >= 1 }));
-    m.rotation.x = -Math.PI / 2; m.position.y = y; m.raycast = noRay; g.add(m); return m;
-  }
-  function shore(g, inner, a, span, wet, shallow, deep) {
-    band(g, inner - 2.5, inner, a, span, wet, 0.02);
-    band(g, inner, inner + 6, a, span, shallow, 0.035);
-    band(g, inner + 6, R - 0.5, a, span, deep, 0.04);
-  }
-  function mat(c) { return new THREE.MeshLambertMaterial({ color: c, flatShading: true }); }
-  // spots around you, kept clear of the space straight ahead where students usually start building
-  function spots(seed, n, dMin, dMax, aFrom, aTo) {
-    var rand = ECO.rng(seed), out = [];
-    for (var i = 0; i < n * 4 && out.length < n; i++) {
-      var a = aFrom + rand() * (aTo - aFrom), d = dMin + rand() * (dMax - dMin), ar = THREE.MathUtils.degToRad(a);
-      if (Math.abs(((a + 540) % 360) - 180) < 28 && d < 26) continue;
-      out.push({ x: Math.sin(ar) * d, z: -Math.cos(ar) * d, r: rand() });
-    }
-    return out;
-  }
-  function mangroveTree(g, px, pz, s, rand) {
-    var t = new THREE.Group(); t.position.set(px, 0, pz); t.scale.setScalar(s); t.rotation.y = rand() * 6.3;
-    var bark = mat('#8a8478');
-    for (var i = 0; i < 5; i++) {
-      var stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.1, 1.1, 5), bark), a = i / 5 * Math.PI * 2 + rand();
-      stem.position.set(Math.cos(a) * 0.3, 0.45, Math.sin(a) * 0.3); stem.rotation.set(Math.sin(a) * 0.6, 0, -Math.cos(a) * 0.6); t.add(stem);
-    }
-    var greens = ['#5d7650', '#6b8659', '#77925f', '#819a6d'];
-    for (var k = 0; k < 9; k++) {
-      var r = 0.6 + rand() * 0.45, leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), mat(greens[k % 4]));
-      var b = rand() * Math.PI * 2, rr = k ? 0.7 + rand() * 0.8 : 0;
-      leaf.position.set(Math.cos(b) * rr, 1.05 + rand() * 0.55 + (k ? 0 : 0.4), Math.sin(b) * rr); leaf.scale.y = 0.62; t.add(leaf);
-    }
-    t.traverse(function (o) { o.raycast = noRay; }); g.add(t);
-  }
-  // pencil roots (pneumatophores) poking up out of the mud around the mangroves
-  function pencilRoots(g, pts, seed) {
-    var geo = new THREE.ConeGeometry(0.018, 0.26, 4), m = new THREE.InstancedMesh(geo, mat('#6f665a'), pts.length * 40), rand = ECO.rng(seed), q = new THREE.Object3D(), n = 0;
-    pts.forEach(function (p) {
-      for (var i = 0; i < 40; i++) {
-        var a = rand() * Math.PI * 2, d = 0.6 + rand() * 3.2, h = 0.5 + rand() * 0.9;
-        q.position.set(p.x + Math.cos(a) * d, 0.13 * h, p.z + Math.sin(a) * d); q.scale.set(1, h, 1); q.updateMatrix(); m.setMatrixAt(n++, q.matrix);
-      }
-    });
-    m.raycast = noRay; g.add(m);
-  }
-  function mushroomRock(g, px, pz, h, rand) {
-    var t = new THREE.Group(); t.position.set(px, 0, pz); t.rotation.y = rand() * 6.3;
-    var r = h * 0.32, prof = [[r * 1.25, 0], [r, h * 0.3], [r * 0.7, h * 0.55], [r * 0.62, h * 0.7], [r * 0.9, h * 0.8], [r * 0.9, h * 0.8]].map(function (p) { return new THREE.Vector2(p[0], p[1]); });
-    var stem = new THREE.Mesh(new THREE.LatheGeometry(prof, 9), mat('#cdbb98')); t.add(stem);
-    var capR = h * (0.55 + rand() * 0.25), cap = new THREE.Mesh(new THREE.CylinderGeometry(capR, capR * 0.88, h * 0.24, 10), mat('#efe6d2'));
-    cap.position.y = h * 0.9; cap.scale.z = 0.75 + rand() * 0.3; cap.rotation.z = (rand() - 0.5) * 0.12; t.add(cap);
-    for (var i = 0; i < 4; i++) {
-      var bo = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2 + rand() * 0.35, 0), mat('#d8ccb0')), a = rand() * 6.3, d = r * 1.4 + rand() * 1.2;
-      bo.position.set(Math.cos(a) * d, 0.1, Math.sin(a) * d); bo.scale.y = 0.6; t.add(bo);
-    }
-    t.traverse(function (o) { o.raycast = noRay; }); g.add(t);
-  }
-  // a dune whose steep slip face (local +z) looks back toward the middle of the scene
-  function duneGeometry(W, D, H) {
-    var geo = new THREE.PlaneGeometry(W * 2, D * 2, 48, 32); geo.rotateX(-Math.PI / 2);
-    var pos = geo.attributes.position;
-    for (var i = 0; i < pos.count; i++) {
-      var x = pos.getX(i) / W, z = pos.getZ(i) / D, side = Math.max(0, 1 - x * x), zc = 0.45 - 0.5 * x * x, y;
-      if (z > zc) y = Math.pow(Math.max(0, (1 - z) / (1 - zc)), 0.8);        // slip face: away from the wind, steep
-      else y = Math.pow(Math.max(0, (z + 1) / (zc + 1)), 1.7);                // windward slope: long and gentle
-      pos.setY(i, H * y * Math.pow(side, 0.7));
-    }
-    geo.computeVertexNormals(); return geo;
-  }
-  function buildQatar(g, key, on) {
-    var rand = ECO.rng(key.length * 97 + 5);
-    if (key === 'ummtais') {
-      if (on('Arabian Gulf')) shore(g, 18, 0, 200, '#b3a072', '#72b3b6', '#4a95b0');
-      if (on('Mangrove lagoon')) shore(g, 30, 180, 120, '#bfae85', '#86bbb3', '#6aa6a8');
-      // low sand hummocks held in place by small shrubs
-      if (on('Sand hummocks')) spots(71, 22, 7, 40, 95, 265).concat(spots(72, 6, 7, 16, -120, 120)).forEach(function (p) {
-        var s = 0.8 + p.r * 1.6, hm = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 8), mat('#dac79b'));
-        hm.scale.set(s * 1.4, s * 0.5, s * 1.2); hm.position.set(p.x, 0, p.z); hm.raycast = noRay; g.add(hm);
-        var bush = new THREE.Mesh(new THREE.IcosahedronGeometry(s * 0.55, 0), mat('#7f9152')); bush.scale.y = 0.6; bush.position.set(p.x, s * 0.5, p.z); bush.raycast = noRay; g.add(bush);
-      });
-      if (on('Mangrove trees')) { var lm = spots(73, 7, 24, 29, 135, 225); lm.forEach(function (p) { mangroveTree(g, p.x, p.z, 1 + p.r * 0.5, rand); }); pencilRoots(g, lm, 74); }
-    }
-    if (key === 'khoraladaid') {
-      if (on('Inland Sea')) shore(g, 20, 0, 210, '#b8935e', '#6aaeb7', '#3f8db0');
-      // big dunes close behind you: long gentle windward slope, a curved crest, and a steep slip face
-      if (on('Sand dunes')) [[110, 60, 20, 16, 7], [158, 58, 24, 18, 9], [206, 60, 22, 17, 8], [252, 62, 18, 14, 6], [-98, 64, 15, 12, 5]].forEach(function (d) {
-        var a = THREE.MathUtils.degToRad(d[0]), m = new THREE.Mesh(duneGeometry(d[2], d[3], d[4]), new THREE.MeshLambertMaterial({ color: '#d9b077' }));
-        m.position.set(Math.sin(a) * d[1], -0.2, -Math.cos(a) * d[1]); m.rotation.y = -a; m.raycast = noRay; g.add(m);
-      });
-    }
-    if (key === 'althakira') {
-      if (on('Tidal channels')) { shore(g, 14, 0, 130, '#a89a78', '#7fb2ae', '#5f9aa1'); shore(g, 34, 182, 60, '#a89a78', '#7fb2ae', '#5f9aa1'); }
-      if (on('Sabkha (salt flats)')) spots(76, 14, 10, 50, 75, 285).forEach(function (p) {
-        var c = flat(g, new THREE.CircleGeometry(1.5 + p.r * 4, 24), '#e6e0d0', 0.06, [p.x, p.z], 0.85); c.scale.x = 1.6; c.material.depthWrite = false;
-      });
-      if (on('Mangrove trees')) {
-        var mt = spots(77, 9, 11, 13, -72, 72).concat(spots(78, 7, 16, 32, 60, 120), spots(79, 7, 16, 32, -120, -60));
-        mt.forEach(function (p) { mangroveTree(g, p.x, p.z, 1.1 + p.r * 0.7, rand); });
-        pencilRoots(g, mt, 80);
-      }
-    }
-    if (key === 'rasabrouq') {
-      if (on('Zekreet Bay')) shore(g, 34, -110, 80, '#b3a47f', '#70b4bb', '#4893b2');
-      if (on('Mushroom rocks')) spots(81, 7, 16, 42, 40, 230).forEach(function (p) { mushroomRock(g, p.x, p.z, 2.8 + p.r * 3.2, rand); });
-      if (on('Salt crust')) spots(82, 8, 12, 40, -150, -60).forEach(function (p) { var c = flat(g, new THREE.CircleGeometry(1.5 + p.r * 3, 20), '#e6e0d0', 0.06, [p.x, p.z], 0.8); c.scale.x = 1.5; c.material.depthWrite = false; });
-      if (on('Rocks')) rocks(g, '#d8ccb0', 26, 8, 70, 0.2, 0.9, 83, true);
-    }
   }
 
   // Build the backdrop and foreground for a park (called from ECO.buildEnvironment)
@@ -1081,7 +774,6 @@
     }
     if (key === 'arches' && on('Rocks')) rocks(g, '#c06a3c', 22, 12, 70, 0.5, 2.4, 15, true);
     if (key === 'smokies' && on('Rocks')) rocks(g, '#7d8277', 10, 15, 60, 0.3, 1.0, 16, true);
-    if (P.region === 'qatar') buildQatar(g, key, on);
   };
 
   // In the Grand Canyon, the ground in front ends at the rim
@@ -1091,12 +783,10 @@
     function tile(k) {
       var P = ECO.PRESETS[k], on = current === k;
       var bg = P.park ? 'background:url(' + ECO.parkThumb(k) + ') center/cover' : 'background:linear-gradient(' + P.sky[0] + ',' + P.sky[1] + ' 55%,' + P.ground + ' 56%)';
-      return '<button class="preset" data-preset="' + k + '" aria-pressed="' + on + '" title="' + esc(P.park ? P.name + ' ' + P.label + ', ' + P.state : P.name) + '"><div class="sw" style="' + bg + '"></div><span>' + esc(P.name) + '</span></button>';
+      return '<button class="preset" data-preset="' + k + '" aria-pressed="' + on + '" title="' + esc(P.park ? P.name + ' National Park, ' + P.state : P.name) + '"><div class="sw" style="' + bg + '"></div><span>' + esc(P.name) + '</span></button>';
     }
-    var keys = Object.keys(ECO.PRESETS), biomes = keys.filter(function (k) { return !ECO.PRESETS[k].park; }), parks = keys.filter(function (k) { return ECO.PRESETS[k].park && ECO.PRESETS[k].region !== 'qatar'; }),
-      qatar = keys.filter(function (k) { return ECO.PRESETS[k].region === 'qatar'; });
-    return biomes.map(tile).join('') + '<h3 class="park-head">National parks</h3>' + parks.map(tile).join('') +
-      '<h3 class="park-head">Qatar: national park &amp; nature reserves</h3>' + qatar.map(tile).join('');
+    var keys = Object.keys(ECO.PRESETS), biomes = keys.filter(function (k) { return !ECO.PRESETS[k].park; }), parks = keys.filter(function (k) { return ECO.PRESETS[k].park; });
+    return biomes.map(tile).join('') + '<h3 class="park-head">National parks</h3>' + parks.map(tile).join('');
   };
 
   // Adds a "Setting" line to a project's opening card when it uses a national park
@@ -1105,7 +795,7 @@
     if (!P || !P.park || !afterEl) return;
     var p = document.createElement('p'); p.className = 'park-line';
     p.style.cssText = 'margin:8px 0;padding:8px 12px;background:#eef3ea;border-radius:10px;font-size:14px;line-height:1.45';
-    p.innerHTML = '<b>Setting:</b> ' + P.name + ' ' + (P.label || 'National Park') + ', ' + P.state + '. ' + P.blurb;
+    p.innerHTML = '<b>Setting:</b> ' + P.name + ' National Park, ' + P.state + '. ' + P.blurb;
     afterEl.parentNode.insertBefore(p, afterEl.nextSibling);
   };
 
@@ -1681,22 +1371,11 @@ var SU_ART = (function () {
     mtbluebird:{ '#e5853c': '#a9d2f2', '#6b4a2b': '#4a5868' },
     palesnake: { '#a58a5e': '#d2b48c', '#5c4630': '#a4865f' },
     timber:    { '#a58a5e': '#8d7d5e', '#5c4630': '#2e2620' },
-    pinksnake: { '#a58a5e': '#c48b7a', '#5c4630': '#7c4f43' },
-    greyheron: { '#5d6268': '#9aa1a8', '#4d5258': '#6c737b', '#c9a341': '#d9b44a', '#f4f2ec': '#f4f2ec' },
-    rueppell:  { '#e8742a': '#d9c4a0', '#b8541a': '#b49e7a', '#3a2a22': '#7a6650' }
+    pinksnake: { '#a58a5e': '#c48b7a', '#5c4630': '#7c4f43' }
   };
   // Full-body drawings made just for this list
   var NART = {
-    javelina: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230 140"><rect x="150" y="84" width="13" height="44" rx="6" fill="#2e2924"/><rect x="70" y="86" width="13" height="42" rx="6" fill="#2e2924"/><path d="M190 70 C198 72 202 78 200 86" stroke="#3a332c" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M58 66 C62 40 96 30 132 32 C164 32 192 44 194 70 C196 92 176 102 150 102 L88 102 C68 102 56 88 58 66Z" fill="#4a423a"/><path d="M70 50 L74 40 L79 45 L84 35 L89 41 L95 31 L100 37 L107 29 L112 35 L119 28 L124 34 L131 28 L136 34 L143 29 L148 36 L155 32 L159 39 L166 36 L168 43 L175 42 C176 46 174 48 170 47 C140 40 104 40 70 54Z" fill="#2f2924"/><path d="M66 86 C90 100 140 102 176 92 C150 104 96 104 66 86Z" fill="#5c5349"/><g fill="none" stroke="#6b6157" stroke-width="2" stroke-linecap="round" opacity=".8"><path d="M110 52 l6 10"/><path d="M130 50 l5 10"/><path d="M150 54 l5 9"/><path d="M168 58 l4 9"/><path d="M120 70 l5 9"/><path d="M142 72 l5 9"/><path d="M162 76 l4 8"/><path d="M100 72 l5 9"/></g><rect x="82" y="88" width="14" height="42" rx="6" fill="#3e3731"/><rect x="164" y="86" width="14" height="44" rx="6" fill="#3e3731"/><path d="M80 126 h18 l-2 6 h-14z M162 126 h18 l-2 6 h-14z M68 124 h16 l-2 6 h-12z M148 124 h16 l-2 6 h-12z" fill="#1a1613"/><path d="M70 44 C80 54 84 74 80 96 L94 98 C98 76 94 54 84 40Z" fill="#d9d2c2"/><path d="M74 52 C66 44 52 44 40 50 C28 56 18 62 10 66 C4 70 6 78 12 80 L38 86 C54 90 68 88 76 78 Z" fill="#4a423a"/><ellipse cx="8" cy="72" rx="6" ry="8" fill="#6e5f55"/><ellipse cx="6" cy="71" rx="1.6" ry="2.4" fill="#1a1613"/><ellipse cx="9.5" cy="74" rx="1.6" ry="2.4" fill="#1a1613"/><path d="M16 80 Q28 86 40 84" stroke="#1a1613" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M22 81 l3 6 l2 -6z" fill="#efe9d8"/><path d="M60 48 L66 32 L74 46Z" fill="#3a332c"/><path d="M63 45 L66 36 L70 45Z" fill="#7a6a5e"/><circle cx="44" cy="60" r="3.2" fill="#140f0c"/><circle cx="45" cy="59" r="1" fill="#fff"/></svg>',
-    greymangrove: "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 220 240\"><path d=\"M0 214 H220 V240 H0Z\" fill=\"#9c8e74\"/><path d=\"M0 220 C40 216 80 224 120 219 C160 215 190 222 220 218 V240 H0Z\" fill=\"#7fa3a6\" opacity=\".55\"/><rect x=\"14\" y=\"204\" width=\"3\" height=\"10\" rx=\"1.5\" fill=\"#7b7266\"/><rect x=\"24\" y=\"200\" width=\"3\" height=\"14\" rx=\"1.5\" fill=\"#7b7266\"/><rect x=\"34\" y=\"205\" width=\"3\" height=\"9\" rx=\"1.5\" fill=\"#7b7266\"/><rect x=\"46\" y=\"202\" width=\"3\" height=\"12\" rx=\"1.5\" fill=\"#7b7266\"/><rect x=\"58\" y=\"206\" width=\"3\" height=\"8\" rx=\"1.5\" fill=\"#7b7266\"/><rect x=\"150\" y=\"205\" width=\"3\" height=\"9\" rx=\"1.5\" fill=\"#7b7266\"/><rect x=\"162\" y=\"201\" width=\"3\" height=\"13\" rx=\"1.5\" fill=\"#7b7266\"/><rect x=\"174\" y=\"204\" width=\"3\" height=\"10\" rx=\"1.5\" fill=\"#7b7266\"/><rect x=\"186\" y=\"200\" width=\"3\" height=\"14\" rx=\"1.5\" fill=\"#7b7266\"/><rect x=\"198\" y=\"205\" width=\"3\" height=\"9\" rx=\"1.5\" fill=\"#7b7266\"/><rect x=\"66\" y=\"203\" width=\"3\" height=\"11\" rx=\"1.5\" fill=\"#7b7266\"/><rect x=\"140\" y=\"202\" width=\"3\" height=\"12\" rx=\"1.5\" fill=\"#7b7266\"/><path d=\"M100 214 C98 180 92 150 78 120 L86 116 C100 140 106 160 108 180 C112 160 118 140 132 118 L140 124 C124 150 116 180 116 214Z\" fill=\"#8a8478\"/><path d=\"M104 160 C90 150 70 146 52 140 L54 134 C74 138 92 144 106 152Z M114 150 C130 140 150 136 168 132 L168 138 C150 142 132 148 116 158Z\" fill=\"#8a8478\"/><path d=\"M98 214 C96 206 90 200 82 198 M118 214 C120 206 126 200 134 198\" stroke=\"#8a8478\" stroke-width=\"5\" fill=\"none\" stroke-linecap=\"round\"/><ellipse cx=\"110\" cy=\"96\" rx=\"96\" ry=\"58\" fill=\"#5d7650\"/><ellipse cx=\"60\" cy=\"110\" rx=\"48\" ry=\"34\" fill=\"#667f57\"/><ellipse cx=\"160\" cy=\"108\" rx=\"50\" ry=\"34\" fill=\"#667f57\"/><ellipse cx=\"104\" cy=\"70\" rx=\"64\" ry=\"40\" fill=\"#728c61\"/><ellipse cx=\"66\" cy=\"78\" rx=\"34\" ry=\"24\" fill=\"#7b956a\"/><ellipse cx=\"150\" cy=\"76\" rx=\"36\" ry=\"24\" fill=\"#7b956a\"/><ellipse cx=\"108\" cy=\"50\" rx=\"40\" ry=\"22\" fill=\"#86a074\"/><g fill=\"#b4c2a4\" opacity=\".75\"><ellipse cx=\"40\" cy=\"100\" rx=\"6\" ry=\"2.6\" transform=\"rotate(-20 40 100)\"/><ellipse cx=\"62\" cy=\"126\" rx=\"6\" ry=\"2.6\" transform=\"rotate(15 62 126)\"/><ellipse cx=\"90\" cy=\"132\" rx=\"6\" ry=\"2.6\" transform=\"rotate(-10 90 132)\"/><ellipse cx=\"130\" cy=\"134\" rx=\"6\" ry=\"2.6\" transform=\"rotate(12 130 134)\"/><ellipse cx=\"170\" cy=\"124\" rx=\"6\" ry=\"2.6\" transform=\"rotate(-18 170 124)\"/><ellipse cx=\"188\" cy=\"102\" rx=\"6\" ry=\"2.6\" transform=\"rotate(20 188 102)\"/><ellipse cx=\"150\" cy=\"92\" rx=\"6\" ry=\"2.6\" transform=\"rotate(-8 150 92)\"/><ellipse cx=\"80\" cy=\"90\" rx=\"6\" ry=\"2.6\" transform=\"rotate(10 80 90)\"/><ellipse cx=\"118\" cy=\"84\" rx=\"6\" ry=\"2.6\" transform=\"rotate(-15 118 84)\"/><ellipse cx=\"100\" cy=\"110\" rx=\"6\" ry=\"2.6\" transform=\"rotate(18 100 110)\"/><ellipse cx=\"56\" cy=\"70\" rx=\"6\" ry=\"2.6\" transform=\"rotate(-25 56 70)\"/><ellipse cx=\"164\" cy=\"66\" rx=\"6\" ry=\"2.6\" transform=\"rotate(25 164 66)\"/><ellipse cx=\"110\" cy=\"40\" rx=\"6\" ry=\"2.6\" transform=\"rotate(0 110 40)\"/><ellipse cx=\"136\" cy=\"52\" rx=\"6\" ry=\"2.6\" transform=\"rotate(-12 136 52)\"/><ellipse cx=\"84\" cy=\"54\" rx=\"6\" ry=\"2.6\" transform=\"rotate(14 84 54)\"/></g><path d=\"M30 128 C60 146 160 148 192 126 C170 150 60 152 30 128Z\" fill=\"#4c6443\"/></svg>",
-    dugong: "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 260 110\"><path d=\"M222 52 C236 40 250 32 258 30 C254 44 248 54 240 58 C248 62 254 72 258 86 C248 82 234 74 222 62Z\" fill=\"#7f7a74\"/><path d=\"M30 50 C40 26 90 18 140 20 C182 22 210 36 228 52 C214 70 186 80 140 80 C96 80 56 76 36 68 C30 64 28 56 30 50Z\" fill=\"#9a9590\"/><path d=\"M46 66 C80 80 160 82 214 62 C190 80 150 86 110 84 C80 84 58 78 46 66Z\" fill=\"#bdb6ad\"/><path d=\"M60 30 C100 18 170 20 210 40 C170 28 110 26 60 34Z\" fill=\"#857f79\"/><path d=\"M36 50 C26 48 16 52 10 60 C6 66 8 74 14 76 C22 78 30 74 36 68Z\" fill=\"#9a9590\"/><path d=\"M8 66 C8 74 14 80 22 78 C18 74 16 70 18 64Z\" fill=\"#c9c1b6\"/><path d=\"M12 70 C14 74 18 76 22 76\" stroke=\"#5e5852\" stroke-width=\"1.6\" fill=\"none\"/><g fill=\"#6e6862\"><circle cx=\"12\" cy=\"64\" r=\"0.9\"/><circle cx=\"15\" cy=\"67\" r=\"0.9\"/><circle cx=\"18\" cy=\"64\" r=\"0.9\"/><circle cx=\"14\" cy=\"61\" r=\"0.9\"/><circle cx=\"20\" cy=\"68\" r=\"0.9\"/><circle cx=\"11\" cy=\"68\" r=\"0.9\"/></g><circle cx=\"40\" cy=\"46\" r=\"2.2\" fill=\"#2a2622\"/><path d=\"M78 70 C74 82 66 92 56 96 C64 98 76 94 84 86 C88 80 88 74 86 70Z\" fill=\"#857f79\"/></svg>",
-    oryx: "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 -10 230 220\"><path d=\"M48 40 L84 -2 L88 1 L56 44Z M56 42 L94 2 L97 6 L62 46Z\" fill=\"#3b342d\"/><path d=\"M196 86 C206 92 210 104 208 120 L203 120 C202 106 198 96 192 92Z\" fill=\"#f2efe8\"/><path d=\"M203 116 C202 128 204 136 208 140 C212 134 212 124 208 116Z\" fill=\"#2c2620\"/><path d=\"M166 118 L160 196 L170 196 L178 122Z M80 120 L76 196 L86 196 L92 122Z\" fill=\"#3b342d\"/><path d=\"M60 92 C64 70 94 64 128 64 C162 64 196 70 200 92 C202 116 186 126 160 126 L96 126 C74 126 58 114 60 92Z\" fill=\"#f2efe8\"/><path d=\"M70 112 C96 124 150 126 192 112 C180 124 160 128 132 128 C104 128 82 124 70 112Z\" fill=\"#ddd8cc\"/><path d=\"M86 122 L82 198 L92 198 L98 124Z M174 120 L170 198 L180 198 L186 122Z\" fill=\"#2c2620\"/><path d=\"M82 160 h12 M78 182 h12 M170 158 h12 M166 182 h12 M171 160 h11 M162 180 h10\" stroke=\"#f2efe8\" stroke-width=\"5\"/><path d=\"M80 196 h14 l-1 6 h-12z M168 196 h14 l-1 6 h-12z M74 194 h13 l-1 6 h-11z M158 194 h13 l-1 6 h-11z\" fill=\"#141110\"/><path d=\"M62 96 C56 80 54 66 56 54 L74 50 C76 64 80 78 88 90Z\" fill=\"#f2efe8\"/><path d=\"M76 72 C74 82 72 92 74 104\" stroke=\"#3b342d\" stroke-width=\"4\" fill=\"none\"/><path d=\"M70 52 C62 42 48 40 36 44 C26 48 18 56 14 64 C12 70 16 74 22 74 C34 74 48 72 58 66 C66 62 72 58 70 52Z\" fill=\"#f2efe8\"/><path d=\"M60 48 C50 44 40 46 34 52 C30 58 30 66 34 72 L44 72 C40 64 42 56 50 54 C56 52 60 52 64 54Z\" fill=\"#2c2620\"/><path d=\"M22 58 C18 62 16 68 18 74 L26 74 C24 68 26 62 30 58Z\" fill=\"#2c2620\"/><path d=\"M66 46 L76 34 L78 48Z\" fill=\"#f2efe8\"/><path d=\"M69 45 L75 37 L76 46Z\" fill=\"#c9b9a4\"/><circle cx=\"44\" cy=\"54\" r=\"3.2\" fill=\"#0e0b09\"/><circle cx=\"45\" cy=\"53\" r=\"1\" fill=\"#fff\"/><ellipse cx=\"17\" cy=\"66\" rx=\"2\" ry=\"1.4\" fill=\"#0e0b09\"/></svg>",
-    gazelle: "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 -6 210 196\"><path d=\"M50 38 C44 24 42 12 48 2 L52 4 C48 14 50 24 56 34Z M58 36 C54 22 54 10 60 0 L64 2 C60 12 60 24 64 34Z\" fill=\"#4a4036\"/><g stroke=\"#2e2822\" stroke-width=\"1.4\"><path d=\"M45 14 h6 M45 22 h7 M47 30 h7 M55 12 h6 M55 20 h7 M57 28 h6\"/></g><path d=\"M168 84 C176 88 178 96 176 104 L172 104 C172 98 170 92 164 90Z\" fill=\"#3a3028\"/><path d=\"M150 112 L144 178 L152 178 L160 114Z M74 112 L70 178 L78 178 L84 114Z\" fill=\"#c9a77a\"/><path d=\"M60 88 C64 68 90 62 118 62 C146 62 170 68 172 88 C174 108 160 116 138 116 L90 116 C70 116 58 106 60 88Z\" fill=\"#e2c391\"/><path d=\"M64 102 C90 116 140 118 170 102 C162 118 140 120 116 120 C90 120 72 116 64 102Z\" fill=\"#faf6ee\"/><path d=\"M66 98 C96 106 140 106 168 96\" stroke=\"#b9925e\" stroke-width=\"3\" fill=\"none\" opacity=\".7\"/><path d=\"M164 72 C172 80 174 96 168 110 C162 112 158 104 158 94 C158 84 160 76 164 72Z\" fill=\"#faf6ee\"/><path d=\"M80 114 L76 182 L84 182 L90 116Z M156 112 L152 182 L160 182 L166 114Z\" fill=\"#d8b888\"/><path d=\"M74 180 h12 l-1 5 h-10z M150 180 h12 l-1 5 h-10z M68 176 h11 l-1 5 h-9z M142 176 h11 l-1 5 h-9z\" fill=\"#2a241e\"/><path d=\"M62 92 C56 76 54 62 56 50 L72 48 C74 62 78 76 86 88Z\" fill=\"#e2c391\"/><path d=\"M60 90 C56 78 56 66 58 56 L64 56 C64 68 66 80 70 90Z\" fill=\"#faf6ee\"/><path d=\"M68 50 C60 40 48 38 38 42 C28 46 20 54 16 62 C14 68 18 72 24 72 C34 72 48 70 56 64 C64 60 70 56 68 50Z\" fill=\"#e2c391\"/><path d=\"M60 44 C50 42 40 46 32 54 C28 60 26 66 26 72 L34 72 C36 62 44 54 54 52Z\" fill=\"#faf6ee\"/><path d=\"M44 52 C36 56 30 62 26 68\" stroke=\"#a07c52\" stroke-width=\"2.4\" fill=\"none\"/><path d=\"M62 44 L74 30 L76 46Z\" fill=\"#e2c391\"/><path d=\"M65 43 L73 34 L74 44Z\" fill=\"#c9a77a\"/><circle cx=\"46\" cy=\"52\" r=\"3.4\" fill=\"#0e0b09\"/><circle cx=\"47\" cy=\"51\" r=\"1\" fill=\"#fff\"/><ellipse cx=\"18\" cy=\"64\" rx=\"2\" ry=\"1.4\" fill=\"#0e0b09\"/></svg>",
-    hawksbill: "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 210 110\"><path d=\"M150 74 C168 76 186 86 196 100 C182 100 166 94 152 86Z\" fill=\"#6d5a40\"/><path d=\"M40 70 C44 40 80 22 112 22 C146 22 172 40 176 70 C150 80 70 82 40 70Z\" fill=\"#8a5424\"/><path d=\"M60 40 l12 -10 l14 2 l4 14 l-12 8 l-14 -2z\" fill=\"#b8762e\" stroke=\"#5a3a1c\" stroke-width=\"1.5\"/><path d=\"M86 34 l12 -10 l14 2 l4 14 l-12 8 l-14 -2z\" fill=\"#c98a3a\" stroke=\"#5a3a1c\" stroke-width=\"1.5\"/><path d=\"M112 34 l12 -10 l14 2 l4 14 l-12 8 l-14 -2z\" fill=\"#a8662a\" stroke=\"#5a3a1c\" stroke-width=\"1.5\"/><path d=\"M138 40 l12 -10 l14 2 l4 14 l-12 8 l-14 -2z\" fill=\"#c27f34\" stroke=\"#5a3a1c\" stroke-width=\"1.5\"/><path d=\"M72 58 l12 -10 l14 2 l4 14 l-12 8 l-14 -2z\" fill=\"#a35f26\" stroke=\"#5a3a1c\" stroke-width=\"1.5\"/><path d=\"M100 54 l12 -10 l14 2 l4 14 l-12 8 l-14 -2z\" fill=\"#c98a3a\" stroke=\"#5a3a1c\" stroke-width=\"1.5\"/><path d=\"M126 58 l12 -10 l14 2 l4 14 l-12 8 l-14 -2z\" fill=\"#b06c2c\" stroke=\"#5a3a1c\" stroke-width=\"1.5\"/><path d=\"M40 70 C70 82 150 80 176 70 C172 78 150 86 108 86 C70 86 46 80 40 70Z\" fill=\"#e6c98a\"/><path d=\"M42 70 C60 76 80 78 96 78\" stroke=\"#5a3a1c\" stroke-width=\"1.5\" fill=\"none\"/><path d=\"M56 78 C42 88 30 98 16 104 C30 106 48 100 62 90Z\" fill=\"#6d5a40\"/><path d=\"M30 98 l6 -4 M40 94 l5 -4\" stroke=\"#e6c98a\" stroke-width=\"1.6\"/><path d=\"M46 62 C36 56 24 54 14 58 C6 62 4 68 6 72 C12 76 26 76 38 72 C44 70 48 66 46 62Z\" fill=\"#7a6346\"/><path d=\"M6 66 C2 68 2 74 8 76 C10 72 10 68 6 66Z\" fill=\"#3e2f20\"/><path d=\"M18 60 l6 -2 l4 4 l-6 2z M28 62 l6 -1 l2 4 l-6 1z\" fill=\"#5a4630\"/><circle cx=\"20\" cy=\"64\" r=\"2.4\" fill=\"#0e0b09\"/><circle cx=\"20.7\" cy=\"63.4\" r=\".7\" fill=\"#fff\"/></svg>",
-    flamingo: "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 -2 150 272\"><path d=\"M86 150 L84 262 M96 150 L104 210 L92 214\" stroke=\"#e48aa4\" stroke-width=\"4\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"104\" cy=\"210\" r=\"3\" fill=\"#d27691\"/><path d=\"M78 262 h14 l-2 4 h-12z\" fill=\"#d27691\"/><path d=\"M50 120 C54 100 80 92 104 96 C126 100 144 112 146 128 C138 132 128 132 118 130 C110 146 90 156 70 150 C56 146 48 134 50 120Z\" fill=\"#f6dde3\"/><path d=\"M76 108 C94 104 116 108 132 118 C120 126 98 128 80 122Z\" fill=\"#e2566e\"/><path d=\"M118 130 C128 132 140 132 146 128 C144 136 136 140 126 140Z\" fill=\"#1d1b1d\"/><path d=\"M60 112 C50 96 42 80 42 64 C42 48 52 36 52 26 C52 18 46 14 40 16\" stroke=\"#f3cbd5\" stroke-width=\"10\" fill=\"none\" stroke-linecap=\"round\"/><circle cx=\"40\" cy=\"18\" r=\"9\" fill=\"#f3cbd5\"/><path d=\"M32 16 C24 18 18 24 18 32 C18 38 20 42 24 44 C24 36 28 28 36 24Z\" fill=\"#f0a9bd\"/><path d=\"M18 32 C18 38 20 42 24 44 C22 38 22 34 22 30Z\" fill=\"#1d1b1d\"/><circle cx=\"42\" cy=\"16\" r=\"1.8\" fill=\"#e8c34a\"/><circle cx=\"42\" cy=\"16\" r=\".8\" fill=\"#111\"/></svg>",
-    cormorant: "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 140 210\"><path d=\"M20 196 C30 178 60 172 90 174 C116 176 132 186 136 198 C110 206 46 206 20 196Z\" fill=\"#a89b86\"/><path d=\"M74 168 L70 182 M84 168 L84 182\" stroke=\"#262422\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M62 182 h16 M76 182 h16\" stroke=\"#262422\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M86 160 C96 172 104 186 108 198 L100 200 C94 188 88 176 80 166Z\" fill=\"#1f2023\"/><path d=\"M60 70 C50 90 48 126 56 150 C62 168 80 174 92 164 C102 154 102 124 96 100 C92 84 84 70 76 64Z\" fill=\"#26282c\"/><path d=\"M74 84 C86 96 92 120 90 146 C86 128 82 108 72 92Z\" fill=\"#3a3f3a\" opacity=\".85\"/><path d=\"M70 72 C66 56 66 42 70 32 C74 24 80 22 84 26 C86 36 82 52 80 70Z\" fill=\"#26282c\"/><circle cx=\"76\" cy=\"28\" r=\"10\" fill=\"#26282c\"/><path d=\"M68 26 L40 30 C38 31 38 33 40 33 L68 33Z\" fill=\"#3b3d40\"/><path d=\"M40 30 C36 30 36 34 39 34\" stroke=\"#3b3d40\" stroke-width=\"2\" fill=\"none\"/><circle cx=\"74\" cy=\"25\" r=\"2.2\" fill=\"#3fa38a\"/><circle cx=\"74\" cy=\"25\" r=\"1\" fill=\"#0b0b0b\"/></svg>",
-    reefheron: "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 150 240\"><path d=\"M80 150 L76 230 M92 150 L94 230\" stroke=\"#3f3e3c\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M68 230 h14 M86 230 h16\" stroke=\"#d6b33a\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M54 116 C56 98 76 90 98 94 C118 98 136 112 138 132 C126 140 116 142 104 142 C96 154 78 158 66 150 C56 142 52 130 54 116Z\" fill=\"#5d6268\"/><path d=\"M106 112 C120 118 134 128 144 146 C130 142 118 136 110 128Z\" fill=\"#4d5258\"/><path d=\"M62 108 C52 92 46 76 48 60 C50 46 58 36 62 30\" stroke=\"#5d6268\" stroke-width=\"12\" fill=\"none\" stroke-linecap=\"round\"/><circle cx=\"62\" cy=\"28\" r=\"10\" fill=\"#5d6268\"/><path d=\"M54 28 L14 36 L54 34Z\" fill=\"#c9a341\"/><path d=\"M54 30 L14 36\" stroke=\"#8a6d24\" stroke-width=\"1\"/><path d=\"M54 32 C54 38 58 42 64 42 C60 38 58 34 58 30Z\" fill=\"#f4f2ec\"/><path d=\"M66 22 C76 18 86 20 92 26 C84 24 76 24 70 26Z\" fill=\"#5d6268\"/><circle cx=\"60\" cy=\"25\" r=\"2.2\" fill=\"#e5c33a\"/><circle cx=\"60\" cy=\"25\" r=\"1\" fill=\"#0b0b0b\"/></svg>",
-    dhub: "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 230 90\"><path d=\"M140 46 C170 42 200 46 226 58 C200 60 170 62 140 62Z\" fill=\"#b8a46a\"/><path d=\"M142 44 l4 -6 l4 6\" fill=\"#8e7a4e\"/><path d=\"M151 44 l4 -6 l4 6\" fill=\"#8e7a4e\"/><path d=\"M160 45 l4 -6 l4 6\" fill=\"#8e7a4e\"/><path d=\"M169 45 l4 -6 l4 6\" fill=\"#8e7a4e\"/><path d=\"M178 46 l4 -6 l4 6\" fill=\"#8e7a4e\"/><path d=\"M187 46 l4 -6 l4 6\" fill=\"#8e7a4e\"/><path d=\"M196 47 l4 -6 l4 6\" fill=\"#8e7a4e\"/><path d=\"M205 47 l4 -6 l4 6\" fill=\"#8e7a4e\"/><path d=\"M214 48 l4 -6 l4 6\" fill=\"#8e7a4e\"/><g stroke=\"#8e7a4e\" stroke-width=\"1.6\"><path d=\"M146 46 v14\"/><path d=\"M155 46 v13\"/><path d=\"M164 47 v13\"/><path d=\"M173 47 v12\"/><path d=\"M182 48 v11\"/><path d=\"M191 48 v10\"/><path d=\"M200 49 v10\"/><path d=\"M209 49 v9\"/><path d=\"M218 49 v8\"/></g><path d=\"M150 62 L164 76 L172 76 M150 62 L160 74\" stroke=\"#a08c58\" stroke-width=\"7\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M60 64 L48 78 L40 78\" stroke=\"#a08c58\" stroke-width=\"7\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M40 50 C46 34 80 28 110 30 C134 32 150 40 152 52 C152 64 132 68 106 68 L66 68 C48 68 36 62 40 50Z\" fill=\"#c9b578\"/><path d=\"M46 60 C70 70 120 70 150 58 C140 70 110 72 86 72 C64 72 50 68 46 60Z\" fill=\"#e3d6a8\"/><g fill=\"#7d6a3e\"><circle cx=\"64\" cy=\"44\" r=\"2.2\"/><circle cx=\"78\" cy=\"38\" r=\"1.8\"/><circle cx=\"92\" cy=\"42\" r=\"2.4\"/><circle cx=\"106\" cy=\"36\" r=\"1.8\"/><circle cx=\"120\" cy=\"42\" r=\"2.2\"/><circle cx=\"134\" cy=\"46\" r=\"1.8\"/><circle cx=\"84\" cy=\"52\" r=\"1.6\"/><circle cx=\"112\" cy=\"52\" r=\"2.0\"/><circle cx=\"98\" cy=\"56\" r=\"1.6\"/><circle cx=\"126\" cy=\"56\" r=\"1.8\"/><circle cx=\"70\" cy=\"54\" r=\"1.6\"/></g><path d=\"M138 64 L148 78 L156 78 M138 64 L144 78\" stroke=\"#b09c62\" stroke-width=\"7\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M70 66 L62 80 L54 80\" stroke=\"#b09c62\" stroke-width=\"7\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M46 46 C36 38 22 38 12 44 C4 48 2 56 8 60 C18 64 34 62 46 58Z\" fill=\"#c9b578\"/><path d=\"M6 56 C16 60 30 60 40 58\" stroke=\"#6b5a34\" stroke-width=\"1.6\" fill=\"none\"/><circle cx=\"22\" cy=\"47\" r=\"2.6\" fill=\"#1a140c\"/><circle cx=\"22.7\" cy=\"46.3\" r=\".8\" fill=\"#fff\"/><circle cx=\"36\" cy=\"50\" r=\"2.2\" fill=\"#8e7a4e\"/></svg>"
+    javelina: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230 140"><rect x="150" y="84" width="13" height="44" rx="6" fill="#2e2924"/><rect x="70" y="86" width="13" height="42" rx="6" fill="#2e2924"/><path d="M190 70 C198 72 202 78 200 86" stroke="#3a332c" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M58 66 C62 40 96 30 132 32 C164 32 192 44 194 70 C196 92 176 102 150 102 L88 102 C68 102 56 88 58 66Z" fill="#4a423a"/><path d="M70 50 L74 40 L79 45 L84 35 L89 41 L95 31 L100 37 L107 29 L112 35 L119 28 L124 34 L131 28 L136 34 L143 29 L148 36 L155 32 L159 39 L166 36 L168 43 L175 42 C176 46 174 48 170 47 C140 40 104 40 70 54Z" fill="#2f2924"/><path d="M66 86 C90 100 140 102 176 92 C150 104 96 104 66 86Z" fill="#5c5349"/><g fill="none" stroke="#6b6157" stroke-width="2" stroke-linecap="round" opacity=".8"><path d="M110 52 l6 10"/><path d="M130 50 l5 10"/><path d="M150 54 l5 9"/><path d="M168 58 l4 9"/><path d="M120 70 l5 9"/><path d="M142 72 l5 9"/><path d="M162 76 l4 8"/><path d="M100 72 l5 9"/></g><rect x="82" y="88" width="14" height="42" rx="6" fill="#3e3731"/><rect x="164" y="86" width="14" height="44" rx="6" fill="#3e3731"/><path d="M80 126 h18 l-2 6 h-14z M162 126 h18 l-2 6 h-14z M68 124 h16 l-2 6 h-12z M148 124 h16 l-2 6 h-12z" fill="#1a1613"/><path d="M70 44 C80 54 84 74 80 96 L94 98 C98 76 94 54 84 40Z" fill="#d9d2c2"/><path d="M74 52 C66 44 52 44 40 50 C28 56 18 62 10 66 C4 70 6 78 12 80 L38 86 C54 90 68 88 76 78 Z" fill="#4a423a"/><ellipse cx="8" cy="72" rx="6" ry="8" fill="#6e5f55"/><ellipse cx="6" cy="71" rx="1.6" ry="2.4" fill="#1a1613"/><ellipse cx="9.5" cy="74" rx="1.6" ry="2.4" fill="#1a1613"/><path d="M16 80 Q28 86 40 84" stroke="#1a1613" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M22 81 l3 6 l2 -6z" fill="#efe9d8"/><path d="M60 48 L66 32 L74 46Z" fill="#3a332c"/><path d="M63 45 L66 36 L70 45Z" fill="#7a6a5e"/><circle cx="44" cy="60" r="3.2" fill="#140f0c"/><circle cx="45" cy="59" r="1" fill="#fff"/></svg>'
   };
   // Drawings that need a shape change as well as new colours
   var STRIP = { cougar: [/<path d="M58 30[^>]*\/>/, /<path d="M66 34[^>]*\/>/] };
@@ -1790,7 +1469,8 @@ var SU_ART = (function () {
       ['p', 'Subalpine fir', 'Abies lasiocarpa', '🌲', 10], ['p', 'Engelmann spruce', 'Picea engelmannii', '🌲', 11],
       ['p', 'Narrowleaf cottonwood', 'Populus angustifolia', '🌳', 9], ['p', 'Arrowleaf balsamroot', 'Balsamorhiza sagittata', '🌼', 0.5],
       ['p', 'Silvery lupine', 'Lupinus argenteus', '🪻', 0.6],
-      ['a', 'Elk', 'Cervus canadensis', '🦌', 2.2], ['a', 'Pronghorn', 'Antilocapra americana', '🦌', 1.2],
+      ['a', 'Moose', 'Alces alces', '🫎', 2.3], ['a', 'Elk', 'Cervus canadensis', '🦌', 2.2], ['a', 'Mule deer', 'Odocoileus hemionus', '🦌', 1.7],
+      ['a', 'Pronghorn', 'Antilocapra americana', '🦌', 1.2],
       ['a', 'American bison', 'Bison bison', '🦬', 1.9], ['a', 'Grizzly bear', 'Ursus arctos horribilis', 'a:Bear', 1.2],
       ['a', 'American black bear', 'Ursus americanus', 'a:Bear', 1.0, 0, 'blackbear'], ['a', 'Coyote', 'Canis latrans', 'a:Wolf', 0.65, 0, 'coyote'],
       ['a', 'Uinta ground squirrel', 'Urocitellus armatus', '🐿️', 0.25], ['a', 'American pika', 'Ochotona princeps', '🐁', 0.15],
@@ -1860,44 +1540,6 @@ var SU_ART = (function () {
       ['a', 'Midget faded rattlesnake', 'Crotalus oreganus concolor', 'su:rattlesnake', 0.25, 0, 'palesnake'],
       ['a', 'Common collared lizard', 'Crotaphytus collaris', '🦎', 0.12], ['a', 'Golden eagle', 'Aquila chrysaetos', '🦅', 0.9, 10],
       ['a', 'Red-spotted toad', 'Anaxyrus punctatus', 'a:Frog', 0.08, 0, 'redtoad']
-    ],
-    // Qatar. Sources: Qatar Turtle Management Project (2013), UNESCO Tentative List (Khor Al-Adaid, 2008),
-    // Batanouny & Turki (1983) on Khor El-Odaid vegetation, Qatar University mangrove and salt-marsh studies, Visit Qatar
-    ummtais: [
-      ['p', 'Grey mangrove', 'Avicennia marina', 'n:greymangrove', 4], ['p', 'Coastal dune grass', 'Halopyrum mucronatum', '🌾', 0.8],
-      ['p', 'Desert sedge', 'Cyperus conglomeratus', '🌾', 0.4], ['p', 'Desert broomrape', 'Cistanche sp.', '🌼', 0.4],
-      ['a', 'Hawksbill sea turtle', 'Eretmochelys imbricata', 'n:hawksbill', 0.35], ['w', 'Green sea turtle', 'Chelonia mydas', '🐢', 0.4, 0.3],
-      ['a', 'Socotra cormorant', 'Phalacrocorax nigrogularis', 'n:cormorant', 0.75], ['a', 'Osprey', 'Pandion haliaetus', '🦅', 0.6, 9],
-      ['a', 'Western reef heron', 'Egretta gularis', 'n:reefheron', 0.6], ['a', 'Ghost crab', 'Ocypode rotundata', '🦀', 0.06],
-      ['a', 'Spiny-tailed lizard', 'Uromastyx aegyptia', 'n:dhub', 0.2], ['a', 'Fringe-toed lizard', 'Acanthodactylus sp.', '🦎', 0.08]
-    ],
-    khoraladaid: [
-      ['p', 'Desert sedge', 'Cyperus conglomeratus', '🌾', 0.4], ['p', 'Desert panic grass', 'Panicum turgidum', '🌾', 0.9],
-      ['p', 'Qatar bean caper', 'Zygophyllum qatarense', '🌿', 0.5], ['p', 'Sea lavender', 'Limonium axillare', '🪻', 0.5],
-      ['p', 'Glasswort', 'Halopeplis perfoliata', '🌿', 0.3], ['p', 'Desert broomrape', 'Cistanche phelypaea', '🌼', 0.4],
-      ['p', 'Paddle weed seagrass', 'Halophila ovalis', '🌿', 0.1],
-      ['w', 'Dugong', 'Dugong dugon', 'n:dugong', 0.7, 0.3], ['w', 'Green sea turtle', 'Chelonia mydas', '🐢', 0.4, 0.3],
-      ['a', 'Arabian oryx', 'Oryx leucoryx', 'n:oryx', 1.0], ['a', 'Sand gazelle (reem)', 'Gazella marica', 'n:gazelle', 0.7],
-      ['a', 'Rüppell’s fox', 'Vulpes rueppellii', 'a:Fox', 0.35, 0, 'rueppell'], ['a', 'Osprey', 'Pandion haliaetus', '🦅', 0.6, 9],
-      ['a', 'Greater flamingo', 'Phoenicopterus roseus', 'n:flamingo', 1.3], ['a', 'Socotra cormorant', 'Phalacrocorax nigrogularis', 'n:cormorant', 0.75],
-      ['a', 'Spiny-tailed lizard', 'Uromastyx aegyptia', 'n:dhub', 0.2]
-    ],
-    althakira: [
-      ['p', 'Grey mangrove', 'Avicennia marina', 'n:greymangrove', 4], ['p', 'Swollen-fruit glasswort', 'Arthrocnemum macrostachyum', '🌿', 0.6],
-      ['p', 'Jointed glasswort', 'Halocnemum strobilaceum', '🌿', 0.4], ['p', 'Seablite', 'Suaeda vermiculata', '🌿', 0.8],
-      ['p', 'Qatar bean caper', 'Zygophyllum qatarense', '🌿', 0.5],
-      ['a', 'Greater flamingo', 'Phoenicopterus roseus', 'n:flamingo', 1.3], ['a', 'Western reef heron', 'Egretta gularis', 'n:reefheron', 0.6],
-      ['a', 'Grey heron', 'Ardea cinerea', 'n:reefheron', 0.95, 0, 'greyheron'], ['a', 'Mallard', 'Anas platyrhynchos', '🦆', 0.4],
-      ['a', 'Eurasian teal', 'Anas crecca', '🦆', 0.3], ['a', 'Mangrove crab', 'Metopograpsus messor', '🦀', 0.05],
-      ['w', 'Arabian pupfish', 'Aphaniops dispar', '🐟', 0.06, 0.3], ['w', 'Khor grass shrimp', 'Palaemon khori', '🦐', 0.04, 0.3]
-    ],
-    rasabrouq: [
-      ['p', 'Desert thorn', 'Lycium shawii', '🌿', 1.5], ['p', 'Pearl plant', 'Ochradenus baccatus', '🌿', 1.2],
-      ['p', 'Qatar bean caper', 'Zygophyllum qatarense', '🌿', 0.5], ['p', 'Desert gourd', 'Citrullus colocynthis', '🍈', 0.3],
-      ['p', 'Narrow-leaved asphodel', 'Asphodelus tenuifolius', '🌸', 0.4], ['p', 'Bienertia', 'Bienertia sinuspersici', '🌿', 0.5],
-      ['a', 'Arabian oryx', 'Oryx leucoryx', 'n:oryx', 1.0], ['a', 'Sand gazelle (reem)', 'Gazella marica', 'n:gazelle', 0.7],
-      ['a', 'Arabian red fox', 'Vulpes vulpes arabica', 'a:Fox', 0.4], ['a', 'Rüppell’s fox', 'Vulpes rueppellii', 'a:Fox', 0.35, 0, 'rueppell'],
-      ['a', 'Spiny-tailed lizard', 'Uromastyx aegyptia', 'n:dhub', 0.2], ['a', 'Greater flamingo', 'Phoenicopterus roseus', 'n:flamingo', 1.3]
     ]
   };
   // The biome lists come from one real region each, so say which
@@ -1942,7 +1584,7 @@ var SU_ART = (function () {
     var key = env && env.mode !== 'photo' ? env.preset : '';
     var P = key && window.ECO && ECO.PRESETS[key];
     if (WHERE[key]) return WHERE[key];
-    return P ? P.name + (P.park ? ' ' + (P.label || 'National Park') : '') : '';
+    return P ? P.name + (P.park ? ' National Park' : '') : '';
   }
   // Library grid helpers shared by the builders
   function tile(i, idx, esc) {
@@ -1974,8 +1616,7 @@ window.ECOPICS = {"base":"pictures/","thumbs":{"a-a-palm":"data:image/webp;base6
   var EL = window.ECOLIB, P = window.ECOPICS;
   if (!EL || !P) return;
   function slug(n) { return String(n || '').toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
-  var SAME = { 'arabian-red-fox': 'red-fox' };
-  EL.picFor = function (item) { var s = item && slug(item.n); if (s && !P.thumbs[s] && SAME[s]) s = SAME[s]; return s && P.thumbs[s] ? s : null; };
+  EL.picFor = function (item) { var s = item && slug(item.n); return s && P.thumbs[s] ? s : null; };
   var packs = {};
   EL.picture = function (s) {
     var n = P.pack[s];
@@ -2773,7 +2414,7 @@ if (window.ECO) { ECO.LANDMARKS = {"arches":[{"name":"delicate arch vector","img
       <button role="tab" aria-selected="true" data-tab="cast">2 · Characters</button>
     </div>
     <div class="pane" id="pane-env">
-      <h2>Choose a biome, park, or reserve</h2>
+      <h2>Choose a biome or national park</h2>
       <div class="presets" id="presets"></div>
       <h2>Or use your own 360° photo</h2>
       <div class="photo-card" id="photo-card"></div>
